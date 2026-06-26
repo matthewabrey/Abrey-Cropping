@@ -81,6 +81,7 @@ tr:hover td{background:var(--c1)}
   <button class="nb act" onclick="go('wt')">Water</button>
   <button class="nb" onclick="go('on')">Onion Storage</button>
   <button class="nb" onclick="go('ad')">AD Crops</button>
+  <button id="lock-btn" onclick="toggleLock()" style="margin-left:auto;padding:4px 14px;font-size:13px;background:#c0392b;color:#fff;border:none;border-radius:4px;cursor:pointer">&#128274; Locked</button>
   <button class="nb" onclick="go('cf')">Settings</button>
   <button class="nb" onclick="go('cr')">Cropping Rules</button>
   <button class="nb" onclick="go('ri')">Risk</button>
@@ -172,6 +173,7 @@ let selEstates=[],selZones=[];
 let sortCol=null,sortDir=1;  // sortCol = column key, sortDir = 1 asc / -1 desc
 let sortStack=[];  // multi-sort stack [{col,dir},...] primary first
 let selOurs='all';  // 'all' or 'ours'
+let _unlocked=false;
 
 function badge(c,sm,opacity,partner){
   if(!c)return '<span style="color:#ccc;font-size:10px">—</span>';
@@ -367,6 +369,7 @@ function checkRotation(f,yr,crop){
 }
 
 function setCrop(f,yr,crop){
+  if(!_unlocked){alert('Click the lock button and enter the password to edit.');return;}
   if(!f.plan)f.plan={};
   // Rotation check
   if(crop){
@@ -971,6 +974,23 @@ function toggleOurs(){
     btn.style.borderColor=selOurs==='ours'?'var(--g1)':'';
   }
   aF();
+}
+
+function toggleLock(){
+  if(_unlocked){
+    _unlocked=false;
+    var b=document.getElementById('lock-btn');
+    if(b){b.innerHTML='&#128274; Locked';b.style.background='#c0392b';}
+    return;
+  }
+  var pw=prompt('Enter password to unlock editing:');
+  if(pw===atob('TGFya3NoYWxsMQ==')){
+    _unlocked=true;
+    var b=document.getElementById('lock-btn');
+    if(b){b.innerHTML='&#128275; Editing';b.style.background='#27ae60';}
+  } else if(pw!==null){
+    alert('Incorrect password.');
+  }
 }
 
 function clearF(){
