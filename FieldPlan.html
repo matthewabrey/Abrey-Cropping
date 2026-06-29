@@ -1379,7 +1379,7 @@ function aF(){
     return '<tr>'
       +'<td style="position:sticky;left:0px;z-index:2;background:var(--c2);font-size:11px;color:var(--tx);min-width:90px">'+f.estate+'</td>'
       +'<td style="position:sticky;left:90px;z-index:2;background:var(--c2);font-size:11px;color:var(--tx);min-width:100px">'+(f.zone&&f.zone!==f.estate&&f.zone!==f.farm?f.zone:f.farm)+'</td>'
-      +'<td style="position:sticky;left:190px;z-index:2;background:var(--c2);min-width:200px"><div style="font-weight:bold;font-size:12px">'+f.field+'</div>'+warn+'</td>'
+      +'<td style="position:sticky;left:190px;z-index:2;background:var(--c2);min-width:200px"><div style="font-weight:bold;font-size:12px">'+f.field+'</div>'+((SUBPARCELS_REV[f.estate]||{})[f.field]||[]).map(function(c){return '<div style="font-size:9px;color:#27ae60;line-height:1.4">('+c+')</div>';}).join('')+((SUBPARCELS[f.estate]||{})[f.field]?'<div style="font-size:9px;color:#888;line-height:1.4">&#x21B3; '+SUBPARCELS[f.estate][f.field]+'</div>':'')+warn+'</td>'
       +'<td style="position:sticky;left:390px;z-index:2;background:var(--c2);text-align:right;font-size:11px;color:var(--tx);min-width:45px;border-right:2px solid var(--g1)">'+f.ha.toFixed(1)+'</td>'
       +HY.map(function(y){
         var yrIdx=AY.indexOf(yr),yIdx=AY.indexOf(y),dist=Math.abs(yrIdx-yIdx);
@@ -5330,8 +5330,13 @@ function _mapInfo(f){
     var isCurr=y===_mapSelYr;
     return '<div style="display:flex;justify-content:space-between;gap:6px;padding:2px 0;border-bottom:.5px solid #2a3a2a;font-size:11px;'+(isCurr?'background:#1a2a1a;padding:2px 4px;border-radius:2px;border:none':'')+'"><span style="color:'+(isCurr?'#f0e040':'#6b8c7a')+'">'+y+'</span><span style="color:'+cc+';font-weight:'+(isCurr?'bold':'normal')+'">'+c+'</span></div>';
   }).join('');
+  var _spC2=(SUBPARCELS_REV[_mapEstate]||{})[f.name]||[];
+  var _spP2=(SUBPARCELS[_mapEstate]||{})[f.name]||'';
+  var _spNote2=_spC2.length?'<div style="font-size:10px;color:#4a8a5a;margin-top:2px">'
+    +_spC2.map(function(c){return '('+c+')';}).join('<br>')+'</div>'
+    :(_spP2?'<div style="font-size:10px;color:#888;margin-top:2px">part of '+_spP2+'</div>':'');
   box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
-    +'<span style="font-size:13px;color:#27ae60;font-weight:bold">'+f.name+'</span>'
+    +'<div><span style="font-size:13px;color:#27ae60;font-weight:bold">'+f.name+'</span>'+_spNote2+'</div>'
     +'<button onclick="document.getElementById(\'mp-info\').style.display=\'none\'" style="background:none;border:none;color:#6b8c7a;cursor:pointer;font-size:18px;line-height:1;padding:0 0 0 6px">&times;</button>'
     +'</div>'
     +'<div style="font-size:10px;color:#6b8c7a;margin-bottom:6px">'+f.ha.toFixed(1)+'ha</div>'
