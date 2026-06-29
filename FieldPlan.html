@@ -3883,21 +3883,27 @@ function makePrintSVG(est, year, oursOnly, callback, fieldFilter) {
       (function(tx,ty){
         var img=new Image();
         img.crossOrigin='anonymous';
-        img.onload=function(){
-          // Position this tile on canvas
+        var tileKey=zoom+'/'+tx+'/'+ty;
+        var cachedImg=_tileCache[tileKey];
+        if(cachedImg&&cachedImg.complete){
           var tilePixX=tx*256, tilePixY=ty*256;
-          var sx=tileOffX+(tilePixX-pxMinX)*tileScale;
-          var sy=tileOffY+(tilePixY-pxMinY)*tileScale;
-          var sw=256*tileScale, sh=256*tileScale;
-          ctx.drawImage(img,sx,sy,sw,sh);
+          ctx.drawImage(cachedImg,tileOffX+(tilePixX-pxMinX)*tileScale,tileOffY+(tilePixY-pxMinY)*tileScale,256*tileScale,256*tileScale);
           loadedTiles++;
           if(loadedTiles>=totalTiles) onAllTilesLoaded();
-        };
-        img.onerror=function(){
-          loadedTiles++;
-          if(loadedTiles>=totalTiles) onAllTilesLoaded();
-        };
-        img.src='https://tile.openstreetmap.org/'+zoom+'/'+tx+'/'+ty+'.png';
+        } else {
+          img.onload=function(){
+            _tileCache[tileKey]=img;
+            var tilePixX=tx*256, tilePixY=ty*256;
+            ctx.drawImage(img,tileOffX+(tilePixX-pxMinX)*tileScale,tileOffY+(tilePixY-pxMinY)*tileScale,256*tileScale,256*tileScale);
+            loadedTiles++;
+            if(loadedTiles>=totalTiles) onAllTilesLoaded();
+          };
+          img.onerror=function(){
+            loadedTiles++;
+            if(loadedTiles>=totalTiles) onAllTilesLoaded();
+          };
+          img.src='https://tile.openstreetmap.org/'+zoom+'/'+tx+'/'+ty+'.png';
+        }
       })(tx,ty);
     }
   }
@@ -5008,6 +5014,7 @@ var ALL_ESTATES_GEO={"Wretham":[{"name":"Airfield 3, 4, 9","ha":7.92,"rings":[[[
 var _mapInited=false;
 var _leafletLoaded=false;
 var _mapObj=null;
+var _tileCache={}; // cache OSM tiles to avoid re-downloading
 var _mapPolygons=[];
 var _mapLabels=[];
 var _mapSelYr='2027';
