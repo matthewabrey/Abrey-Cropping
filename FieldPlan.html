@@ -5297,7 +5297,13 @@ function _mapDarken(hex){
 function _mapLegend(){
   var crops={};
   var geo=ALL_ESTATES_GEO[_mapEstate]||[];
-  geo.forEach(function(f){var c=_mapGetLiveCrop(f);if(c)crops[c]=(crops[c]||0)+(f.ha||0);});
+  var geoTotalHa=0;
+  geo.forEach(function(f){var c=_mapGetLiveCrop(f);if(c){crops[c]=(crops[c]||0)+(f.ha||0);}geoTotalHa+=(f.ha||0);});
+  // Compare with F array to show missing fields
+  var geoNames=new Set(geo.map(function(f){return f.name;}));
+  var fFields=F.filter(function(f){return f.estate===_mapEstate;});
+  var missingHa=fFields.reduce(function(a,f){return geoNames.has(f.field)?a:a+f.ha;},0);
+  var missingCount=fFields.filter(function(f){return !geoNames.has(f.field);}).length;
   var items=Object.keys(crops).sort(function(a,b){return crops[b]-crops[a];});
   var el=document.getElementById('mp-leg');
   if(!el) return;
@@ -5305,7 +5311,11 @@ function _mapLegend(){
     return '<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;font-size:11px;color:#c8e6c9">'
       +'<span style="width:12px;height:12px;border-radius:2px;background:'+(CC[c]||'#888')+';flex-shrink:0"></span>'
       +'<span>'+c+'</span><span style="color:#4a6a5a;font-size:10px;margin-left:auto">'+crops[c].toFixed(1)+'ha</span></div>';
-  }).join('');
+  }).join('')
+  +(missingCount>0
+    ?'<div style="margin-top:8px;padding-top:8px;border-top:1px solid #2a4a3a;font-size:10px;color:#4a6a5a">'
+    +missingCount+' fields ('+missingHa.toFixed(0)+'ha) have no<br>boundary data — not shown on map</div>'
+    :'');
 }
 function _mapInfo(f){
   var box=document.getElementById('mp-info');
