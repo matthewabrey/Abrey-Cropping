@@ -4374,6 +4374,8 @@ function rAD(){
 // ═══════════════════════════════════════════════════════════════════════
 
 // Cover crop constants
+// Explicit greening fields for Euston end-2026 (specified by Matthew, overrides auto-calc)
+var EUSTON_GREENING_END_2026 = ["Behind Barn", "Big Diana.A", "Breckland.A (31.24)", "First Barrow", "Hercules Went", "House Close", "Little Diana.A", "Mudds Lankets A", "Orchard Field", "Second Barrow", "White Thorn Qu"];
 var GREENING_ESTATES = ['Wretham','Chandler','Rackham Farms','Euston','Pickenham',
   'Blakeney','Edwardstone/Borehouse','Gooderham'];  // all estates
 var CEREAL_CROPS = ['Wheat','Barley','Rye','Rye A','Oats','Triticale','Wholecrop','Over Winter Cereal'];
@@ -4577,8 +4579,36 @@ function rGr() {
       +combTot.map(function(ha){return '<td style="text-align:right;font-weight:bold;font-size:11px;color:var(--g1);padding:4px 8px">'+(ha>0?Math.round(ha)+'ha':'—')+'</td>';}).join('')
       +'</tr>';
 
+    // Explicit Euston end-2026 greening list (overrides auto-calc, shown separately)
+    var eustonExplicit='';
+    if(estate==='Euston'){
+      var egFields=EUSTON_GREENING_END_2026.map(function(n){
+        return ef.find(function(f){return f.field===n;});
+      }).filter(Boolean);
+      if(egFields.length){
+        var egTotal=egFields.reduce(function(a,f){return a+f.ha;},0);
+        eustonExplicit='<div style="margin-bottom:16px;border:1px solid #27ae60;border-radius:6px;overflow:hidden">'
+          +'<div style="padding:6px 10px;background:#27ae60;color:#fff;font-size:11px;font-weight:bold;letter-spacing:.3px">'
+          +'&#9679; Greening — confirmed list for end of 2026 harvest ('+egFields.length+' fields, '+egTotal.toFixed(1)+'ha)</div>'
+          +'<table style="border-collapse:collapse;font-size:12px;width:100%">'
+          +'<thead><tr style="background:#eafaf0">'
+          +'<th style="text-align:left;padding:4px 8px">Field</th>'
+          +'<th style="text-align:right;padding:4px 8px;min-width:60px">Ha</th>'
+          +'<th style="text-align:left;padding:4px 8px">2026 crop</th>'
+          +'<th style="text-align:left;padding:4px 8px">2027 plan</th>'
+          +'</tr></thead><tbody>'
+          +egFields.map(function(f){
+            return '<tr><td style="padding:3px 8px;font-weight:bold">'+f.field+'</td>'
+              +'<td style="text-align:right;padding:3px 8px;color:var(--tx3)">'+f.ha.toFixed(1)+'</td>'
+              +'<td style="padding:3px 8px">'+(gc(f,'2026')||'—')+'</td>'
+              +'<td style="padding:3px 8px">'+(gc(f,'2027')||'—')+'</td></tr>';
+          }).join('')
+          +'</tbody></table></div>';
+      }
+    }
     return '<div style="margin-bottom:24px">'
       +'<div style="font-weight:bold;font-size:14px;color:var(--g1);margin-bottom:6px">'+estate+'</div>'
+      +eustonExplicit
       +'<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:12px;width:100%">'
       +'<thead><tr>'
       +'<th style="min-width:180px;text-align:left;padding:4px 8px">Field</th>'
