@@ -1073,9 +1073,10 @@ function renderCropArea(){
     var fam=c==='Wheat'?['Wheat','Over Winter Cereal','OWC']:[c];
     var PERM2=['Grass','Woodland','CS MT'];
     var isPerm=PERM2.indexOf(c)>=0;
+    var effectiveOursOnly=oursOnly&&!_showAll; // ignore ours filter when showing all
     ALL_YRS2.forEach(function(y){
       t[y]=filtF.reduce(function(a,f){
-        return fam.indexOf(gc(f,y))>=0&&(!oursOnly||isPerm||isOurs(f,y))?a+f.ha:a;
+        return fam.indexOf(gc(f,y))>=0&&(!effectiveOursOnly||isPerm||isOurs(f,y))?a+f.ha:a;
       },0);
     });
     return t;
@@ -1202,9 +1203,12 @@ function renderCropArea(){
   var pieData=[];
   var allPieCrops=ourCrops.concat(notCrops);
   allPieCrops.forEach(function(c){
-    // Count both the crop and its aliases (OWC counts as Wheat)
     var aliases=c==='Wheat'?['Wheat','Over Winter Cereal','OWC']:[c];
-    var ha=filtF.reduce(function(a,f){return aliases.indexOf(gc(f,pieYr))>=0?a+f.ha:a;},0);
+    var ha=filtF.reduce(function(a,f){
+      if(aliases.indexOf(gc(f,pieYr))<0) return a;
+      if(!_showAll&&!isOurs(f,pieYr)) return a; // respect ours filter in pie
+      return a+f.ha;
+    },0);
     if(ha>0) pieData.push({crop:c,ha:ha,col:CC[c]||'#999'});
   });
   // Add not-ours crops with lighter colours
