@@ -1043,16 +1043,18 @@ function renderCropArea(){
 
   // Collect all crops
   var ourCropSet={}, notOurCropSet={};
+  function normCrop(c){ return (c==='Over Winter Cereal'||c==='OWC')?'Wheat':c; }
   filtF.forEach(function(f){
     ALL_YRS2.forEach(function(y){
       var c=gc(f,y);
       if(!c) return;
+      var cn=normCrop(c);
       var _PERM=['Grass','Woodland','CS MT'];
-      // isOurs() is the single source of truth for what counts as ours
-      // _PERM crops bypass isOurs (permanent fields)
-      if(_PERM.indexOf(c)>=0) ourCropSet[c]=true;
-      else if(isOurs(f,y)) ourCropSet[c]=true;
-      else notOurCropSet[c]=true;
+      // When not ours-only, show all crops in main section
+      if(selOurs!=='ours') ourCropSet[cn]=true;
+      else if(_PERM.indexOf(cn)>=0) ourCropSet[cn]=true;
+      else if(isOurs(f,y)) ourCropSet[cn]=true;
+      else notOurCropSet[cn]=true;
     });
   });
 
@@ -1073,7 +1075,7 @@ function renderCropArea(){
     var fam=c==='Wheat'?['Wheat','Over Winter Cereal','OWC']:[c];
     var PERM2=['Grass','Woodland','CS MT'];
     var isPerm=PERM2.indexOf(c)>=0;
-    var effectiveOursOnly=oursOnly&&!_showAll; // ignore ours filter when showing all
+    var effectiveOursOnly=oursOnly&&(selOurs==='ours'); // ignore ours filter when showing all
     ALL_YRS2.forEach(function(y){
       t[y]=filtF.reduce(function(a,f){
         return fam.indexOf(gc(f,y))>=0&&(!effectiveOursOnly||isPerm||isOurs(f,y))?a+f.ha:a;
@@ -1206,7 +1208,7 @@ function renderCropArea(){
     var aliases=c==='Wheat'?['Wheat','Over Winter Cereal','OWC']:[c];
     var ha=filtF.reduce(function(a,f){
       if(aliases.indexOf(gc(f,pieYr))<0) return a;
-      if(!_showAll&&!isOurs(f,pieYr)) return a; // respect ours filter in pie
+      if(selOurs==='ours'&&!isOurs(f,pieYr)) return a;
       return a+f.ha;
     },0);
     if(ha>0) pieData.push({crop:c,ha:ha,col:CC[c]||'#999'});
