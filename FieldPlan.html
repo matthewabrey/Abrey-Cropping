@@ -66,6 +66,9 @@ tr:hover td{background:var(--c1)}
 ::-webkit-scrollbar-corner{background:var(--c2)}
 @media print{
   .no-print{display:none!important}
+  svg{max-width:100%!important;height:auto!important}
+  img{max-width:100%!important;height:auto!important}
+  .print-map-wrap{width:100%!important;overflow:visible!important}
 }
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -3818,8 +3821,8 @@ function makePrintSVG(est, year, oursOnly, callback, fieldFilter) {
       _proxy[year<='2026'?'history':'plan'][year]=crop;
       var _isOurs2=crop?isOurs(_proxy,year):false;
       if(oursOnly&&!_isOurs2) return;
-      var col=_isOurs2?(CC[crop]||'#cccccc'):'#d0d0d0';
-      if(crop&&_isOurs2){ if(!legendCrops[crop]) legendCrops[crop]=[col,0]; legendCrops[crop][1]+=(f.ha||0); }
+      var col=_isOurs2?(CC[crop]||'#cccccc'):(oursOnly?'#d0d0d0':(CC[crop]||'#cccccc'));
+      if(crop&&(_isOurs2||!oursOnly)){ if(!legendCrops[crop]) legendCrops[crop]=[col,0]; legendCrops[crop][1]+=(f.ha||0); }
 
       (f.rings||[]).forEach(function(ring){
         ctx.beginPath();
