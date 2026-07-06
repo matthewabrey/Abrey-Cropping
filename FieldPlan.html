@@ -468,7 +468,7 @@ function updateChangeBanner(){
 
   // Only show changes for the current year and the following year
   var nowYr=new Date().getFullYear();
-  var visYrs=['2027','2028','2029','2030','2031','2032'];
+  var visYrs=['2027'];
   var keys=allKeys.filter(function(key){return visYrs.indexOf(key.split(':')[1])>=0;});
   var n=keys.length;
   if(n===0){banner.style.display='none';return;}
