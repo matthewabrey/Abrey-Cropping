@@ -648,7 +648,8 @@ function isOurs(f,yr){
   //           OWC, Maize, Pigs, Parsnips = partner-farmed in ALL years.
   var SOL=['Potatoes','Salad Potatoes','Seed Potatoes'];
   if(f.estate==='Rackham Farms'){
-    return SOL.indexOf(c)>=0;
+    if(yr<'2027') return SOL.indexOf(c)>=0;
+    return SOL.indexOf(c)>=0; // 2027+: potatoes only (Carrots/Onions = partner)
   }
 
   // ── EUSTON ─────────────────────────────────────────────────────────
