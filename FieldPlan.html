@@ -468,7 +468,7 @@ function updateChangeBanner(){
 
   // Only show changes for the current year and the following year
   var nowYr=new Date().getFullYear();
-  var visYrs=[String(nowYr),String(nowYr+1)];
+  var visYrs=['2027','2028','2029','2030','2031','2032'];
   var keys=allKeys.filter(function(key){return visYrs.indexOf(key.split(':')[1])>=0;});
   var n=keys.length;
   if(n===0){banner.style.display='none';return;}
@@ -2299,7 +2299,7 @@ function rWt(){
   if(_elWt)_elWt.innerHTML=
     // ── summary stats
     '<div class="stats" style="margin-bottom:12px">'
-    +'<div class="stat"><div class="sl">Total Budget</div><div class="sv">'+Math.round(totalBudget/1000)+'K</div><div class="ss">ac-in &middot; '+(totalGal/1e6).toFixed(0)+'M gal</div></div>'
+    +'<div class="stat"><div class="sl">Total Budget</div><div class="sv">'+Math.round(totalBudget/1000)+'K</div><div class="ss">ac-in &middot; '+(totalGal/1e6).toFixed(0)+'M UK gal</div></div>'
     +'<div class="stat"><div class="sl">Predicted Use '+wtYr+'</div><div class="sv">'+Math.round(totalUsed/1000)+'K</div><div class="ss">ac-in from plan</div></div>'
     +'<div class="stat"><div class="sl">Surplus</div><div class="sv" style="color:'+surpCol+'">'+Math.round((totalBudget-totalUsed)/1000)+'K</div><div class="ss">ac-in remaining</div></div>'
     +'<div class="stat"><div class="sl">Est. Cost '+wtYr+'</div><div class="sv">&pound;'+Math.round(totalCost/1000)+'K</div><div class="ss">'+overallPct.toFixed(0)+'% of budget</div></div>'
@@ -2340,7 +2340,7 @@ function rWt(){
     +'</tr></thead>'
     +'<tbody>'+rows+'</tbody>'
     +'<tfoot><tr style="background:var(--c2);font-weight:bold">'
-    +'<td>TOTAL</td><td style="text-align:right">'+(totalGal/1e6).toFixed(0)+'M gal</td>'
+    +'<td>TOTAL</td><td style="text-align:right">'+(totalGal/1e6).toFixed(0)+'M UK gal</td>'
     +'<td style="text-align:right">'+Math.round(totalBudget).toLocaleString()+'</td>'
     +'<td style="text-align:right">'+Math.round(totalUsed).toLocaleString()+'</td>'
     +'<td style="text-align:right;color:'+(totalBudget-totalUsed<0?'#c0392b':'#27ae60')+'">'+Math.round(totalBudget-totalUsed).toLocaleString()+'</td>'
@@ -3465,7 +3465,7 @@ Partner requires exactly **1,000 acres (405ha)** of Maize on Euston every year. 
 ### Water — split system
 - **Bore/West Pump (52M gal):** Bore zone (44 fields, 452ha) + West zone (17 fields, 257ha). Veg target ~135–145ha/year.
 - **Main Pump (160M gal):** Euston zone (160 fields), Bardwell (5), Rymer (3). Handles bulk veg ~320–330ha.
-- Combined target: ~95% of 212M gal budget.
+- Combined target: ~95% of 212M UK gal budget.
 
 ---
 
