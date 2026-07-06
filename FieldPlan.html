@@ -2125,7 +2125,7 @@ function zoneWater(zCfg, yr){
   var acin=0;
   fields.forEach(function(f){
     var c=gc(f,yr);
-    if(WC[c]) acin+=f.ha*2.471*WC[c];
+    if(WC[c]&&isOurs(f,yr)) acin+=f.ha*2.471*WC[c];
   });
   return acin;
 }
