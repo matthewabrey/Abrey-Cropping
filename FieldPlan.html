@@ -4254,6 +4254,7 @@ function rAD(){
   // Summary stats for selected year
   var mz_wret  = getCropHa('Wretham',['Maize'],adYr);
   var mz_chan  = getCropHa(['Chandler'],['Maize'],adYr);
+  var mz_eus   = getCropHa('Euston',['Maize'],adYr); // Euston Maize — partner crop but counts for AD
   var mz_total = mz_wret+mz_chan;
 
   var rye_wret = getCropHa('Wretham',['Rye','Rye A'],adYr);
@@ -4344,6 +4345,9 @@ function rAD(){
     +'<div style="margin-bottom:6px"><span style="font-size:12px;color:var(--tx3);display:inline-block;min-width:80px">Wretham</span>'+bar(rye_wret,RYE_CAP,'#2980b9')+'</div>'
     +'<div style="margin-bottom:6px"><span style="font-size:12px;color:var(--tx3);display:inline-block;min-width:80px">Chandler</span>'+bar(rye_chan,RYE_CAP,'#8e44ad')+'</div>'
     +'<div style="margin-bottom:6px"><span style="font-size:12px;color:var(--tx3);display:inline-block;min-width:80px">Euston</span>'+bar(rye_eus,RYE_CAP,'#27ae60')+'</div>'
+    +'<div style="margin-bottom:6px;font-size:11px;color:var(--tx3);padding-left:4px">'
+    +'Euston Maize (AD): '+Math.round(mz_eus)+'ha / '+Math.round(mz_eus*2.471)+'ac &nbsp;|&nbsp; Euston Rye: '+Math.round(rye_eus)+'ha / '+Math.round(rye_eus*2.471)+'ac &nbsp;<b>Combined: '+Math.round(mz_eus+rye_eus)+'ha / '+Math.round((mz_eus+rye_eus)*2.471)+'ac</b>'
+    +'</div>'
     +'<div style="margin-bottom:10px"><span style="font-size:12px;color:var(--tx3);display:inline-block;min-width:80px">Pickenham <span style="font-size:9px;color:#aaa">(info only)</span></span>'+bar(rye_pic_display,RYE_CAP,'#bdc3c7')+'</div>'
     +'<div style="border-top:1px solid var(--bd);padding-top:8px"><span style="font-size:12px;font-weight:bold;display:inline-block;min-width:80px">TOTAL</span>'+bar(rye_total,RYE_CAP,'#1a3d2b')+'</div>'
     +'<div style="margin-top:8px;font-size:11px;color:var(--tx3)">Target: '+RYE_CAP+'ha &nbsp;|&nbsp; Remaining: '+(RYE_CAP-rye_total>0?Math.round(RYE_CAP-rye_total)+'ha short':'&#10003; met or exceeded')+'</div>'
