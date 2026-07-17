@@ -220,8 +220,7 @@ function lightenHex(hex,f){
 function getCropsForYear(yr){
   var seen={};
   var _yrs=['2021','2022','2023','2024','2025','2026','2027','2028','2029','2030','2031','2032'];
-  var _src=filtF&&filtF.length?filtF:F;
-  _src.forEach(function(f){
+  F.forEach(function(f){
     _yrs.forEach(function(y){ var c=gc(f,y); if(c&&CC[c]) seen[c]=true; });
   });
   return Object.keys(seen).sort();
