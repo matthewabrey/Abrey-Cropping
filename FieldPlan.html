@@ -219,8 +219,11 @@ function lightenHex(hex,f){
 }
 function getCropsForYear(yr){
   var seen={};
+  var ALL_YRS2b=['2021','2022','2023','2024','2025','2026','2027','2028','2029','2030','2031','2032'];
   (filtF&&filtF.length?filtF:F).forEach(function(f){
-    var c=gc(f,yr); if(c&&CC[c]) seen[c]=true;
+    ALL_YRS2b.forEach(function(y){
+      var c=gc(f,y); if(c&&CC[c]) seen[c]=true;
+    });
   });
   return Object.keys(seen).sort();
 }
@@ -1275,7 +1278,7 @@ function aF(){
     if(selE.length&&!selE.includes(f.estate))return false;
     if(selF.length&&!selF.includes(f.zone||f.farm)&&!selF.includes(f.farm))return false;
     if(s&&!f.field.toLowerCase().includes(s))return false;
-    if(selC.length){var all=Object.values(f.history).concat(Object.values(f.plan));if(!selC.some(function(c){return all.includes(c);}))return false;}
+    if(selC.length){var cInYr=gc(f,curYr);if(!selC.some(function(c){return c===cInYr;}))return false;}
     if(selOurs==='ours'&&!isOurs(f,curYr))return false;
     return true;
   });
