@@ -1177,7 +1177,7 @@ function renderCropArea(){
     if(!hasEuston) return '';
     var cells=ALL_YRS2.map(function(y){
       var mha=filtF.reduce(function(a,f){
-        return f.estate==='Euston'&&gc(f,y)==='Maize'?a+f.ha:a;
+        return f.estate==='Euston'&&(gc(f,y)==='Maize'||gc(f,y)==='Euston Rye')?a+f.ha:a;
       },0);
       var ac=Math.round(mha*2.471);
       var ok=ac>=950&&ac<=1050;
@@ -1187,7 +1187,7 @@ function renderCropArea(){
         +ac+'ac'+flag+'</td>';
     }).join('');
     return '<tr style="background:rgba(39,174,96,.06)">'
-      +'<td style="padding:3px 8px;font-size:10px;color:#2c7a3a;font-style:italic">Euston Maize — 1,000ac target (independent of AD Maize)</td>'
+      +'<td style="padding:3px 8px;font-size:10px;color:#2c7a3a;font-style:italic">Euston Maize and Rye — 1,000ac target (independent of Abrey AD Crop)</td>'
       +cells+'</tr>';
   })();
 
