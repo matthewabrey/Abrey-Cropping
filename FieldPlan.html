@@ -4185,40 +4185,41 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode, screenYr){
 
   // Use latest year to decide ours/partner — consistent across all years
   var latestPrintYr=printYrs[printYrs.length-1];
-  // Fields locked to screenYr — ours in screenYr only
-  // Crop family aliases: Salad Potatoes -> Potatoes for the 2026 col
+  // Screen year determines which crop ROWS appear.
+  // Each year column independently counts ours fields for that year.
   var oursSet={};
-  var ourCropSet3={}; // crops ours in screenYr
+  // Build the set of crop rows from screenYr ours fields
+  var ourCropSet3={};
   if(oursMode){
     useFields.forEach(function(f){
       if(!isOurs(f,screenYr)) return;
       var c=gc(f,screenYr); if(c) ourCropSet3[c]=true;
     });
+    // Always include potato/parsnip family so 2026 history merges correctly
+    if(ourCropSet3['Potatoes']||ourCropSet3['Salad Potatoes']||ourCropSet3['Seed Potatoes']){
+      ourCropSet3['Potatoes']=true;
+      ourCropSet3['Salad Potatoes']=true;
+    }
+    if(ourCropSet3['Carrots']||ourCropSet3['Parsnips']){
+      ourCropSet3['Carrots']=true;
+      ourCropSet3['Parsnips']=true;
+    }
   }
-  // Canonical crop: merge family members into one row
   function canonCrop(c){
     if(c==='Salad Potatoes') return 'Potatoes';
     if(c==='Parsnips') return 'Carrots';
     return c;
   }
-  // Is this crop allowed in non-screenYr columns?
-  function cropAllowed(c){
-    if(!oursMode) return true;
-    if(ourCropSet3[c]) return true;
-    if(c==='Salad Potatoes' && (ourCropSet3['Potatoes']||ourCropSet3['Salad Potatoes'])) return true;
-    if(c==='Potatoes' && ourCropSet3['Salad Potatoes']) return true;
-    if(c==='Parsnips' && (ourCropSet3['Carrots']||ourCropSet3['Parsnips'])) return true;
-    if(c==='Carrots' && ourCropSet3['Parsnips']) return true;
-    return false;
-  }
   printYrs.forEach(function(yr){
     useFields.forEach(function(f){
-      if(oursMode && !isOurs(f,screenYr)) return;
       var c=gc(f,yr); if(!c) return;
-      if(oursMode && yr!==screenYr && !cropAllowed(c)) return;
-      if(oursMode && yr!==screenYr && !isOurs(f,yr)) return;
-      var rowKey=canonCrop(c); // merge Salad Potatoes into Potatoes row
-      var inOurs=!oursMode||isOurs(f,screenYr);
+      var rowKey=canonCrop(c);
+      // In ours-only mode: only include if crop row exists AND field is ours in this year
+      if(oursMode){
+        if(!ourCropSet3[c]) return; // crop not in our row set
+        if(!isOurs(f,yr)) return;   // field not ours in this year
+      }
+      var inOurs=!oursMode||isOurs(f,yr);
       if(inOurs){
         oursSet[rowKey]=true;
         if(!ourCropMap[rowKey]) ourCropMap[rowKey]={};
