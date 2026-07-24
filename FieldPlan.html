@@ -4195,18 +4195,20 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode, screenYr){
       var c=gc(f,screenYr); if(c) ourCropSet3[c]=true;
     });
   }
-  // Canonical crop: map Salad Potatoes -> Potatoes for row grouping
+  // Canonical crop: merge family members into one row
   function canonCrop(c){
     if(c==='Salad Potatoes') return 'Potatoes';
+    if(c==='Parsnips') return 'Carrots';
     return c;
   }
   // Is this crop allowed in non-screenYr columns?
-  // Yes if: its canonical form is in ourCropSet3, or it's Salad Potatoes (-> Potatoes)
   function cropAllowed(c){
     if(!oursMode) return true;
     if(ourCropSet3[c]) return true;
-    if(c==='Salad Potatoes' && ourCropSet3['Potatoes']) return true;
+    if(c==='Salad Potatoes' && (ourCropSet3['Potatoes']||ourCropSet3['Salad Potatoes'])) return true;
     if(c==='Potatoes' && ourCropSet3['Salad Potatoes']) return true;
+    if(c==='Parsnips' && (ourCropSet3['Carrots']||ourCropSet3['Parsnips'])) return true;
+    if(c==='Carrots' && ourCropSet3['Parsnips']) return true;
     return false;
   }
   printYrs.forEach(function(yr){
