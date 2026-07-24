@@ -4186,24 +4186,47 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode, screenYr){
   // Use latest year to decide ours/partner — consistent across all years
   var latestPrintYr=printYrs[printYrs.length-1];
   // Fields locked to screenYr — ours in screenYr only
+  // Crop family aliases: Salad Potatoes -> Potatoes for the 2026 col
   var oursSet={};
+  var ourCropSet3={}; // crops ours in screenYr
+  if(oursMode){
+    useFields.forEach(function(f){
+      if(!isOurs(f,screenYr)) return;
+      var c=gc(f,screenYr); if(c) ourCropSet3[c]=true;
+    });
+  }
+  // Canonical crop: map Salad Potatoes -> Potatoes for row grouping
+  function canonCrop(c){
+    if(c==='Salad Potatoes') return 'Potatoes';
+    return c;
+  }
+  // Is this crop allowed in non-screenYr columns?
+  // Yes if: its canonical form is in ourCropSet3, or it's Salad Potatoes (-> Potatoes)
+  function cropAllowed(c){
+    if(!oursMode) return true;
+    if(ourCropSet3[c]) return true;
+    if(c==='Salad Potatoes' && ourCropSet3['Potatoes']) return true;
+    if(c==='Potatoes' && ourCropSet3['Salad Potatoes']) return true;
+    return false;
+  }
   printYrs.forEach(function(yr){
     useFields.forEach(function(f){
-      if(oursMode && !isOurs(f,screenYr)) return; // skip fields not ours in screenYr
+      if(oursMode && !isOurs(f,screenYr)) return;
       var c=gc(f,yr); if(!c) return;
-      // For each year, include crop if field is ours in that year
-      var fieldOursThisYr=!oursMode||isOurs(f,yr);
-      if(fieldOursThisYr){
-        oursSet[c]=true;
-        if(!ourCropMap[c]) ourCropMap[c]={};
-        ourCropMap[c][yr]=(ourCropMap[c][yr]||0)+f.ha;
-      } else if(!oursMode){
-        if(!partCropMap[c]) partCropMap[c]={};
-        partCropMap[c][yr]=(partCropMap[c][yr]||0)+f.ha;
+      if(oursMode && yr!==screenYr && !cropAllowed(c)) return;
+      if(oursMode && yr!==screenYr && !isOurs(f,yr)) return;
+      var rowKey=canonCrop(c); // merge Salad Potatoes into Potatoes row
+      var inOurs=!oursMode||isOurs(f,screenYr);
+      if(inOurs){
+        oursSet[rowKey]=true;
+        if(!ourCropMap[rowKey]) ourCropMap[rowKey]={};
+        ourCropMap[rowKey][yr]=(ourCropMap[rowKey][yr]||0)+f.ha;
+      } else {
+        if(!partCropMap[rowKey]) partCropMap[rowKey]={};
+        partCropMap[rowKey][yr]=(partCropMap[rowKey][yr]||0)+f.ha;
       }
     });
   });
-  // Merge: crop ours at any estate stays in ours section
   if(!oursMode){
     Object.keys(oursSet).forEach(function(c){
       if(partCropMap[c]){
