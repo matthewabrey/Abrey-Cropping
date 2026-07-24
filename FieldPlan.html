@@ -4690,6 +4690,13 @@ function rGr() {
           +'</tbody></table></div>';
       }
     }
+    // Euston: only show confirmed list, not auto-calc table
+    if(estate==='Euston'){
+      return '<div class="gr-estate-block" style="margin-bottom:24px">'
+        +'<div style="font-weight:bold;font-size:14px;color:var(--g1);margin-bottom:6px">'+estate+'</div>'
+        +eustonExplicit
+        +'</div>';
+    }
     return '<div class="gr-estate-block" style="margin-bottom:24px">'
       +'<div style="font-weight:bold;font-size:14px;color:var(--g1);margin-bottom:6px">'+estate+'</div>'
       +eustonExplicit
