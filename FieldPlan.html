@@ -1206,16 +1206,19 @@ function renderCropArea(){
   // ── PIE CHART for selected year ──────────────────────────────────────
   var pieYr=(document.getElementById('fy')||{value:'2027'}).value||'2027';
   var pieData=[];
-  var allPieCrops=ourCrops.concat(notCrops);
-  allPieCrops.forEach(function(c){
-    // Count both the crop and its aliases (OWC counts as Wheat)
+  // Ours crops — full colour, filtered by isOurs()
+  ourCrops.forEach(function(c){
     var aliases=c==='Wheat'?['Wheat','Over Winter Cereal','OWC']:[c];
-    var ha=filtF.reduce(function(a,f){return aliases.indexOf(gc(f,pieYr))>=0?a+f.ha:a;},0);
-    if(ha>0) pieData.push({crop:c,ha:ha,col:CC[c]||'#999'});
+    var ha=filtF.reduce(function(a,f){
+      return aliases.indexOf(gc(f,pieYr))>=0&&isOurs(f,pieYr)?a+f.ha:a;
+    },0);
+    if(ha>0) pieData.push({crop:c,ha:ha,col:CC[c]||'#999',notOurs:false});
   });
-  // Add not-ours crops with lighter colours
+  // Partner crops — lighter, italic in legend
   notCrops.forEach(function(c){
-    var ha=filtF.reduce(function(a,f){return gc(f,pieYr)===c?a+f.ha:a;},0);
+    var ha=filtF.reduce(function(a,f){
+      return gc(f,pieYr)===c&&!isOurs(f,pieYr)?a+f.ha:a;
+    },0);
     if(ha>0) pieData.push({crop:c,ha:ha,col:lightenHex(CC[c]||'#999',0.45),notOurs:true});
   });
   pieData.sort(function(a,b){return b.ha-a.ha;});
