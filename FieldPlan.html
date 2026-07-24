@@ -4067,9 +4067,7 @@ function doPrint(){
       var fpFields=filtF.filter(function(f){
         if(selE2b.length&&!selE2b.includes(f.estate)) return false;
         return !oursMode||isOurs(f,screenYr);
-      }).sort(function(a,b){
-        return a.estate.localeCompare(b.estate)||a.field.localeCompare(b.field);
-      });
+      }); // preserve screen sort order
       var nYrs=allPY.length;
       // Field col: ~25%, Estate col: ~12%, Ha: auto, year cols share the rest evenly
       var yrPct=Math.floor((63-Math.min(nYrs,12))/Math.max(nYrs,1))+'%';
