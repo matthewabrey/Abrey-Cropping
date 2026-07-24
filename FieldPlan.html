@@ -4159,7 +4159,7 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode){
 
   // Use latest year to decide ours/partner — consistent across all years
   var latestPrintYr=printYrs[printYrs.length-1];
-  // First pass: build maps per field
+  // Build crop maps — ours vs partner
   var oursSet={};
   printYrs.forEach(function(yr){
     useFields.forEach(function(f){
@@ -4169,41 +4169,30 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode){
         oursSet[c]=true;
         if(!ourCropMap[c]) ourCropMap[c]={};
         ourCropMap[c][yr]=(ourCropMap[c][yr]||0)+f.ha;
-      } else {
+      } else if(!oursMode){
+        // Only track partner crops when NOT in ours-only mode
         if(!partCropMap[c]) partCropMap[c]={};
         partCropMap[c][yr]=(partCropMap[c][yr]||0)+f.ha;
       }
     });
   });
-  // If crop is ours at any estate, merge partner ha into ours
-  Object.keys(oursSet).forEach(function(c){
-    if(partCropMap[c]){
-      printYrs.forEach(function(yr){
-        if(partCropMap[c][yr]){
-          if(!ourCropMap[c]) ourCropMap[c]={};
-          ourCropMap[c][yr]=(ourCropMap[c][yr]||0)+partCropMap[c][yr];
-        }
-      });
-      delete partCropMap[c];
-    }
-  });
+  // When showing all estates: if a crop is ours at any estate,
+  // merge its partner-estate ha into the ours row so it doesn't split
+  if(!oursMode){
+    Object.keys(oursSet).forEach(function(c){
+      if(partCropMap[c]){
+        printYrs.forEach(function(yr){
+          if(partCropMap[c][yr]){
+            if(!ourCropMap[c]) ourCropMap[c]={};
+            ourCropMap[c][yr]=(ourCropMap[c][yr]||0)+partCropMap[c][yr];
+          }
+        });
+        delete partCropMap[c];
+      }
+    });
+  }
 
-  // Sort ours: veg first (in VEG order) then alpha
-  var CEREAL_ORDER=['Wheat','Barley','Rye','Rye A','Oats','OWC','Over Winter Cereal','Triticale'];
-  var ourCrops=Object.keys(ourCropMap).sort(function(a,b){
-    var ai=VEG2.indexOf(a),    bi=VEG2.indexOf(b);
-    var ac=CEREAL_ORDER.indexOf(a), bc=CEREAL_ORDER.indexOf(b);
-    // VEG first (bold), then cereals, then everything else alpha
-    var aGrp=ai>=0?0:(ac>=0?1:2);
-    var bGrp=bi>=0?0:(bc>=0?1:2);
-    if(aGrp!==bGrp) return aGrp-bGrp;
-    if(ai>=0&&bi>=0) return ai-bi;
-    if(ac>=0&&bc>=0) return ac-bc;
-    return a.localeCompare(b);
-  });
-  var partCrops=Object.keys(partCropMap).sort();
-
-  // Column headers
+    // Column headers
   var colW='width:62px;min-width:0;';
   var colHdrs=printYrs.map(function(y){
     return '<th style="'+colW+'text-align:right;background:'+(y<='2026'?'#3d5a4a':'#c8821a')+';font-size:10px;color:#fff;padding:3px 4px">'+y+'</th>';
