@@ -4269,6 +4269,9 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode, screenYr){
   // OUR CROPS section
   html3+='<tr><td colspan="'+(1+printYrs.length)+'" style="padding:3px 6px;background:#1a3d2b;color:#fff;font-size:9px;font-weight:bold;text-transform:uppercase;letter-spacing:.3px">Our crops</td></tr>';
   ourCrops.forEach(function(c){
+    // Salad Potatoes merged into Potatoes row; Parsnips merged into Carrots row
+    if(c==='Salad Potatoes'||c==='Parsnips') return;
+    var siblings={'Potatoes':['Salad Potatoes'],'Carrots':['Parsnips']};
     var isV=VEG2.includes(c);
     var col=CC[c]||'#999';
     html3+='<tr style="background:'+(isV?'rgba(26,61,43,.06)':'')+'"><td style="white-space:nowrap;padding:3px 6px 3px 4px">'
@@ -4276,6 +4279,8 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode, screenYr){
       +'<span style="font-size:11px;'+(isV?'font-weight:bold;color:#1a3d2b':'color:#333')+'">'+c+'</span></td>';
     printYrs.forEach(function(yr){
       var ha=ourCropMap[c][yr]||0;
+      // Add sibling family ha (Salad Potatoes into Potatoes, Parsnips into Carrots)
+      (siblings[c]||[]).forEach(function(s){ ha+=(ourCropMap[s]&&ourCropMap[s][yr])||0; });
       var ac=Math.round(ha*2.47105);
       html3+='<td style="text-align:right;padding:2px 4px;vertical-align:middle">'+(ha>0
         ?'<div style="font-size:11px;font-weight:'+(isV?'bold':'normal')+';color:'+(isV?'#1a3d2b':'#555')+'">'+Math.round(ha)+'</div>'
