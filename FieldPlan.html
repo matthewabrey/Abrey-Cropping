@@ -900,6 +900,7 @@ function changeTrackingBanner(){
 }
 
 function rPl(){
+  setTimeout(renderSavedReports,100);
   var estates=[...new Set(F.map(function(f){return f.estate;}))].sort();
   var zones=[...new Set(F.map(function(f){return f.zone||f.farm;}))].sort();
   var cropList=Object.keys(CC).sort();  // full list, filtered below in aF/rPl
@@ -941,6 +942,7 @@ function rPl(){
     +'</div>'
     +'<button onclick="clearF()" style="padding:5px 12px">Clear all</button>'
     +'<button id="ours-btn" onclick="toggleOurs()" style="padding:5px 12px">Ours only</button>'
+    +'<div id="saved-reports-bar" style="display:none;flex-wrap:wrap;align-items:center;gap:6px;margin-right:8px"></div>'
     +'<button onclick="printPlan()" style="padding:5px 12px;background:var(--g1);color:#fff;border-color:var(--g1);margin-left:auto">&#128438; Print / Export</button>'
     +'<span id="fc2" style="font-size:11px;color:var(--tx3)"></span>'
     +'</div>'
@@ -3690,6 +3692,7 @@ function printPlan(){
       +'<button onclick="window._pClose()" style="padding:6px 16px">Cancel</button>'
       +'<button onclick="doPDF()" style="padding:6px 20px;background:#8a5c10;color:#fff;border:1px solid #8a5c10;border-radius:4px;cursor:pointer">&#8659; PDF</button>'
       +'<button onclick="doPrint()" style="padding:6px 20px;background:#1a3d2b;color:#fff;border-color:#1a3d2b;font-weight:bold">&#128438; Print</button>'
+      +'<button onclick="saveReportConfig()" style="padding:6px 14px;background:#1a5080;color:#fff;border:none;border-radius:4px;cursor:pointer;margin-left:8px">&#128190; Save Report</button>'
       +'</div>'
       +'</div>';
   }
@@ -3984,6 +3987,80 @@ function buildPrintMapsAsync(mpEstates, mapSelYr, oursOnly, filterNote, now, pap
   });
 }
 
+
+// ── SAVED REPORTS ──────────────────────────────────────────────────────
+function saveReportConfig(){
+  var name=prompt('Name this report (e.g. "Ours 2027 all estates"):');
+  if(!name) return;
+  var config={
+    name:name,
+    date:new Date().toLocaleDateString('en-GB'),
+    estates:selEstates.slice(),
+    ours:selOurs,
+    yr:(document.getElementById('fy')||{}).value||'2027',
+    sortStack:(typeof sortStack!=='undefined'?sortStack:[]).slice(),
+    printYrs:(window._pSelYrs||['2027']).slice(),
+    inclCA:(document.getElementById('popt-ca')||{checked:true}).checked,
+    inclFP:(document.getElementById('popt-fp')||{checked:true}).checked
+  };
+  var saved=JSON.parse(localStorage.getItem('fp_reports')||'[]');
+  saved.push(config);
+  localStorage.setItem('fp_reports',JSON.stringify(saved));
+  window._pClose();
+  alert('Report "'+name+'" saved! It will appear in the toolbar.');
+  renderSavedReports();
+}
+
+function renderSavedReports(){
+  var saved=JSON.parse(localStorage.getItem('fp_reports')||'[]');
+  var el=document.getElementById('saved-reports-bar');
+  if(!el) return;
+  if(!saved.length){el.style.display='none';return;}
+  el.style.display='flex';
+  el.innerHTML='<span style="font-size:10px;font-weight:bold;color:var(--g1)">&#128190;</span>'
+    +saved.map(function(r,i){
+      return '<span style="display:inline-flex;align-items:center;gap:2px">'
+        +'<button onclick="runSavedReport('+i+')" title="Saved '+r.date+'" '
+        +'style="padding:3px 8px;font-size:11px;background:#1a5080;color:#fff;'
+        +'border:none;border-radius:3px;cursor:pointer">'+r.name+'</button>'
+        +'<button onclick="deleteSavedReport('+i+')" title="Delete" '
+        +'style="padding:3px 5px;font-size:10px;background:#aaa;color:#fff;'
+        +'border:none;border-radius:3px;cursor:pointer">&#10005;</button></span>';
+    }).join('');
+}
+
+function runSavedReport(idx){
+  var saved=JSON.parse(localStorage.getItem('fp_reports')||'[]');
+  var r=saved[idx]; if(!r) return;
+  // Restore filter state
+  selEstates=r.estates||[];
+  selOurs=r.ours||'';
+  if(typeof sortStack!=='undefined') sortStack=r.sortStack||[];
+  var fyEl=document.getElementById('fy');
+  if(fyEl) fyEl.value=r.yr||'2027';
+  document.querySelectorAll('.fe-cb').forEach(function(cb){
+    cb.checked=!r.estates.length||r.estates.indexOf(cb.value)>=0;
+  });
+  document.querySelectorAll('.fo-btn').forEach(function(btn){
+    var v=btn.getAttribute('data-v');
+    if(v!==undefined) btn.classList.toggle('active',v===r.ours);
+  });
+  window._pSelYrs=r.printYrs||['2027'];
+  aF();
+  setTimeout(function(){
+    window._pSelYrs=r.printYrs||['2027'];
+    doPrint();
+  },400);
+}
+
+function deleteSavedReport(idx){
+  var saved=JSON.parse(localStorage.getItem('fp_reports')||'[]');
+  if(!confirm('Delete report "'+saved[idx].name+'"?')) return;
+  saved.splice(idx,1);
+  localStorage.setItem('fp_reports',JSON.stringify(saved));
+  renderSavedReports();
+}
+// ────────────────────────────────────────────────────────────────────────
 
 function doPrint(){
   try{
