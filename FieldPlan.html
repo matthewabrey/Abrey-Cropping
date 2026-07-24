@@ -4185,34 +4185,25 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode, screenYr){
 
   // Use latest year to decide ours/partner — consistent across all years
   var latestPrintYr=printYrs[printYrs.length-1];
-  // Fields locked to screenYr; ours-only mode restricts to crops ours in screenYr
+  // Fields locked to screenYr — ours in screenYr only
   var oursSet={};
-  var ourCropSet2={};
-  if(oursMode){
-    useFields.forEach(function(f){
-      if(!isOurs(f,screenYr)) return;
-      var c=gc(f,screenYr); if(c) ourCropSet2[c]=true;
-    });
-  }
   printYrs.forEach(function(yr){
     useFields.forEach(function(f){
-      if(oursMode && !isOurs(f,screenYr)) return; // field not ours in screenYr
+      if(oursMode && !isOurs(f,screenYr)) return; // skip fields not ours in screenYr
       var c=gc(f,yr); if(!c) return;
-      if(oursMode && yr!==screenYr && !ourCropSet2[c]) return; // crop not in our 2027 set
-      // For non-screenYr columns: also check field was ours in that year
-      var fieldOursThisYr = oursMode ? isOurs(f,yr) : !oursMode||isOurs(f,screenYr);
-      if(oursMode && yr!==screenYr && !fieldOursThisYr) return; // not ours in that year
-      var inOurs=!oursMode||isOurs(f,screenYr);
-      if(inOurs){
+      // For each year, include crop if field is ours in that year
+      var fieldOursThisYr=!oursMode||isOurs(f,yr);
+      if(fieldOursThisYr){
         oursSet[c]=true;
         if(!ourCropMap[c]) ourCropMap[c]={};
         ourCropMap[c][yr]=(ourCropMap[c][yr]||0)+f.ha;
-      } else {
+      } else if(!oursMode){
         if(!partCropMap[c]) partCropMap[c]={};
         partCropMap[c][yr]=(partCropMap[c][yr]||0)+f.ha;
       }
     });
   });
+  // Merge: crop ours at any estate stays in ours section
   if(!oursMode){
     Object.keys(oursSet).forEach(function(c){
       if(partCropMap[c]){
