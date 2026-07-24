@@ -4185,38 +4185,32 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode, screenYr){
 
   // Use latest year to decide ours/partner — consistent across all years
   var latestPrintYr=printYrs[printYrs.length-1];
-  // Crop rows = ours in screenYr.
-  // Each year column = all ours fields for that crop in that year — no field locking.
+  // Simple: for each year, count all ours fields for that year independently.
+  // Crop rows = crops ours in screenYr. Other years show full ours area.
   var oursSet={};
-  // Build crop row set from screenYr
-  var ourCropSet3={};
-  if(oursMode){
-    useFields.forEach(function(f){
-      if(!isOurs(f,screenYr)) return;
-      var c=gc(f,screenYr); if(c) ourCropSet3[c]=true;
-    });
-  }
+  var screenYrCrops={}; // crops that are ours in screenYr
   printYrs.forEach(function(yr){
     useFields.forEach(function(f){
       var c=gc(f,yr); if(!c) return;
-      // In ours-only: field must be ours in this year, and crop must exist in screenYr set
-      if(oursMode){
-        if(!isOurs(f,yr)) return;
-        if(yr===screenYr && !ourCropSet3[c]) return;
-        // For other years: include any crop that is ours in that year
-        // (don't filter by ourCropSet3 — show full history/future for ours fields)
-      }
-      var inOurs=!oursMode||isOurs(f,yr);
-      if(inOurs){
+      var fieldOurs=!oursMode||isOurs(f,yr);
+      if(fieldOurs){
         oursSet[c]=true;
+        if(yr===screenYr) screenYrCrops[c]=true;
         if(!ourCropMap[c]) ourCropMap[c]={};
         ourCropMap[c][yr]=(ourCropMap[c][yr]||0)+f.ha;
-      } else {
+      } else if(!oursMode){
         if(!partCropMap[c]) partCropMap[c]={};
         partCropMap[c][yr]=(partCropMap[c][yr]||0)+f.ha;
       }
     });
   });
+  // In ours-only mode: remove crops that don't appear in screenYr
+  // (keeps rows clean — only shows crops relevant to selected year)
+  if(oursMode){
+    Object.keys(ourCropMap).forEach(function(c){
+      if(!screenYrCrops[c]) delete ourCropMap[c];
+    });
+  }
   if(!oursMode){
     Object.keys(oursSet).forEach(function(c){
       if(partCropMap[c]){
