@@ -657,6 +657,7 @@ function isOurs(f,yr){
   if(f.estate==='Euston'){
     if(c==='Maize') return false;
     if(c==='Euston Rye') return false;
+    if(c==='Sugarbeet') return false;
     if(['Carbon Trees','Grass','Solar','Pigs','Chickens','Pheasants',
         'ELS/HLS','Uncropped'].indexOf(c)>=0) return false;
     if(yr>='2027') return true;   // 2027+ all ours except above
@@ -4164,11 +4165,6 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode){
       } else {
         if(!partCropMap[c]) partCropMap[c]={};
         partCropMap[c][yr]=(partCropMap[c][yr]||0)+f.ha;
-      }
-    });
-  });
-
-  // So partCropMap[c][yr]=(partCropMap[c][yr]||0)+f.ha;
       }
     });
   });
