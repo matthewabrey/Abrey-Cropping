@@ -4205,10 +4205,11 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode, screenYr){
     });
   });
   // In ours-only mode: remove crops that don't appear in screenYr
-  // (keeps rows clean — only shows crops relevant to selected year)
+  // EXCEPT: keep Salad Potatoes (-> Potatoes family) and Parsnips (-> Carrots family)
+  var FAMILY_KEEP=['Salad Potatoes','Parsnips'];
   if(oursMode){
     Object.keys(ourCropMap).forEach(function(c){
-      if(!screenYrCrops[c]) delete ourCropMap[c];
+      if(!screenYrCrops[c] && FAMILY_KEEP.indexOf(c)<0) delete ourCropMap[c];
     });
   }
   if(!oursMode){
