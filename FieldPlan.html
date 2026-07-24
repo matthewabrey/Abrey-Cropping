@@ -4085,10 +4085,24 @@ function doPrint(){
         fpHtml+='<th style="background:'+(y===selYrFP?'#6a4200':PY.indexOf(y)>=0?'#c8821a':'#3d5a4a')+';color:#fff;padding:4px 3px;font-size:11px;text-align:center">'+(y===selYrFP?'&#9733; ':'')+y+'</th>';
       });
       fpHtml+='</tr></thead><tbody>';
+      var lastEstate='';
+      var estateColours={'Wretham':'#eaf2ea','Chandler':'#eaf0f8','Euston':'#f5f0e8',
+        'Rackham Farms':'#f8f0f0','Pickenham':'#f0eaf8','Blakeney':'#eaf8f5',
+        'Gooderham':'#f8f5ea','Beard':'#f5eaf0','Warren':'#eaf5f8',
+        'David Hill':'#f0f8ea','Edwardstone/Borehouse':'#f8f0ea'};
       fpFields.forEach(function(f){
-        fpHtml+='<tr>';
-        fpHtml+='<td style="font-weight:bold;font-size:11px;padding:3px 5px;border-bottom:0.5px solid #eee;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+f.field+'</td>';
-        fpHtml+='<td style="font-size:10px;color:#555;padding:3px 5px;border-bottom:0.5px solid #eee;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+f.estate+'</td>';
+        // Estate header row when estate changes
+        if(f.estate!==lastEstate){
+          lastEstate=f.estate;
+          var numCols=3+allPY.length;
+          fpHtml+='<tr style="background:#1a3d2b">'
+            +'<td colspan="'+numCols+'" style="padding:5px 8px;font-size:12px;font-weight:bold;color:#fff;letter-spacing:.5px;border-top:2px solid #1a3d2b">'
+            +f.estate+'</td></tr>';
+        }
+        var estBg=estateColours[f.estate]||'#fff';
+        fpHtml+='<tr style="background:'+estBg+'">';
+        fpHtml+='<td style="font-weight:bold;font-size:11px;padding:3px 5px;border-bottom:0.5px solid #ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+f.field+'</td>';
+        fpHtml+='<td style="font-size:10px;color:#555;padding:3px 5px;border-bottom:0.5px solid #ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+f.estate+'</td>';
         fpHtml+='<td style="font-size:10px;color:#777;padding:3px 4px;border-bottom:0.5px solid #eee;text-align:right">'+f.ha.toFixed(1)+'</td>';
         allPY.forEach(function(y){
           var c=gc(f,y);
