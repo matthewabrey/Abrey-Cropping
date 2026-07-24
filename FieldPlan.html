@@ -4748,16 +4748,29 @@ function rGr() {
         +eustonExplicit
         +'</div>';
     }
+    // All estates: simple list of greening fields for end of 2026
+    var grFields=ef.filter(function(f){
+      return getCoverType(f,'2026','2027')!==null;
+    }).sort(function(a,b){return b.ha-a.ha;});
+    if(!grFields.length) return '';
+    var grTotal=grFields.reduce(function(a,f){return a+f.ha;},0);
     return '<div class="gr-estate-block" style="margin-bottom:24px">'
-      +'<div style="font-weight:bold;font-size:14px;color:var(--g1);margin-bottom:6px">'+estate+'</div>'
-      +eustonExplicit
-      +'<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:12px;width:100%">'
-      +'<thead><tr>'
-      +'<th style="min-width:180px;text-align:left;padding:4px 8px">Field</th>'
-      +'<th style="min-width:50px;text-align:left;padding:4px 8px">Area</th>'
-      +colHdrs
+      +'<div style="border:1px solid #27ae60;border-radius:6px;overflow:hidden">'
+      +'<div style="padding:6px 10px;background:#27ae60;color:#fff;font-size:11px;font-weight:bold;letter-spacing:.3px">'
+      +'&#9679; Greening — end of 2026 harvest ('+grFields.length+' fields, '+grTotal.toFixed(1)+'ha)</div>'
+      +'<table style="border-collapse:collapse;font-size:12px;width:100%">'
+      +'<thead><tr style="background:#eafaf0">'
+      +'<th style="text-align:left;padding:4px 8px">Field</th>'
+      +'<th style="text-align:right;padding:4px 8px;min-width:60px">Ha</th>'
+      +'<th style="text-align:left;padding:4px 8px">2026 crop</th>'
+      +'<th style="text-align:left;padding:4px 8px">2027 plan</th>'
       +'</tr></thead><tbody>'
-      +mgRows+mgTotRow+mcvRows+mcvTotRow+combRow
+      +grFields.map(function(f){
+        return '<tr><td style="padding:3px 8px;font-weight:bold">'+f.field+'</td>'
+          +'<td style="text-align:right;padding:3px 8px;color:var(--tx3)">'+f.ha.toFixed(1)+'</td>'
+          +'<td style="padding:3px 8px">'+(gc(f,'2026')||'—')+'</td>'
+          +'<td style="padding:3px 8px">'+(gc(f,'2027')||'—')+'</td></tr>';
+      }).join('')
       +'</tbody></table></div></div>';
   }
 
