@@ -4159,12 +4159,14 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode){
 
   // Use latest year to decide ours/partner — consistent across all years
   var latestPrintYr=printYrs[printYrs.length-1];
+  // First pass: build maps per field
+  var oursSet={};
   printYrs.forEach(function(yr){
     useFields.forEach(function(f){
-      var c=gc(f,yr);
-      if(!c) return;
-      var isOursLatest=oursMode===false||isOurs(f,latestPrintYr);
-      if(isOursLatest){
+      var c=gc(f,yr); if(!c) return;
+      var fieldOurs=oursMode===false||isOurs(f,latestPrintYr);
+      if(fieldOurs){
+        oursSet[c]=true;
         if(!ourCropMap[c]) ourCropMap[c]={};
         ourCropMap[c][yr]=(ourCropMap[c][yr]||0)+f.ha;
       } else {
@@ -4172,6 +4174,18 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode){
         partCropMap[c][yr]=(partCropMap[c][yr]||0)+f.ha;
       }
     });
+  });
+  // If crop is ours at any estate, merge partner ha into ours
+  Object.keys(oursSet).forEach(function(c){
+    if(partCropMap[c]){
+      printYrs.forEach(function(yr){
+        if(partCropMap[c][yr]){
+          if(!ourCropMap[c]) ourCropMap[c]={};
+          ourCropMap[c][yr]=(ourCropMap[c][yr]||0)+partCropMap[c][yr];
+        }
+      });
+      delete partCropMap[c];
+    }
   });
 
   // Sort ours: veg first (in VEG order) then alpha
