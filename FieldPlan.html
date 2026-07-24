@@ -4185,48 +4185,35 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode, screenYr){
 
   // Use latest year to decide ours/partner — consistent across all years
   var latestPrintYr=printYrs[printYrs.length-1];
-  // Screen year determines which crop ROWS appear.
-  // Each year column independently counts ours fields for that year.
+  // Crop rows = ours in screenYr.
+  // Each year column = all ours fields for that crop in that year — no field locking.
   var oursSet={};
-  // Build the set of crop rows from screenYr ours fields
+  // Build crop row set from screenYr
   var ourCropSet3={};
   if(oursMode){
     useFields.forEach(function(f){
       if(!isOurs(f,screenYr)) return;
       var c=gc(f,screenYr); if(c) ourCropSet3[c]=true;
     });
-    // Always include potato/parsnip family so 2026 history merges correctly
-    if(ourCropSet3['Potatoes']||ourCropSet3['Salad Potatoes']||ourCropSet3['Seed Potatoes']){
-      ourCropSet3['Potatoes']=true;
-      ourCropSet3['Salad Potatoes']=true;
-    }
-    if(ourCropSet3['Carrots']||ourCropSet3['Parsnips']){
-      ourCropSet3['Carrots']=true;
-      ourCropSet3['Parsnips']=true;
-    }
-  }
-  function canonCrop(c){
-    if(c==='Salad Potatoes') return 'Potatoes';
-    if(c==='Parsnips') return 'Carrots';
-    return c;
   }
   printYrs.forEach(function(yr){
     useFields.forEach(function(f){
       var c=gc(f,yr); if(!c) return;
-      var rowKey=canonCrop(c);
-      // In ours-only mode: only include if crop row exists AND field is ours in this year
+      // In ours-only: field must be ours in this year, and crop must exist in screenYr set
       if(oursMode){
-        if(!ourCropSet3[c]) return; // crop not in our row set
-        if(!isOurs(f,yr)) return;   // field not ours in this year
+        if(!isOurs(f,yr)) return;
+        if(yr===screenYr && !ourCropSet3[c]) return;
+        // For other years: include any crop that is ours in that year
+        // (don't filter by ourCropSet3 — show full history/future for ours fields)
       }
       var inOurs=!oursMode||isOurs(f,yr);
       if(inOurs){
-        oursSet[rowKey]=true;
-        if(!ourCropMap[rowKey]) ourCropMap[rowKey]={};
-        ourCropMap[rowKey][yr]=(ourCropMap[rowKey][yr]||0)+f.ha;
+        oursSet[c]=true;
+        if(!ourCropMap[c]) ourCropMap[c]={};
+        ourCropMap[c][yr]=(ourCropMap[c][yr]||0)+f.ha;
       } else {
-        if(!partCropMap[rowKey]) partCropMap[rowKey]={};
-        partCropMap[rowKey][yr]=(partCropMap[rowKey][yr]||0)+f.ha;
+        if(!partCropMap[c]) partCropMap[c]={};
+        partCropMap[c][yr]=(partCropMap[c][yr]||0)+f.ha;
       }
     });
   });
@@ -4269,9 +4256,6 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode, screenYr){
   // OUR CROPS section
   html3+='<tr><td colspan="'+(1+printYrs.length)+'" style="padding:3px 6px;background:#1a3d2b;color:#fff;font-size:9px;font-weight:bold;text-transform:uppercase;letter-spacing:.3px">Our crops</td></tr>';
   ourCrops.forEach(function(c){
-    // Salad Potatoes merged into Potatoes row; Parsnips merged into Carrots row
-    if(c==='Salad Potatoes'||c==='Parsnips') return;
-    var siblings={'Potatoes':['Salad Potatoes'],'Carrots':['Parsnips']};
     var isV=VEG2.includes(c);
     var col=CC[c]||'#999';
     html3+='<tr style="background:'+(isV?'rgba(26,61,43,.06)':'')+'"><td style="white-space:nowrap;padding:3px 6px 3px 4px">'
@@ -4279,8 +4263,6 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode, screenYr){
       +'<span style="font-size:11px;'+(isV?'font-weight:bold;color:#1a3d2b':'color:#333')+'">'+c+'</span></td>';
     printYrs.forEach(function(yr){
       var ha=ourCropMap[c][yr]||0;
-      // Add sibling family ha (Salad Potatoes into Potatoes, Parsnips into Carrots)
-      (siblings[c]||[]).forEach(function(s){ ha+=(ourCropMap[s]&&ourCropMap[s][yr])||0; });
       var ac=Math.round(ha*2.47105);
       html3+='<td style="text-align:right;padding:2px 4px;vertical-align:middle">'+(ha>0
         ?'<div style="font-size:11px;font-weight:'+(isV?'bold':'normal')+';color:'+(isV?'#1a3d2b':'#555')+'">'+Math.round(ha)+'</div>'
