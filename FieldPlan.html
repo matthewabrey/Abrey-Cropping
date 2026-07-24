@@ -4006,6 +4006,45 @@ function doPrint(){
 
   var oursMode=(selOurs==='ours');
   var caHtml=inclCA?(buildPrintCATable(printYrs.slice(),caFields,oursMode)||''):'';
+  // Pie charts per year for print
+  var piePrintHtml='';
+  if(inclCA){
+    piePrintHtml='<div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;page-break-inside:avoid">';
+    printYrs.forEach(function(yr){
+      var pd=[];
+      var allC={};
+      caFields.forEach(function(f){
+        var c=gc(f,yr); if(!c||!CC[c]) return;
+        if(!allC[c]) allC[c]={ha:0,ours:false};
+        allC[c].ha+=f.ha;
+        if(isOurs(f,yr)) allC[c].ours=true;
+      });
+      Object.keys(allC).forEach(function(c){
+        pd.push({crop:c,ha:allC[c].ha,col:CC[c]||'#999',notOurs:!allC[c].ours});
+      });
+      pd.sort(function(a,b){return b.ha-a.ha;});
+      var tot=pd.reduce(function(a,d){return a+d.ha;},0);
+      if(!tot) return;
+      var cx=80,cy=80,r=68,ang=-Math.PI/2,slices='';
+      pd.forEach(function(d){
+        var sw=2*Math.PI*(d.ha/tot);
+        var x1=cx+r*Math.cos(ang),y1=cy+r*Math.sin(ang);
+        var x2=cx+r*Math.cos(ang+sw),y2=cy+r*Math.sin(ang+sw);
+        slices+='<path d="M'+cx+','+cy+' L'+x1.toFixed(1)+','+y1.toFixed(1)+' A'+r+','+r+' 0 '+(sw>Math.PI?1:0)+',1 '+x2.toFixed(1)+','+y2.toFixed(1)+'Z" fill="'+d.col+'" stroke="#fff" stroke-width="1"'+(d.notOurs?' opacity="0.5"':'')+'/>';
+        ang+=sw;
+      });
+      var leg=pd.map(function(d){
+        return '<div style="display:flex;align-items:center;gap:4px;font-size:8px;'+(d.notOurs?'color:#888;font-style:italic':'')+'">'
+          +'<span style="display:inline-block;width:8px;height:8px;border-radius:1px;background:'+d.col+';'+(d.notOurs?'opacity:0.5':'')+'"></span>'
+          +d.crop+' '+Math.round(d.ha)+'ha ('+Math.round(d.ha/tot*100)+'%)</div>';
+      }).join('');
+      piePrintHtml+='<div style="text-align:center">';
+      piePrintHtml+='<div style="font-size:9px;font-weight:bold;color:#1a3d2b;margin-bottom:4px">'+yr+' — '+Math.round(tot)+'ha</div>';
+      piePrintHtml+='<svg width="160" height="160" viewBox="0 0 160 160">'+slices+'</svg>';
+      piePrintHtml+='<div style="text-align:left;margin-top:4px">'+leg+'</div></div>';
+    });
+    piePrintHtml+='</div>';
+  }
   var fpHtml='';
   if(inclFP){
     var selYrFP=(document.getElementById('fy')||{value:'2027'}).value||'2027';
