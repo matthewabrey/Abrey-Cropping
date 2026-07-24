@@ -658,6 +658,7 @@ function isOurs(f,yr){
     if(c==='Maize') return false;
     if(c==='Euston Rye') return false;
     if(c==='Sugarbeet') return false;
+    if(c==='Veg (RLLONG)') return false; // long-season veg — partner farmed
     if(['Carbon Trees','Grass','Solar','Pigs','Chickens','Pheasants',
         'ELS/HLS','Uncropped'].indexOf(c)>=0) return false;
     if(yr>='2027') return true;   // 2027+ all ours except above
@@ -4168,23 +4169,23 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode, screenYr){
   var latestPrintYr=printYrs[printYrs.length-1];
   // Fields locked to screenYr; ours-only mode restricts to crops ours in screenYr
   var oursSet={};
-  // In ours-only: determine which crops are ours in screenYr across all active fields
-  var ourCropSet={};
+  var ourCropSet2={};
   if(oursMode){
     useFields.forEach(function(f){
       if(!isOurs(f,screenYr)) return;
-      var c=gc(f,screenYr); if(c) ourCropSet[c]=true;
+      var c=gc(f,screenYr); if(c) ourCropSet2[c]=true;
     });
   }
-  // Build maps: only include ha where field is ours in screenYr
-  // For non-screen years: only count ha for crops that are in ourCropSet
   printYrs.forEach(function(yr){
     useFields.forEach(function(f){
-      if(oursMode && !isOurs(f,screenYr)) return; // skip non-ours fields
+      if(oursMode && !isOurs(f,screenYr)) return; // field not ours in screenYr
       var c=gc(f,yr); if(!c) return;
-      if(oursMode && yr!==screenYr && !ourCropSet[c]) return; // skip crops not in our screenYr set
-      var fieldOurs=!oursMode||isOurs(f,screenYr);
-      if(fieldOurs){
+      if(oursMode && yr!==screenYr && !ourCropSet2[c]) return; // crop not in our 2027 set
+      // For non-screenYr columns: also check field was ours in that year
+      var fieldOursThisYr = oursMode ? isOurs(f,yr) : !oursMode||isOurs(f,screenYr);
+      if(oursMode && yr!==screenYr && !fieldOursThisYr) return; // not ours in that year
+      var inOurs=!oursMode||isOurs(f,screenYr);
+      if(inOurs){
         oursSet[c]=true;
         if(!ourCropMap[c]) ourCropMap[c]={};
         ourCropMap[c][yr]=(ourCropMap[c][yr]||0)+f.ha;
@@ -4194,7 +4195,6 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode, screenYr){
       }
     });
   });
-  // Merge: if crop is ours at any estate, keep in ours section
   if(!oursMode){
     Object.keys(oursSet).forEach(function(c){
       if(partCropMap[c]){
