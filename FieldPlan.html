@@ -738,6 +738,7 @@ function printTable(title, tableEl) {
     +'<div style="font-size:10px;color:#888">Abreys FieldPlan &mdash; printed '+new Date().toLocaleDateString('en-GB')+'</div>'
     +'</div>'
     +'<button class="no-print" onclick="window.print()" style="padding:6px 18px;background:#1a3d2b;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px">&#128438; Print</button>'
+    +'<button class="no-print" onclick="saveReport()" style="padding:6px 18px;background:#1a5080;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;margin-left:8px">&#8659; Save HTML</button>'
     +'</div>'
     +tbl+'</body></html>');
   w.document.close();
@@ -4158,7 +4159,19 @@ function doPrint(){
     var w=window.open('','_blank','width=1300,height=900');
     if(!w){alert('Please allow popups for this site.');return;}
     w.document.open(); w.document.write(html); w.document.close();
-    setTimeout(function(){try{w.focus();w.print();}catch(e){}},800);
+    // Inject save function after window opens
+    setTimeout(function(){
+      try{
+        w.saveReport=function(){
+          var b=new Blob([w.document.documentElement.outerHTML],{type:'text/html'});
+          var a=w.document.createElement('a');
+          a.href=w.URL.createObjectURL(b);
+          a.download='FieldPlan-'+new Date().toISOString().slice(0,10)+'.html';
+          w.document.body.appendChild(a); a.click(); w.document.body.removeChild(a);
+        };
+        w.focus(); w.print();
+      }catch(e){}
+    },800);
   }
 
   if(inclMP&&mpEstates.length){
