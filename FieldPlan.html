@@ -4008,7 +4008,8 @@ function doPrint(){
   });
 
   var oursMode=(selOurs==='ours');
-  var caHtml=inclCA?(buildPrintCATable(printYrs.slice(),caFields,oursMode)||''):'';
+  var screenYr=(document.getElementById('fy')||{value:'2027'}).value||'2027';
+  var caHtml=inclCA?(buildPrintCATable(printYrs.slice(),caFields,oursMode,screenYr)||''):'';
   // Pie charts per year for print
   var piePrintHtml='';
   if(inclCA){
@@ -4144,7 +4145,8 @@ function doPrint(){
   }catch(e){alert('Print error: '+e.message+'\n'+e.stack.slice(0,400));}
 }
 
-function buildPrintCATable(printYrs, fieldsOverride, oursMode){
+function buildPrintCATable(printYrs, fieldsOverride, oursMode, screenYr){
+  screenYr=screenYr||printYrs[printYrs.length-1];
   if(!printYrs||!printYrs.length) printYrs=['2027'];
   var allYrsOrder=HY.concat(PY);
   printYrs=allYrsOrder.filter(function(y){return printYrs.indexOf(y)>=0;});
@@ -4159,24 +4161,28 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode){
 
   // Use latest year to decide ours/partner — consistent across all years
   var latestPrintYr=printYrs[printYrs.length-1];
-  // Build crop maps — per year per field using correct isOurs for that year
+  // Fields are fixed by screenYr — only include fields ours in screen year
+  // Additional year columns show what those SAME fields had/will have
   var oursSet={};
+  // Pre-filter fields: in ours mode, only fields that are ours in screenYr
+  var activeFields=oursMode
+    ? useFields.filter(function(f){ return isOurs(f,screenYr); })
+    : useFields;
   printYrs.forEach(function(yr){
-    useFields.forEach(function(f){
+    activeFields.forEach(function(f){
       var c=gc(f,yr); if(!c) return;
-      var fieldOurs=oursMode===false||isOurs(f,yr);
+      var fieldOurs=oursMode||isOurs(f,screenYr);
       if(fieldOurs){
         oursSet[c]=true;
         if(!ourCropMap[c]) ourCropMap[c]={};
         ourCropMap[c][yr]=(ourCropMap[c][yr]||0)+f.ha;
-      } else if(!oursMode){
+      } else {
         if(!partCropMap[c]) partCropMap[c]={};
         partCropMap[c][yr]=(partCropMap[c][yr]||0)+f.ha;
       }
     });
   });
-  // If a crop is ours in any year, merge its partner ha into ours
-  // (e.g. Wheat ours at Wretham 2026 but partner at Rackham same year)
+  // Merge: if crop is ours at any estate in screenYr, keep it in ours section
   if(!oursMode){
     Object.keys(oursSet).forEach(function(c){
       if(partCropMap[c]){
