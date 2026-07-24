@@ -4019,8 +4019,14 @@ function doPrint(){
         allC[c].ha+=f.ha;
         if(isOurs(f,yr)) allC[c].ours=true;
       });
+      // Use latest year to determine ours/partner for consistent display
+      var latestYr=printYrs[printYrs.length-1];
       Object.keys(allC).forEach(function(c){
-        pd.push({crop:c,ha:allC[c].ha,col:CC[c]||'#999',notOurs:!allC[c].ours});
+        // Check isOurs using any field that has this crop in latest year
+        var sampleF=caFields.filter(function(f){return gc(f,latestYr)===c;})[0]||
+                    caFields.filter(function(f){return gc(f,yr)===c;})[0];
+        var ours=sampleF?isOurs(sampleF,latestYr):false;
+        pd.push({crop:c,ha:allC[c].ha,col:CC[c]||'#999',notOurs:!ours});
       });
       pd.sort(function(a,b){return b.ha-a.ha;});
       var tot=pd.reduce(function(a,d){return a+d.ha;},0);
