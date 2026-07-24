@@ -4159,25 +4159,24 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode){
 
   // Use latest year to decide ours/partner — consistent across all years
   var latestPrintYr=printYrs[printYrs.length-1];
-  // Build crop maps — ours vs partner
+  // Build crop maps — per year per field using correct isOurs for that year
   var oursSet={};
   printYrs.forEach(function(yr){
     useFields.forEach(function(f){
       var c=gc(f,yr); if(!c) return;
-      var fieldOurs=oursMode===false||isOurs(f,latestPrintYr);
+      var fieldOurs=oursMode===false||isOurs(f,yr);
       if(fieldOurs){
         oursSet[c]=true;
         if(!ourCropMap[c]) ourCropMap[c]={};
         ourCropMap[c][yr]=(ourCropMap[c][yr]||0)+f.ha;
       } else if(!oursMode){
-        // Only track partner crops when NOT in ours-only mode
         if(!partCropMap[c]) partCropMap[c]={};
         partCropMap[c][yr]=(partCropMap[c][yr]||0)+f.ha;
       }
     });
   });
-  // When showing all estates: if a crop is ours at any estate,
-  // merge its partner-estate ha into the ours row so it doesn't split
+  // If a crop is ours in any year, merge its partner ha into ours
+  // (e.g. Wheat ours at Wretham 2026 but partner at Rackham same year)
   if(!oursMode){
     Object.keys(oursSet).forEach(function(c){
       if(partCropMap[c]){
