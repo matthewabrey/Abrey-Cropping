@@ -709,7 +709,9 @@ function oursHa(f,yr){return isOurs(f,yr)?f.ha:0;}
 function printTable(title, tableEl) {
   var w = window.open('', '_blank', 'width=1200,height=800');
   if (!w) { alert('Please allow popups for this site'); return; }
-  var tbl = tableEl ? tableEl.outerHTML : '';
+  // Walk up to include parent container (captures totals header above table)
+  var container = tableEl ? tableEl.closest('.gr-estate-block') || tableEl.parentElement || tableEl : null;
+  var tbl = container ? container.innerHTML : (tableEl ? tableEl.outerHTML : '');
   w.document.write('<!DOCTYPE html><html><head><title>'+title+'</title>'
     +'<style>'
     // Force colour printing - critical
@@ -4688,7 +4690,7 @@ function rGr() {
           +'</tbody></table></div>';
       }
     }
-    return '<div style="margin-bottom:24px">'
+    return '<div class="gr-estate-block" style="margin-bottom:24px">'
       +'<div style="font-weight:bold;font-size:14px;color:var(--g1);margin-bottom:6px">'+estate+'</div>'
       +eustonExplicit
       +'<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:12px;width:100%">'
