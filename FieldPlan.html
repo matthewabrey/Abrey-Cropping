@@ -4151,16 +4151,24 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode){
   var ourCropMap={};   // crop -> {yr->ha}  (ours only)
   var partCropMap={};  // crop -> {yr->ha}  (partner only)
 
+  // Use latest year to decide ours/partner — consistent across all years
+  var latestPrintYr=printYrs[printYrs.length-1];
   printYrs.forEach(function(yr){
     useFields.forEach(function(f){
       var c=gc(f,yr);
       if(!c) return;
-      if(oursMode===false||isOurs(f,yr)){
+      var isOursLatest=oursMode===false||isOurs(f,latestPrintYr);
+      if(isOursLatest){
         if(!ourCropMap[c]) ourCropMap[c]={};
         ourCropMap[c][yr]=(ourCropMap[c][yr]||0)+f.ha;
       } else {
         if(!partCropMap[c]) partCropMap[c]={};
         partCropMap[c][yr]=(partCropMap[c][yr]||0)+f.ha;
+      }
+    });
+  });
+
+  // So partCropMap[c][yr]=(partCropMap[c][yr]||0)+f.ha;
       }
     });
   });
