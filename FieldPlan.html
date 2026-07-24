@@ -4010,7 +4010,9 @@ function doPrint(){
   var filterNote=selE2b.length?'Estate: '+selE2b.join(', '):'All estates';
   if(selOurs==='ours') filterNote+=' — Ours only';
   // Use filtF so crop area summary respects the current ours/all filter
-  var caFields=filtF.filter(function(f){
+  // Use full F for CA table (not filtF) so 2026 history includes all ours fields
+  // filtF is filtered to ours-in-2027 which would exclude 2026-only fields
+  var caFields=F.filter(function(f){
     return !selE2b.length||selE2b.includes(f.estate);
   });
 
