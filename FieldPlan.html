@@ -710,9 +710,15 @@ function oursHa(f,yr){return isOurs(f,yr)?f.ha:0;}
 function printTable(title, tableEl) {
   var w = window.open('', '_blank', 'width=1200,height=800');
   if (!w) { alert('Please allow popups for this site'); return; }
-  // Walk up to include parent container (captures totals header above table)
-  var container = tableEl ? tableEl.closest('.gr-estate-block') || tableEl.parentElement || tableEl : null;
-  var tbl = container ? container.innerHTML : (tableEl ? tableEl.outerHTML : '');
+  // If multiple gr-estate-block divs exist, print all of them
+  var allBlocks = document.querySelectorAll('.gr-estate-block');
+  var tbl;
+  if(allBlocks.length > 1){
+    tbl = Array.from(allBlocks).map(function(b){return b.outerHTML;}).join('');
+  } else {
+    var container = tableEl ? tableEl.closest('.gr-estate-block') || tableEl.parentElement || tableEl : null;
+    tbl = container ? container.innerHTML : (tableEl ? tableEl.outerHTML : '');
+  }
   w.document.write('<!DOCTYPE html><html><head><title>'+title+'</title>'
     +'<style>'
     // Force colour printing - critical
