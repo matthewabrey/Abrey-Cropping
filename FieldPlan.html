@@ -4014,7 +4014,7 @@ function doPrint(){
   // Pie charts per year for print
   var piePrintHtml='';
   if(inclCA){
-    piePrintHtml='<div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;page-break-inside:avoid">';
+    piePrintHtml='<div style="display:flex;flex-wrap:wrap;gap:32px;margin-top:16px;page-break-inside:avoid">';
     printYrs.forEach(function(yr){
       var pd=[];
       var allC={};
@@ -4045,13 +4045,13 @@ function doPrint(){
         ang+=sw;
       });
       var leg=pd.map(function(d){
-        return '<div style="display:flex;align-items:center;gap:4px;font-size:8px;'+(d.notOurs?'color:#888;font-style:italic':'')+'">'
-          +'<span style="display:inline-block;width:8px;height:8px;border-radius:1px;background:'+d.col+';'+(d.notOurs?'opacity:0.5':'')+'"></span>'
+        return '<div style="display:flex;align-items:center;gap:5px;font-size:11px;margin-bottom:2px;'+(d.notOurs?'color:#888;font-style:italic':'')+'">'
+          +'<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+d.col+';'+(d.notOurs?'opacity:0.5':'')+'"></span>'
           +d.crop+' '+Math.round(d.ha)+'ha ('+Math.round(d.ha/tot*100)+'%)</div>';
       }).join('');
       piePrintHtml+='<div style="text-align:center">';
-      piePrintHtml+='<div style="font-size:9px;font-weight:bold;color:#1a3d2b;margin-bottom:4px">'+yr+' — '+Math.round(tot)+'ha</div>';
-      piePrintHtml+='<svg width="160" height="160" viewBox="0 0 160 160">'+slices+'</svg>';
+      piePrintHtml+='<div style="font-size:13px;font-weight:bold;color:#1a3d2b;margin-bottom:6px">'+yr+' — '+Math.round(tot)+'ha</div>';
+      piePrintHtml+='<svg width="260" height="260" viewBox="0 0 160 160">'+slices+'</svg>';
       piePrintHtml+='<div style="text-align:left;margin-top:4px">'+leg+'</div></div>';
     });
     piePrintHtml+='</div>';
@@ -4223,12 +4223,12 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode, screenYr){
   var partCrops=Object.keys(partCropMap).sort();
 
     // Column headers
-  var colW='width:62px;min-width:0;';
+  var colW='width:90px;min-width:0;';
   var colHdrs=printYrs.map(function(y){
     return '<th style="'+colW+'text-align:right;background:'+(y<='2026'?'#3d5a4a':'#c8821a')+';font-size:10px;color:#fff;padding:3px 4px">'+y+'</th>';
   }).join('');
-  var html3='<table style="width:100%;font-size:11px;border-collapse:collapse;table-layout:fixed"><thead><tr>'
-    +'<th style="width:110px;text-align:left;background:#1a3d2b;color:#fff;padding:3px 6px">Crop</th>'+colHdrs
+  var html3='<table style="width:100%;font-size:13px;border-collapse:collapse;table-layout:fixed"><thead><tr>'
+    +'<th style="width:160px;text-align:left;background:#1a3d2b;color:#fff;padding:3px 6px">Crop</th>'+colHdrs
     +'</tr></thead><tbody>';
 
   // OUR CROPS section
