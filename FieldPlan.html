@@ -4192,6 +4192,19 @@ function buildPrintCATable(printYrs, fieldsOverride, oursMode){
     });
   }
 
+  // Sort: VEG first, then cereals, then alpha
+  var CEREAL_ORDER2=['Wheat','Barley','Rye','Rye A','Oats','OWC','Over Winter Cereal','Triticale'];
+  var ourCrops=Object.keys(ourCropMap).sort(function(a,b){
+    var ai=VEG2.indexOf(a), bi=VEG2.indexOf(b);
+    var ac=CEREAL_ORDER2.indexOf(a), bc=CEREAL_ORDER2.indexOf(b);
+    var aGrp=ai>=0?0:(ac>=0?1:2), bGrp=bi>=0?0:(bc>=0?1:2);
+    if(aGrp!==bGrp) return aGrp-bGrp;
+    if(ai>=0&&bi>=0) return ai-bi;
+    if(ac>=0&&bc>=0) return ac-bc;
+    return a.localeCompare(b);
+  });
+  var partCrops=Object.keys(partCropMap).sort();
+
     // Column headers
   var colW='width:62px;min-width:0;';
   var colHdrs=printYrs.map(function(y){
