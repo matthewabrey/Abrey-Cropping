@@ -4469,15 +4469,17 @@ function getCoverType(f, fromYr, toYr) {
   var from = gc(f, fromYr);
   var to   = gc(f, toYr);
   if (!ELIGIBLE_FROM.includes(from)) return null;
-  // Must be OUR crop in the FROM year —
-  // Exception: Euston confirmed greening list overrides isOurs() check
-  // (Euston wheat/cereal is partner-farmed pre-2027 but greening is still done by us)
-  var eustonConfirmed = f.estate==='Euston' && EUSTON_GREENING_END_2026.indexOf(f.field)>=0;
-  if (!eustonConfirmed && !isOurs(f, fromYr)) return null;
-  // Maize or Potatoes incoming — Maxi Veg dot
-  // Euston: also exclude Euston Rye as eligible before crop
-  var toOk = MV_TO.includes(to) && !(f.estate==='Euston' && to==='Euston Rye');
-  if (toOk) return 'MV';
+  // Euston: ONLY show dot if field is on the confirmed greening list
+  if (f.estate==='Euston') {
+    if (EUSTON_GREENING_END_2026.indexOf(f.field) < 0) return null;
+    // Not before Euston Rye
+    if (to==='Euston Rye') return null;
+    if (MV_TO.includes(to)) return 'MV';
+    return null;
+  }
+  // All other estates: must be our crop in from year
+  if (!isOurs(f, fromYr)) return null;
+  if (MV_TO.includes(to)) return 'MV';
   return null;
 }
 
