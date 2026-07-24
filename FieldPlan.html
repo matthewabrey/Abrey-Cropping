@@ -4086,8 +4086,11 @@ function doPrint(){
           var col=CC[c]||'#ccc';
           var partner=c&&!isOurs(f,y);
           var hatch=partner?';background-image:repeating-linear-gradient(45deg,rgba(0,0,0,0.2) 0,rgba(0,0,0,0.2) 2px,transparent 2px,transparent 6px)':'';
+          var prevY=allPY[allPY.indexOf(y)-1]||null;
+          var covT=prevY?getCoverType(f,prevY,y):null;
+          var dotPr=covT?'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:'+MV_COL+';margin-bottom:1px;vertical-align:middle"></span>':'';
           fpHtml+='<td style="text-align:center;padding:2px 1px;border-bottom:0.5px solid #eee">';
-          if(c) fpHtml+='<span style="display:inline-block;border-radius:2px;padding:2px 4px;font-size:10px;background:'+col+hatch+';color:'+(CT[c]||'#111')+'">'+c+'</span>';
+          if(c) fpHtml+=dotPr+'<span style="display:inline-block;border-radius:2px;padding:2px 4px;font-size:10px;background:'+col+hatch+';color:'+(CT[c]||'#111')+'">'+c+'</span>';
           fpHtml+='</td>';
         });
         fpHtml+='</tr>';
