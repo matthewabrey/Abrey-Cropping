@@ -5552,7 +5552,10 @@ function _mapPrint(){
     'var CC='+JSON.stringify(CC)+';',
     'var geo='+JSON.stringify(geo)+';',
     'var selYr="'+_mapSelYr+'";',
-    'var map=L.map("map",{zoomControl:false}).setView(['+center.lat+','+center.lng+'],'+zoom+');',
+    'var map=L.map("map",{zoomControl:false,padding:[0,0]});',
+    '// Fit to all field bounds for correct zoom',
+    'var allPts=[];geo.forEach(function(f){(f.rings||[]).forEach(function(r){r.forEach(function(p){allPts.push([p[1],p[0]]);});});});',
+    'if(allPts.length){map.fitBounds(L.latLngBounds(allPts),{padding:[10,10]});}else{map.setView(['+center.lat+','+center.lng+'],'+zoom+');}' ,
     'L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap"}).addTo(map);',
     'geo.forEach(function(f){',
     '  var c=(f.crops&&f.crops[selYr])||"";',
@@ -5574,7 +5577,8 @@ function _mapPrint(){
     '</scr'+'ipt></body></html>'
   ].join('\n');
 
-  var w=window.open('','_blank','width=1400,height=900');
+  // Open at A3 landscape proportions (420x297mm at 96dpi = 1587x1123)
+  var w=window.open('','_blank','width=1587,height=1123');
   if(!w){alert('Please allow popups for this site.');return;}
   w.document.write(html);
   w.document.close();
