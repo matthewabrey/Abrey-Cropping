@@ -159,6 +159,7 @@ const CC={
   'Triticale':       '#CC3322',  // Red variant
   'Maize':           '#7B2FBE',  // Purple
   'Rye':             '#00BCD4',  // Cyan
+  'Conventional Rye':'#00BCD4',  // same as Rye
   'Rye A':           '#0097A7',  // Dark cyan
   'Wholecrop':       '#00ACC1',  // Cyan variant
   // ── Other crops — muted but distinct colours ──────────────────────────
@@ -182,7 +183,7 @@ const CC={
 const CT={
   // White text on dark backgrounds
   'Potatoes':'#fff','Salad Potatoes':'#fff','Seed Potatoes':'#fff',
-  'Maize':'#fff','Rye':'#fff','Rye A':'#fff','Wholecrop':'#fff',
+  'Maize':'#fff','Rye':'#fff','Rye A':'#fff','Conventional Rye':'#fff','Wholecrop':'#fff',
   'Carbon Trees':'#fff','Woodland':'#fff','CS MT':'#fff',
   // Dark text on light/bright backgrounds
   'Onions':'#333','Carrots':'#fff','Wheat':'#fff',
@@ -4463,9 +4464,9 @@ function rAD(){
   var ery_eus  = getCropHa('Euston',['Euston Rye'],adYr); // Euston Rye partner — info only
   var mz_total = mz_wret+mz_chan; // Wretham+Chandler only
 
-  var rye_wret = getCropHa('Wretham',['Rye','Rye A'],adYr);
-  var rye_chan = getCropHa(['Chandler'],['Rye','Rye A'],adYr);
-  var rye_eus  = getCropHa('Euston',['Rye','Rye A'],adYr); // Euston our Rye — counts towards AD
+  var rye_wret = getCropHa('Wretham',['Rye','Rye A','Conventional Rye'],adYr);
+  var rye_chan = getCropHa(['Chandler'],['Rye','Rye A','Conventional Rye'],adYr);
+  var rye_eus  = getCropHa('Euston',['Rye','Rye A','Conventional Rye'],adYr); // Euston our Rye — counts towards AD
   var rye_pic  = 0; // excluded from total — shown below for info only
   var rye_pic_display = getCropHa('Pickenham',['Rye A'],adYr);
   var rye_total= rye_wret+rye_chan+rye_eus; // Wretham+Chandler+Euston (our Rye only, not 'Euston Rye')
@@ -4603,7 +4604,7 @@ function rAD(){
 var EUSTON_GREENING_END_2026 = ["36 Acres.A", "Ann Harts", "Behind Barn", "Big Cranwell Hill (West Farm)", "Big Field (Euston)", "Big Hodna (Cereals)", "Corner Field", "Covey Land.A", "Euston Breck (Headings)", "Farmhouse Field", "Flats North (Headings)", "Heath Meadow", "Landing Lights", "Long Field (Euston)", "Mill Hill (Headings)", "New Beyton Grove.A", "Old Beyt Grove.A", "Pear Pit", "R H Side of the Road", "Railway Line.A", "Sheeps Walk (West Farm)", "Sixteen Acres", "Tableland", "Thetford Road.A"];
 var GREENING_ESTATES = ['Wretham','Chandler','Rackham Farms','Euston','Pickenham',
   'Blakeney','Edwardstone/Borehouse','Gooderham'];  // all estates
-var CEREAL_CROPS = ['Wheat','Barley','Rye','Rye A','Oats','Triticale','Wholecrop','Over Winter Cereal'];
+var CEREAL_CROPS = ['Wheat','Barley','Rye','Rye A','Conventional Rye','Oats','Triticale','Wholecrop','Over Winter Cereal'];
 var ELIGIBLE_FROM = CEREAL_CROPS.concat(['Carrots','Parsnips','Onions']);
 var MV_TO   = ['Maize','Potatoes','Salad Potatoes','Seed Potatoes']; // Maxi Veg: before Maize or Potatoes
 var MV_COL  = '#27ae60';   // green — single mix colour
