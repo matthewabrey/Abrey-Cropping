@@ -911,7 +911,10 @@ function rPl(){
   function cbGroup(id,items,lbl,colMap,txtMap){
     var boxes=items.map(function(v){
       var bg=colMap&&colMap[v]?colMap[v]:'transparent';
-      var chip=bg!=='transparent'?'<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+bg+';flex-shrink:0;vertical-align:middle"></span>&thinsp;':'';
+      var isConvRye=v==='Conventional Rye';
+      var chipBg=bg!=='transparent'?'background:'+bg+';':'';
+      var chipPattern=isConvRye?'background-image:repeating-linear-gradient(45deg,rgba(0,0,0,0.4) 0,rgba(0,0,0,0.4) 1px,transparent 1px,transparent 4px),repeating-linear-gradient(-45deg,rgba(0,0,0,0.4) 0,rgba(0,0,0,0.4) 1px,transparent 1px,transparent 4px);':'';
+      var chip=bg!=='transparent'?'<span style="display:inline-block;width:10px;height:10px;border-radius:2px;'+chipBg+chipPattern+'flex-shrink:0;vertical-align:middle"></span>&thinsp;':'';
       return '<label style="display:flex;align-items:center;gap:5px;padding:3px 0;cursor:pointer;white-space:nowrap">'        +'<input type="checkbox" class="'+id+'-cb" value="'+v+'" onchange="aF()" style="cursor:pointer">'        +'<span style="font-size:12px">'+chip+v+'</span></label>';
     }).join('');
     // Use data-drop attribute to avoid quote issues in onclick
@@ -3852,6 +3855,27 @@ function makePrintSVG(est, year, oursOnly, callback, fieldFilter) {
         for(var i=1;i<ring.length;i++){var pt=projTile(ring[i][0],ring[i][1]);ctx.lineTo(pt[0],pt[1]);}
         ctx.closePath();
         ctx.fillStyle=col; ctx.globalAlpha=0.65; ctx.fill();
+        // Cross-hatch for Conventional Rye
+        if(crop==='Conventional Rye'){
+          ctx.save();
+          ctx.clip();
+          ctx.globalAlpha=0.7;
+          ctx.strokeStyle='#000';
+          ctx.lineWidth=1;
+          var bbox=ctx.canvas.getBoundingClientRect?{left:0,top:0}:{left:0,top:0};
+          // Get ring bounding box
+          var xs=ring.map(function(p){return projTile(p[0],p[1])[0];});
+          var ys=ring.map(function(p){return projTile(p[0],p[1])[1];});
+          var x0=Math.min.apply(null,xs)-5,x1=Math.max.apply(null,xs)+5;
+          var y0=Math.min.apply(null,ys)-5,y1=Math.max.apply(null,ys)+5;
+          var sp=6;
+          for(var hx=x0;hx<x1+y1-y0;hx+=sp){
+            ctx.beginPath();ctx.moveTo(hx,y0);ctx.lineTo(hx-(y1-y0),y1);ctx.stroke();
+            ctx.beginPath();ctx.moveTo(hx,y0);ctx.lineTo(hx+(y1-y0),y1);ctx.stroke();
+          }
+          ctx.restore();
+          ctx.globalAlpha=1;
+        }
         ctx.globalAlpha=1; ctx.strokeStyle='#222'; ctx.lineWidth=1.2; ctx.stroke();
       });
       if(f.rings&&f.rings[0]){
