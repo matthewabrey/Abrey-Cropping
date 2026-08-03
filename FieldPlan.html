@@ -1439,7 +1439,9 @@ function aF(){
         if(_chMap[_chKey]){bg='background:#fff3e0;';bdr='box-shadow:inset 0 0 0 2px #e67e22;'}
         var prevHY=AY[AY.indexOf(y)-1]||null;
         var covHY=prevHY?getCoverType(f,prevHY,y):null;
-        var dotHY=covHY?'<span style="display:block;width:7px;height:7px;border-radius:50%;background:'+(covHY==='MV'?MG_COL:MCV_COL)+';flex-shrink:0" title="Maxi Veg opportunity"></span>':'';
+        var dotCol2=covHY==='ST'?'#e74c3c':(covHY==='MV'?MG_COL:MCV_COL);
+        var dotTitle2=covHY==='ST'?'Stubble Turnips':'Maxi Veg';
+        var dotHY=covHY?'<span style="display:block;width:7px;height:7px;border-radius:50%;background:'+dotCol2+';flex-shrink:0" title="'+dotTitle2+'"></span>':'';
         var _hPartner=!isOurs(f,y);
         return '<td style="text-align:center;padding:5px 2px;'+bg+bdr+'"><div style="display:flex;flex-direction:column;align-items:center;gap:3px">'+dotHY+'<div>'+badge(f.history[y]||'',true,op,_hPartner)+'</div></div></td>';
       }).join('')
@@ -4220,7 +4222,8 @@ function doPrint(){
           var hatch=partner?';background-image:repeating-linear-gradient(45deg,rgba(0,0,0,0.2) 0,rgba(0,0,0,0.2) 2px,transparent 2px,transparent 6px)':'';
           var prevY=allPY[allPY.indexOf(y)-1]||null;
           var covT=prevY?getCoverType(f,prevY,y):null;
-          var dotPr=covT?'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:'+MV_COL+';margin-bottom:1px;vertical-align:middle"></span>':'';
+          var dotPrCol2=covT==='ST'?'#e74c3c':MV_COL;
+          var dotPr=covT?'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:'+dotPrCol2+';margin-bottom:1px;vertical-align:middle"></span>':'';
           fpHtml+='<td style="text-align:center;padding:2px 1px;border-bottom:0.5px solid #eee">';
           if(c) fpHtml+=dotPr+'<span style="display:inline-block;border-radius:2px;padding:2px 4px;font-size:10px;background:'+col+hatch+';color:'+(CT[c]||'#111')+'">'+c+'</span>';
           fpHtml+='</td>';
@@ -4863,12 +4866,34 @@ function rGr() {
           +'</tbody></table></div>';
       }
     }
-    // Euston: only show confirmed list, not auto-calc table
+    // Euston: only show confirmed list + stubble turnips, not auto-calc table
     if(estate==='Euston'){
+      var stFields=EUSTON_STUBBLE_TURNIPS_2026.map(function(n){
+        return ef.find(function(f){return f.field===n;});
+      }).filter(Boolean);
+      var stHtml='';
+      if(stFields.length){
+        var stTotal=stFields.reduce(function(a,f){return a+f.ha;},0);
+        stHtml='<div style="border:1px solid #e74c3c;border-radius:6px;overflow:hidden;margin-top:10px">'
+          +'<div style="padding:6px 10px;background:#e74c3c;color:#fff;font-size:11px;font-weight:bold">'
+          +'&#9679; Stubble Turnips — end of 2026 harvest ('+stFields.length+' fields, '+stTotal.toFixed(1)+'ha)</div>'
+          +'<table style="border-collapse:collapse;font-size:12px;width:100%">'
+          +'<thead><tr style="background:#fdecea">'
+          +'<th style="text-align:left;padding:4px 8px">Field</th>'
+          +'<th style="text-align:right;padding:4px 8px">Ha</th>'
+          +'<th style="text-align:left;padding:4px 8px">2026 crop</th>'
+          +'<th style="text-align:left;padding:4px 8px">2027 plan</th>'
+          +'</tr></thead><tbody>'
+          +stFields.sort(function(a,b){return b.ha-a.ha;}).map(function(f){
+            return '<tr><td style="padding:3px 8px;font-weight:bold">'+f.field+'</td>'
+              +'<td style="text-align:right;padding:3px 8px">'+f.ha.toFixed(1)+'</td>'
+              +'<td style="padding:3px 8px">'+(gc(f,'2026')||'—')+'</td>'
+              +'<td style="padding:3px 8px">'+(gc(f,'2027')||'—')+'</td></tr>';
+          }).join('')+'</tbody></table></div>';
+      }
       return '<div class="gr-estate-block" style="margin-bottom:24px">'
         +'<div style="font-weight:bold;font-size:14px;color:var(--g1);margin-bottom:6px">'+estate+'</div>'
-        +eustonExplicit
-        +'</div>';
+        +eustonExplicit+stHtml+'</div>';
     }
     // All estates: simple list of greening fields for end of 2026
     var grFields=ef.filter(function(f){
