@@ -3710,6 +3710,19 @@ function makePrintSVG(est, year, oursOnly, callback, fieldFilter) {
         for(var i=1;i<ring.length;i++){var pt=projTile(ring[i][0],ring[i][1]);ctx.lineTo(pt[0],pt[1]);}
         ctx.closePath();
         ctx.fillStyle=col; ctx.globalAlpha=0.65; ctx.fill();
+        // Diagonal hatch for partner-farmed fields (not ours)
+        if(!_isOurs2 && !oursOnly){
+          ctx.save(); ctx.clip();
+          ctx.globalAlpha=0.35; ctx.strokeStyle='#000'; ctx.lineWidth=1.5;
+          var xs2=ring.map(function(p){return projTile(p[0],p[1])[0];});
+          var ys2=ring.map(function(p){return projTile(p[0],p[1])[1];});
+          var x0p=Math.min.apply(null,xs2)-5,x1p=Math.max.apply(null,xs2)+5;
+          var y0p=Math.min.apply(null,ys2)-5,y1p=Math.max.apply(null,ys2)+5;
+          for(var hxp=x0p-(y1p-y0p);hxp<x1p+(y1p-y0p);hxp+=8){
+            ctx.beginPath();ctx.moveTo(hxp,y0p);ctx.lineTo(hxp+(y1p-y0p),y1p);ctx.stroke();
+          }
+          ctx.restore(); ctx.globalAlpha=1;
+        }
         // Cross-hatch for Conventional Rye
         if(crop==='Conventional Rye'){
           ctx.save();
