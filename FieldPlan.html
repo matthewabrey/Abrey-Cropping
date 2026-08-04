@@ -5500,19 +5500,32 @@ function _mapUpdate(){
 
 function _mapPrint(){
   if(!_mapObj){alert('Map not loaded');return;}
-  // Ask for paper size
-  var sz=confirm('Click OK for A3 Landscape, Cancel for A4 Landscape');
+  var sz=confirm('Click OK for A3 Landscape\nClick Cancel for A4 Landscape');
   var W=sz?1587:1123, H=sz?1123:794;
   var pageSize=sz?'A3':'A4';
   var center=_mapObj.getCenter();
   var zoom=_mapObj.getZoom();
   var est=document.getElementById('mp-estate');
   var estName=est?est.value:'';
-  var yrEl=document.getElementById('mp-yrbts');
-  var selYrBtn=yrEl?yrEl.querySelector('button[style*="background:#"]'):null;
   var selYr=_mapSelYr||'2027';
   var dateStr=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
   var geo=ALL_ESTATES_GEO[estName]||[];
+  // Build legend from current visible crops
+  var cropTotals={};
+  geo.forEach(function(f){
+    var c=(f.crops&&f.crops[selYr])||'';
+    if(c) cropTotals[c]=(cropTotals[c]||0)+(f.ha||0);
+  });
+  var legRows=Object.keys(cropTotals).sort(function(a,b){return cropTotals[b]-cropTotals[a];})
+    .map(function(c){
+      var col=CC[c]||'#888';
+      return '<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">'
+        +'<span style="display:inline-block;width:12px;height:12px;background:'+col
+        +';border-radius:2px;flex-shrink:0"></span>'
+        +'<span style="flex:1">'+c+'</span>'
+        +'<span style="opacity:.7">'+Math.round(cropTotals[c])+'ha</span>'
+        +'</div>';
+    }).join('');
   var CC_JSON=JSON.stringify(CC);
   var geo_JSON=JSON.stringify(geo.map(function(f){
     return {name:f.name,ha:f.ha,rings:f.rings,crops:f.crops};
@@ -5522,13 +5535,18 @@ function _mapPrint(){
     +'<style>'
     +'@page{margin:0;size:'+pageSize+' landscape}'
     +'*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'
-    +'body{margin:0;padding:0;background:#fff}'
+    +'body{margin:0;padding:0}'
     +'#hdr{position:fixed;top:0;left:0;right:0;z-index:9999;background:#1a3d2b;color:#c8e6c9;'
-    +'padding:6px 12px;display:flex;align-items:center;gap:12px;height:36px}'
-    +'#map{position:fixed;top:36px;left:0;right:0;bottom:0}'
-    +'#leg{position:fixed;bottom:8px;right:8px;background:rgba(30,50,30,.92);color:#eee;'
-    +'padding:8px 10px;border-radius:6px;font-size:11px;z-index:9998;min-width:140px}'
-    +'@media print{#hdr{display:none}#map{top:0}}'
+    +'padding:6px 12px;display:flex;align-items:center;gap:12px;height:40px}'
+    +'#map{position:fixed;top:40px;left:0;right:0;bottom:0}'
+    +'#leg{position:fixed;bottom:10px;right:10px;background:rgba(25,45,25,0.92);color:#eee;'
+    +'padding:8px 10px;border-radius:6px;font-size:11px;z-index:9998;min-width:150px;max-width:200px}'
+    +'#leg .lt{font-weight:bold;font-size:12px;margin-bottom:5px;border-bottom:1px solid rgba(255,255,255,.3);padding-bottom:3px}'
+    +'@media print{'
+    +'#hdr{display:none!important}'
+    +'#map{top:0}'
+    +'#leg{display:block!important}'
+    +'}'
     +'</style></head><body>'
     +'<div id="hdr">'
     +'<span style="font-size:14px;font-weight:bold">'+estName+' &mdash; '+selYr+'</span>'
@@ -5538,16 +5556,16 @@ function _mapPrint(){
     +'&#128438; Print / Save PDF</button>'
     +'</div>'
     +'<div id="map"></div>'
+    +'<div id="leg"><div class="lt">CROP AREAS</div>'+legRows+'</div>'
     +'<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></sc'+'ript>'
     +'<script>'
     +'var CC='+CC_JSON+';'
     +'var geo='+geo_JSON+';'
     +'var selYr="'+selYr+'";'
+    +'var PARTNER=["Maize","Euston Rye","Pigs","Chickens","Pheasants","Solar","Carbon Trees","Grass","ELS/HLS","Uncropped","Veg (RLLONG)","Sugarbeet"];'
     +'var map=L.map("map",{zoomControl:true,zoomSnap:0.1,zoomDelta:0.1,wheelPxPerZoomLevel:40})'
     +'.setView(['+center.lat+','+center.lng+'],'+zoom+');'
     +'L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap contributors"}).addTo(map);'
-    // Draw polygons
-    +'var PARTNER=["Maize","Euston Rye","Pigs","Chickens","Pheasants","Solar","Carbon Trees","Grass","ELS/HLS","Uncropped","Veg (RLLONG)","Sugarbeet"];'
     +'geo.forEach(function(f){'
     +'  var c=(f.crops&&f.crops[selYr])||"";'
     +'  var col=CC[c]||"#888";'
@@ -5558,9 +5576,8 @@ function _mapPrint(){
     +'    f.rings.map(function(r){return r.map(function(p){return[p[1],p[0]];});});'
     +'  L.polygon(lls,{fillColor:col,color:dk,fillOpacity:0.75,weight:1.5}).addTo(map);'
     +'});'
-    // Canvas hatch for partner fields
-    +'map.on("load moveend zoomend",drawHatch);'
-    +'setTimeout(drawHatch,800);'
+    +'map.on("moveend zoomend",drawHatch);'
+    +'setTimeout(drawHatch,600);'
     +'function drawHatch(){'
     +'  var old=document.getElementById("hc");if(old)old.remove();'
     +'  var me=document.getElementById("map");'
@@ -5592,8 +5609,8 @@ function _mapPrint(){
     +'}'
     +'</sc'+'ript>'
     +'</body></html>';
-  var w=window.open("","_blank","width="+W+",height="+H);
-  if(!w){alert("Allow popups");return;}
+  var w=window.open('','_blank','width='+W+',height='+H);
+  if(!w){alert('Allow popups');return;}
   w.document.write(html);
   w.document.close();
 }
