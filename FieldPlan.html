@@ -4479,6 +4479,8 @@ function rAD(){
 // Explicit greening fields for Euston end-2026 (specified by Matthew, overrides auto-calc)
 // Euston greening rules: Wheat/cereal/Carrots/Onions OUT -> Maize or Potatoes IN only.
 // NOT before Euston Rye. NOT in Rymer area (85 Acres, 76 Acres etc).
+var EUSTON_STUBBLE_TURNIPS_2026 = ["Big Cranwell Hill (West Farm)", "Big Wordwell Corner (West Farm)", "Euston Allotments (West)", "Euston Breck (Headings)", "Mill Hill (Headings)", "Mudds Lankets A", "New Layer", "Old Layer"];
+
 var EUSTON_GREENING_END_2026 = ["36 Acres.A", "Ann Harts", "Behind Barn", "Big Field (Euston)", "Big Hodna (Cereals)", "Corner Field", "Covey Land.A", "Farmhouse Field", "Heath Meadow", "Landing Lights", "Long Field (Euston)", "New Beyton Grove.A", "Nobles Ash", "Old Beyt Grove.A", "Pear Pit", "Pit Field.A", "R H Side of the Road", "Railway Line.A", "Sap 10 Acres", "Sixteen Acres", "Tableland", "Thetford Road.A", "Tin Shed D", "Top Cullum"];
 var GREENING_ESTATES = ['Wretham','Chandler','Rackham Farms','Euston','Pickenham',
   'Blakeney','Edwardstone/Borehouse','Gooderham'];  // all estates
@@ -4500,6 +4502,7 @@ function getCoverType(f, fromYr, toYr) {
   if (!ELIGIBLE_FROM.includes(from)) return null;
   // Euston: ONLY show dot if field is on the confirmed greening list
   if (f.estate==='Euston') {
+    if (EUSTON_STUBBLE_TURNIPS_2026.indexOf(f.field) >= 0) return 'ST';
     if (EUSTON_GREENING_END_2026.indexOf(f.field) < 0) return null;
     // Not before Euston Rye
     if (to==='Euston Rye') return null;
