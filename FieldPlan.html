@@ -5369,6 +5369,35 @@ function _mapRebuild(){
     }
   });
   if(allBounds.length) _mapObj.fitBounds(allBounds,{padding:[20,20]});
+  // Draw hatch lines on canvas overlay for partner fields
+  setTimeout(function(){
+    var lfSvg=document.querySelector('#mp-map .leaflet-overlay-pane svg');
+    if(!lfSvg) return;
+    var ns='http://www.w3.org/2000/svg';
+    if(!lfSvg.querySelector('#lf-hatch')){
+      var defs=lfSvg.querySelector('defs');
+      if(!defs){defs=document.createElementNS(ns,'defs');lfSvg.insertBefore(defs,lfSvg.firstChild);}
+      var pat=document.createElementNS(ns,'pattern');
+      pat.id='lf-hatch';pat.setAttribute('patternUnits','userSpaceOnUse');
+      pat.setAttribute('width','8');pat.setAttribute('height','8');
+      pat.setAttribute('patternTransform','rotate(45)');
+      var ln=document.createElementNS(ns,'line');
+      ln.setAttribute('x1','0');ln.setAttribute('y1','0');
+      ln.setAttribute('x2','0');ln.setAttribute('y2','8');
+      ln.setAttribute('stroke','rgba(0,0,0,0.6)');ln.setAttribute('stroke-width','2.5');
+      pat.appendChild(ln);defs.appendChild(pat);
+    }
+    // Apply fill to all .mp-hatch paths
+    lfSvg.querySelectorAll('path.leaflet-interactive').forEach(function(p){
+      // check if parent g has mp-hatch class
+    });
+    // Direct approach: find all polygons with mp-hatch class
+    document.querySelectorAll('.mp-hatch path').forEach(function(p){
+      p.setAttribute('fill','url(#lf-hatch)');
+      p.setAttribute('fill-opacity','0.7');
+    });
+  }, 300);
+
   // Labels
   var z=_mapObj?_mapObj.getZoom():0;
   geo.forEach(function(f){
