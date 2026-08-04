@@ -5354,6 +5354,8 @@ function _buildMap(){
 }
 
 function _mapRebuild(){
+  var _oldHatch=document.querySelector('.hatch-canvas');
+  if(_oldHatch) _oldHatch.remove();
   _mapPolygons.forEach(function(p){if(_mapObj)_mapObj.removeLayer(p);});
   _mapLabels.forEach(function(l){if(_mapObj)_mapObj.removeLayer(l);});
   _mapPolygons=[];_mapLabels=[];
@@ -5410,7 +5412,7 @@ function _mapRebuild(){
     });
     // Redraw on map move/zoom
     _mapObj.off('moveend',_mapHatchRedraw);
-    _mapHatchRedraw=function(){_drawHatchCanvas(geo);};
+    _mapHatchRedraw=function(){if(!_mapGreeningMode)_drawHatchCanvas(geo);};
     _mapObj.on('moveend',_mapHatchRedraw);
     _mapObj.on('zoomend',_mapHatchRedraw);
   }
