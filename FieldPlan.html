@@ -5566,7 +5566,7 @@ function _mapToggleGreening(){
     btn.style.fontWeight=_mapGreeningMode?'bold':'normal';
     btn.textContent=_mapGreeningMode?'✕ Greening':'● Greening';
   }
-  _renderMap(_mapSelYr,_mapOursOnly);
+  _mapRebuild();
 }
 
 function _mapPrint(){
