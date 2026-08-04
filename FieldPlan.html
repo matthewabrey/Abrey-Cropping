@@ -3699,9 +3699,10 @@ function makePrintSVG(est, year, oursOnly, callback, fieldFilter) {
       var _proxy={estate:est,farm:est,zone:est,field:f.name,history:{},plan:{}};
       _proxy[year<='2026'?'history':'plan'][year]=crop;
       var _isOurs2=crop?isOurs(_proxy,year):false;
-      if(oursOnly&&!_isOurs2) return;
-      var col=_isOurs2?(CC[crop]||'#cccccc'):(oursOnly?'#d0d0d0':(CC[crop]||'#cccccc'));
-      if(crop&&(_isOurs2||!oursOnly)){ if(!legendCrops[crop]) legendCrops[crop]=[col,0]; legendCrops[crop][1]+=(f.ha||0); }
+      // Partner fields: don't skip — draw with hatch overlay to distinguish
+      var col=_isOurs2?(CC[crop]||'#cccccc'):(CC[crop]||'#cccccc');
+      if(oursOnly&&!_isOurs2) col='#cccccc'; // grey base for partner in ours-only mode
+      if(crop&&(_isOurs2||!oursOnly)){ if(!legendCrops[crop]) legendCrops[crop]=[_isOurs2?(CC[crop]||'#cccccc'):'#cccccc',0]; legendCrops[crop][1]+=(f.ha||0); }
 
       (f.rings||[]).forEach(function(ring){
         ctx.beginPath();
@@ -3711,7 +3712,7 @@ function makePrintSVG(est, year, oursOnly, callback, fieldFilter) {
         ctx.closePath();
         ctx.fillStyle=col; ctx.globalAlpha=0.65; ctx.fill();
         // Diagonal hatch for partner-farmed fields (not ours)
-        if(!_isOurs2 && !oursOnly){
+        if(!_isOurs2){
           ctx.save(); ctx.clip();
           ctx.globalAlpha=0.35; ctx.strokeStyle='#000'; ctx.lineWidth=1.5;
           var xs2=ring.map(function(p){return projTile(p[0],p[1])[0];});
