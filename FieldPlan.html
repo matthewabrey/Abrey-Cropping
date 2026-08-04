@@ -64,36 +64,31 @@ tr:hover td{background:var(--c1)}
 ::-webkit-scrollbar-thumb{background:var(--g1);border-radius:6px;border:2px solid var(--c2)}
 ::-webkit-scrollbar-thumb:hover{background:var(--g2)}
 ::-webkit-scrollbar-corner{background:var(--c2)}
+
+
 @media print {
   @page { margin: 0; size: A3 landscape; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body, html { margin: 0 !important; padding: 0 !important; }
-  /* Hide everything except the map tab */
-  nav { display: none !important; }
-  #change-banner { display: none !important; }
+  body { margin: 0; padding: 0; }
+  nav, #change-banner { display: none !important; }
   #main > div:not(#mp) { display: none !important; }
-  /* Make map tab fill the whole page */
   #mp {
-    display: flex !important;
+    display: block !important;
     position: fixed !important;
-    top: 0 !important; left: 0 !important;
-    right: 0 !important; bottom: 0 !important;
-    width: 100vw !important; height: 100vh !important;
-    flex-direction: column !important;
-    padding: 0 !important; margin: 0 !important;
+    inset: 0 !important;
+    height: 100vh !important;
+    width: 100vw !important;
   }
-  /* Hide the map toolbar row */
   #mp > div:first-child { display: none !important; }
-  /* Map fills remaining space */
   #mp-map {
     position: fixed !important;
-    top: 0 !important; left: 0 !important;
-    width: 100vw !important; height: 100vh !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
   }
-  /* Keep legend */
   #mp-legend { display: block !important; }
-  /* Keep hatch canvas */
   .hatch-canvas { display: block !important; }
+  .leaflet-control-zoom { display: none !important; }
 }
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -5524,67 +5519,7 @@ function _mapUpdate(){
 }
 
 function _mapPrint(){
-  if(!_mapObj) return;
-  var sz=confirm('OK = A3 Landscape\nCancel = A4 Landscape');
-  var pageSize=sz?'A3 landscape':'A4 landscape';
-  // Grab all elements to hide
-  var toHide=[];
-  document.querySelectorAll('body > *').forEach(function(el){
-    if(el.id!=='main') { toHide.push({el:el,d:el.style.display}); el.style.display='none'; }
-  });
-  var mainChildren=[];
-  document.querySelectorAll('#main > *').forEach(function(el){
-    if(el.id!=='mp') { mainChildren.push({el:el,d:el.style.display}); el.style.display='none'; }
-  });
-  var mpChildren=[];
-  document.querySelectorAll('#mp > *:first-child').forEach(function(el){
-    mpChildren.push({el:el,d:el.style.display}); el.style.display='none';
-  });
-  // Make #mp fill screen
-  var mp=document.getElementById('mp');
-  var savedMp={display:mp.style.display,position:mp.style.position,
-    top:mp.style.top,left:mp.style.left,width:mp.style.width,height:mp.style.height};
-  mp.style.display='block';
-  mp.style.position='fixed';
-  mp.style.top='0'; mp.style.left='0';
-  mp.style.width='100vw'; mp.style.height='100vh';
-  // Make map fill #mp
-  var mapEl=document.getElementById('mp-map');
-  var savedMap={width:mapEl.style.width,height:mapEl.style.height,
-    position:mapEl.style.position,top:mapEl.style.top};
-  mapEl.style.width='100vw'; mapEl.style.height='100vh';
-  mapEl.style.position='fixed'; mapEl.style.top='0';
-  // Preserve zoom
-  var center=_mapObj.getCenter(), zoom=_mapObj.getZoom();
-  _mapObj.invalidateSize({pan:false});
-  _mapObj.setView(center,zoom,{animate:false});
-  // Add page size style
-  var ps=document.createElement('style');
-  ps.id='_pss';
-  ps.textContent='@page{margin:0;size:'+pageSize+'}@media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}';
-  document.head.appendChild(ps);
-  // Print after tiles settle
-  setTimeout(function(){
-    _mapObj.setView(center,zoom,{animate:false});
-    setTimeout(function(){
-      window.print();
-      // Restore everything
-      setTimeout(function(){
-        toHide.forEach(function(o){o.el.style.display=o.d;});
-        mainChildren.forEach(function(o){o.el.style.display=o.d;});
-        mpChildren.forEach(function(o){o.el.style.display=o.d;});
-        mp.style.display=savedMp.display;
-        mp.style.position=savedMp.position;
-        mp.style.top=savedMp.top; mp.style.left=savedMp.left;
-        mp.style.width=savedMp.width; mp.style.height=savedMp.height;
-        mapEl.style.width=savedMap.width; mapEl.style.height=savedMap.height;
-        mapEl.style.position=savedMap.position; mapEl.style.top=savedMap.top;
-        _mapObj.invalidateSize({pan:false});
-        _mapObj.setView(center,zoom,{animate:false});
-        var pss=document.getElementById('_pss');if(pss)pss.remove();
-      },1500);
-    },500);
-  },600);
+  window.print();
 }
 
 function _mapIsOurs(f){
