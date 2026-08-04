@@ -5287,6 +5287,23 @@ function _buildMap(){
     var mapEl=document.getElementById('mp-map');
     if(!mapEl||!window.L) return;
     _mapObj=L.map('mp-map',{zoomControl:false,zoomSnap:0.25,zoomDelta:0.5,wheelPxPerZoomLevel:120});
+    // Inject hatch pattern into Leaflet's SVG layer
+    _mapObj.on('layeradd',function(){
+      var lfSvg=document.querySelector('#mp-map .leaflet-overlay-pane svg');
+      if(!lfSvg||lfSvg.querySelector('#lf-hatch')) return;
+      var ns='http://www.w3.org/2000/svg';
+      var defs=lfSvg.querySelector('defs');
+      if(!defs){defs=document.createElementNS(ns,'defs');lfSvg.insertBefore(defs,lfSvg.firstChild);}
+      var pat=document.createElementNS(ns,'pattern');
+      pat.setAttribute('id','lf-hatch');pat.setAttribute('patternUnits','userSpaceOnUse');
+      pat.setAttribute('width','8');pat.setAttribute('height','8');
+      pat.setAttribute('patternTransform','rotate(45)');
+      var line=document.createElementNS(ns,'line');
+      line.setAttribute('x1','0');line.setAttribute('y1','0');
+      line.setAttribute('x2','0');line.setAttribute('y2','8');
+      line.setAttribute('stroke','rgba(0,0,0,0.55)');line.setAttribute('stroke-width','2.5');
+      pat.appendChild(line);defs.appendChild(pat);
+    });
     // SVG hatch pattern defined in page body
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
       attribution:'&copy; OpenStreetMap contributors',maxZoom:19
