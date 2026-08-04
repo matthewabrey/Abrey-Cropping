@@ -5459,7 +5459,7 @@ function _mapPrint(){
     'var CC='+JSON.stringify(CC)+';',
     'var geo='+JSON.stringify(geo)+';',
     'var selYr="'+_mapSelYr+'";',
-    'var map=L.map("map",{zoomControl:false,padding:[0,0]});',
+    'var map=L.map("map",{zoomControl:false,zoomSnap:0.25,zoomDelta:0.25});',
     '// Fit to all field bounds for correct zoom',
     'var allPts=[];geo.forEach(function(f){(f.rings||[]).forEach(function(r){r.forEach(function(p){allPts.push([p[1],p[0]]);});});});',
     'map.setView(['+center.lat+','+center.lng+'],'+zoom+');' ,
