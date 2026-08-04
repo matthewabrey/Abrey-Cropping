@@ -5424,8 +5424,8 @@ function _mapRebuild(){
     // Greening mode: colour by greening type instead of crop
     if(_mapGreeningMode && _mapEstate==='Euston'){
       var grType=null;
-      if(EUSTON_STUBBLE_TURNIPS_2026.indexOf(f.field)>=0) grType='ST';
-      else if(EUSTON_GREENING_END_2026.indexOf(f.field)>=0) grType='GR';
+      if(EUSTON_STUBBLE_TURNIPS_2026.indexOf(f.name)>=0) grType='ST';
+      else if(EUSTON_GREENING_END_2026.indexOf(f.name)>=0) grType='GR';
       if(!grType){
         // Draw non-greening fields as light grey
         var col='#e8e8e8';
@@ -5486,7 +5486,7 @@ function _mapRebuild(){
   });
   if(allBounds.length) _mapObj.fitBounds(allBounds,{padding:[20,20]});
   // Hatch partner fields using canvas overlay
-  _drawHatchCanvas(geo);
+  if(!_mapGreeningMode) _drawHatchCanvas(geo);
 
   // Labels
   var z=_mapObj?_mapObj.getZoom():0;
