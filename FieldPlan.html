@@ -5531,11 +5531,28 @@ function _mapPrint(){
   var estName=(document.getElementById('mp-estate')||{}).value||'';
   var selYr=_mapSelYr||'2027';
   var dateStr=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-  // Get current legend HTML
-  var legEl=document.getElementById('mp-legend');
-  var legHtml=legEl?legEl.outerHTML:'';
-  // Get current canvas hatch
-  var cvEl=document.querySelector('.hatch-canvas');
+  // Build legend from crop totals
+  var geo0=ALL_ESTATES_GEO[estName]||[];
+  var cropTot={};
+  geo0.forEach(function(f){
+    var c=(f.crops&&f.crops[selYr])||'';
+    if(c) cropTot[c]=(cropTot[c]||0)+(f.ha||0);
+  });
+  var legRows=Object.keys(cropTot).sort(function(a,b){return cropTot[b]-cropTot[a];})
+    .map(function(c){
+      var col=CC[c]||'#888';
+      return '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">'
+        +'<span style="width:11px;height:11px;background:'+col+';display:inline-block;border-radius:2px;flex-shrink:0"></span>'
+        +'<span style="flex:1;font-size:10px">'+c+'</span>'
+        +'<span style="font-size:10px;opacity:.7">'+Math.round(cropTot[c])+'ha</span>'
+        +'</div>';
+    }).join('');
+  var legHtml='<div id="leg" style="position:absolute;bottom:10px;right:10px;z-index:9998;'
+    +'background:rgba(25,45,25,0.92);color:#eee;padding:8px 10px;border-radius:6px;'
+    +'font-family:Arial,sans-serif;min-width:150px">'
+    +'<div style="font-weight:bold;font-size:11px;border-bottom:1px solid rgba(255,255,255,.3);'
+    +'padding-bottom:3px;margin-bottom:4px">CROP AREAS</div>'
+    +legRows+'</div>';
   // Open popup at EXACT print size - no browser chrome means no scaling issue
   var w=window.open('','_blank',
     'width='+PW+',height='+PH+',menubar=no,toolbar=no,location=no,status=no,scrollbars=no');
@@ -5568,7 +5585,7 @@ function _mapPrint(){
     +'&#128438; Print / Save PDF</button>'
     +'</div>'
     +'<div id="map" style="top:36px;height:calc('+PH+'px - 36px)"></div>'
-    +(legHtml||'')
+    +legHtml
     +'<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></sc'+'ript>'
     +'<script>'
     +'var CC='+CC_S+';var geo='+geo_S+';var selYr="'+selYr+'";'
