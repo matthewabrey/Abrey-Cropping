@@ -5525,17 +5525,36 @@ function _mapUpdate(){
 
 function _mapPrint(){
   if(!_mapObj){alert('Map not loaded');return;}
-  // Change page size based on user choice then print
   var sz=confirm('OK = A3 Landscape\nCancel = A4 Landscape');
-  // Temporarily set page size
-  var s=document.createElement('style');
-  s.id='_mps2';
-  s.textContent='@media print{@page{size:'+(sz?'A3':'A4')+' landscape;margin:0}}';
-  document.head.appendChild(s);
+  // A3 = 420x297mm at 96dpi = 1587x1123px, A4 = 297x210mm = 1123x794px
+  var PW=sz?1587:1123, PH=sz?1123:794;
+  var mapEl=document.getElementById('mp-map');
+  if(!mapEl) return;
+  // Save current state
+  var savedW=mapEl.style.width, savedH=mapEl.style.height;
+  var savedPos=mapEl.style.position, savedTop=mapEl.style.top;
+  var savedLeft=mapEl.style.left, savedZ=mapEl.style.zIndex;
+  var center=_mapObj.getCenter(), zoom=_mapObj.getZoom();
+  // Resize map to exact print dimensions
+  mapEl.style.position='fixed';
+  mapEl.style.top='0'; mapEl.style.left='0';
+  mapEl.style.width=PW+'px'; mapEl.style.height=PH+'px';
+  mapEl.style.zIndex='99999';
+  // Tell Leaflet about the resize and restore exact view
+  _mapObj.invalidateSize();
+  _mapObj.setView(center, zoom);
+  // Wait for tiles to load then print
   setTimeout(function(){
     window.print();
-    setTimeout(function(){var e=document.getElementById('_mps2');if(e)e.remove();},2000);
-  },50);
+    // Restore
+    setTimeout(function(){
+      mapEl.style.width=savedW; mapEl.style.height=savedH;
+      mapEl.style.position=savedPos; mapEl.style.top=savedTop;
+      mapEl.style.left=savedLeft; mapEl.style.zIndex=savedZ;
+      _mapObj.invalidateSize();
+      _mapObj.setView(center, zoom);
+    }, 1000);
+  }, 800);
 }
 
 function _mapIsOurs(f){
