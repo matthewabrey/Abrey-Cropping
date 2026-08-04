@@ -3224,183 +3224,171 @@ function rCf(){
 // CROPPING RULES TAB
 // ═══════════════════════════════════════════════════════════════════════
 var EUSTON_RULES_MD = `# ABREYS FARMING — Cropping Rules & Planning Guide
-*FieldPlan v95 — June 2026. DO NOT CHANGE RULES WITHOUT ASKING MATT.*
-
-> **FOR AI SESSIONS:** The canonical rules document is **ABREYS_RULES.md** in the outputs folder. Read it in full before making any change. If this Rules tab and ABREYS_RULES.md disagree, ABREYS_RULES.md takes precedence and both must be updated to match.
+*FieldPlan v95 — Updated August 2026. DO NOT CHANGE RULES WITHOUT ASKING MATT.*
 
 ---
 
 ## KEY PRINCIPLES
 
 1. **isOurs() is the single source of truth** for what counts as our farming
-   - Rackham Farms: **veg only** (OWC/Maize/Pigs/Parsnips = partner-farmed)
-2. **Water usage target:** 75–100% of zone budget per year
-3. **OWC at Rackham = Wheat/Barley equivalent** — no Rye, no plain Wheat labels
-4. **Maize at Wretham and Chandler = ours** (AD plant); everywhere else = not ours
-5. **Euston Maize = exactly ~1,000 acres/year** (partner-farmed, monitored in Totals tab)
-6. **AD caps are targets, not just maximums** — Maize 270ha, Rye 190ha
-7. **Greening = single Maxi Veg mix only** (before Maize or Potatoes only)
-8. **Do not change Blakeney, Beard, Warren, David Hill, Gooderham plans** (set by them)
-9. **Never put veg on fields with no veg history at Rackham** (unsuitable soil)
-10. **Carrots only after OWC/cereal** — never after Potatoes or Maize
-11. **No Potatoes directly after Pigs** — minimum one break crop (OWC/Maize/cereal) between Pigs and any SOL family crop
+2. **6-year family break = 5 CLEAR years** between same-family crops (SOL/API/ALI)
+3. **Barley → Wheat = double cereal** — same as Wheat → Wheat for all rotation purposes
+4. **Conventional Rye = Rye** in all calculations (AD totals, rotation rules, CEREAL_CROPS)
+5. **AD targets are minimums, not maximums** — Maize 270ha, Rye 220ha (W+C+E combined)
+6. **Greening = single Maxi Veg mix only** (before Maize or Potatoes only)
+7. **Do not change Blakeney, Beard, Warren, David Hill, Gooderham plans** (set by them)
+8. **Never put veg on fields with no veg history at Rackham** (unsuitable soil)
+9. **Water usage target:** 75–100% of zone budget per year
 
 ---
 
 # ESTATES — isOurs() RULES
 
 ## Rackham Farms (4 zones, 63 fields, ~756ha)
-- **Pre-2027 (back to 2018): Potatoes/Salad Potatoes/Seed Potatoes = OURS** — all other crops (Carrots, Onions, OWC, Maize, Pigs) = partner
+- **Pre-2027 (back to 2018): Potatoes/Salad Potatoes/Seed Potatoes = OURS** only
 - **2027 onwards: all veg = OURS** — Potatoes, Salad Potatoes, Seed Potatoes, Carrots, Onions
-- **OWC / Over Winter Cereal = partner-farmed** (never ours — shown for rotation context)
-- **Maize = partner** (never ours)
-- **Pigs = partner** (never ours)
-- **Parsnips = partner** (never ours)
+- **Parsnips, OWC, Maize, Pigs = NEVER ours** (all years)
 - Zones: Dolphin Farm, Moorland Stud, Lodge Farm Gasthorpe, Manor Farm Bridgham
 
 ## Euston (~229 fields, ~2,481ha)
-- **Pre-2027:** veg only counted as ours (historic arrangement)
+- **Pre-2027:** veg only counted as ours
 - **2027 onwards:** ALL crops ours EXCEPT:
-  - Maize (partner ~1,000 acres/year — must stay ~975–1,025ac each year)
+  - Maize (partner ~1,000 acres/year — must stay 975–1,025ac each year)
+  - Euston Rye (partner-farmed rye), Sugarbeet, Veg (RLLONG) = partner
   - Carbon Trees, Grass, Solar, Pigs, Chickens, Pheasants, ELS/HLS, Uncropped = never ours
-- Water: 212M gal at £38/ac-in (split: Bore/West zone 52M + Main Pump 160M)
-
-## Pickenham (169 fields, PFC+SPEC zones)
-- **Rye A = ours**
-- **Veg = ours** (Potatoes, Salad Potatoes, Carrots, Onions, Parsnips)
-- **Plain Rye = theirs**
-- **Wheat, Barley, Maize, Sugarbeet = their arable (NOT ours)**
-- Water: 260M gal at £48/ac-in
-- Pickenham Rye A goes to a SEPARATE buyer — NOT the Abreys AD plant
-
-## Blakeney (23 fields, ~291ha)
-- **Set by them** — do not change plan
-- Only veg counted as ours for totals
-- Shares irrigation with Wretham (125M gal combined)
-
-## Beard (~16 fields, ~98ha)
-- **Set by them** — do not change plan
-- Only Seed Potatoes counted as ours
-- Non-irrigated
-
-## Warren / David Hill
-- **Set by them** — do not change plan
-- David Hill: 1 field, Seed Potatoes from 2027
-
-## Gooderham (~8 fields, ~152ha)
-- **Set by them** — do not change plan
-- Only veg counted as ours
-- Water: 50M gal at £65/ac-in (they operate irrigation)
+- **Our Rye at Euston** (Rye, Conventional Rye) counts towards AD total
+- Water: 212M gal at £38/ac-in (Bore/West 52M + Main Pump 160M)
 
 ## Wretham (~73 fields, ~729ha)
-- **ALL crops ours** including Maize (AD plant) and Rye A (AD plant)
-- ELS/HLS: ours only pre-2027 (agreement ended)
-- Grass, Woodland, CS MT = permanent ours
+- **ALL crops ours** including Maize (AD) and Rye A (AD)
+- ELS/HLS: ours only pre-2027 (agreement ended 2027)
 - Shares irrigation with Blakeney (125M gal combined, Blakeney takes priority)
 
-## Chandler (~19 fields, ~215.88ha)
-- **ALL crops ours** including Maize (AD plant) and Rye A (AD plant)
-- Water budget: **60M gal at £42/ac-in**
-- SFI (Searchlight 7.85ha) = fixed for ALL plan years 2027–2032
+## Chandler (~19 fields, ~215ha)
+- **ALL crops ours** including Maize (AD) and Rye A (AD)
+- SFI (Searchlight 7.85ha) = fixed ALL plan years 2027–2032
+
+## Pickenham
+- **Rye A = ours** (goes to SEPARATE buyer — NOT Abreys AD plant)
+- **Veg = ours**; Wheat/Barley/Maize/Sugarbeet/plain Rye = NOT ours
+
+## Blakeney, Beard, Warren, David Hill, Gooderham
+- Plans set by them — do not change
+- Only veg (or Seed Potatoes at Beard) counted as ours
 
 ## Edwardstone / Borehouse
-- **ALL crops farmed by us**
+- ALL crops farmed by us
 
 ---
 
-# ROTATION RULES — HARD (enforced by crop editor)
+# ROTATION RULES — HARD (all estates)
 
-### 1. Six-year family breaks
-- **SOL family:** Potatoes / Salad Potatoes / Seed Potatoes (6yr gap from each other)
-- **API family:** Carrots / Parsnips (6yr gap from each other)
-- **ALI family:** Onions (6yr gap from Onions)
-- Minimum acceptable: 5yr (borderline warning). Under 5yr = blocked with confirmation.
+### 1. Six-year family breaks (5 CLEAR years)
+- **SOL:** Potatoes / Salad Potatoes / Seed Potatoes
+- **API:** Carrots / Parsnips
+- **ALI:** Onions
+- Under 5 clear years = violation. Exactly 5 clear = borderline warning.
 
-### 2. Carrots cannot directly follow Potatoes family
-Must have at least one year of OWC/cereal/Maize between Potatoes and Carrots.
+### 2. No Carrots directly after SOL
+Must have at least one OWC/cereal/Maize year between Potatoes and Carrots.
 
-### 3. Rye / Rye A cannot directly follow Maize
-Applies at all estates.
+### 3. Carrots only after OWC/cereal
+Never after Maize, never after SOL.
 
-### 4. No Potatoes (SOL family) directly after Pigs
-Must have at least one break crop (OWC / Maize / cereal) between Pigs and any Potatoes.
-Applies to: Potatoes, Salad Potatoes, Seed Potatoes.
+### 4. No Rye/Rye A/Conventional Rye after Maize (any estate)
 
-### 5. No Rye after Onions at Wretham
-Exception: Airfield 3, 4, 9 is a confirmed exception to this rule.
+### 5. No Wheat or Rye after Sugarbeet
+Late harvest means too late to establish — must go to Maize.
 
-### 6. No double Wheat at Wretham (max 1 consecutive)
-Rye A after Wheat is the ideal break. Exception fields where double Wheat is last resort:
-Sluice, Watton Road, Pit Plantation (Top), Hulberry Bush, Duffers Barn, Hall Road, Church Pieces, Airfield 02/06/08/10, Larkshall 10a/10b, Teddys Breck, Tennis Court, Silage Pit, Foal Shed, Laundry Strip, North Front, South Front.
+### 6. No SOL directly after Pigs
+Minimum one break crop (OWC/Maize/cereal) between Pigs and any SOL.
 
-### 7. Ideal Rackham rotation cycle
-Potatoes → OWC → Carrots → Maize → Onions → Maize → repeat
+### 7. No Carrots on Headings Farm fields at Euston — ever
 
-### 8. Carrots only after OWC/cereal
-Never after Potatoes (rule 2), never after Maize (soil structure / rotation).
+### 8. Barley → Wheat = double cereal
+Same violation as Wheat → Wheat. Applies especially at Wretham.
 
-### 9. No Rye at Euston
-Neither Rye nor Rye A should appear in the Euston plan.
+### 9. Max 2 consecutive Maize anywhere
+
+### 10. Max 2 consecutive Rye A (no triple runs)
 
 ---
 
-# ROTATION RULES — SOFT GUIDELINES
+# ROTATION RULES — ESTATE SPECIFIC
 
-- Max 1 consecutive OWC/cereal (blackgrass/eyespot risk) — use Maize as break
-- Max 2 consecutive Maize
-- Max 2 consecutive Rye A (no triple runs)
-- Fields with no veg history = likely poor soil for veg; Carrots especially should not follow Maize
-- Rye A after Wheat is ideal at Wretham
-- OWC after Maize at Rackham is acceptable (OWC = Wheat/Barley, not Rye)
+## Wretham
+- **No double Wheat** (max 1 consecutive). Rye A after Wheat is ideal.
+  - Exception fields (last resort only): Sluice, Watton Road, Pit Plantation Top, Hulberry Bush, Duffers Barn, Hall Road, Church Pieces, Airfield 02/06/08/10, Larkshall 10a/10b, Teddys Breck, Tennis Court, Silage Pit, Foal Shed, Laundry Strip, North Front, South Front.
+- **No Rye A after Onions** — exception: Airfield 3, 4, 9 only
+- **No Rye A after Potatoes** — too late to drill. Use Wheat. Exception: early-lifted potatoes.
+- **No Barley at Wretham** — break crops are Maize, OWC and Rye A only
+- Wretham Carrots: only if last Carrots/Parsnips was 10+ years ago. Max 1–2 fields.
+- Wretham veg area: keep roughly in line with 2026 levels. Don't significantly expand.
+- Fowlmere 2–6: locked to Maize. Seed Potatoes every 6yr only. Last=2022, next=2028.
 
----
+## Euston
+- **No double Wheat** EXCEPT heavier ground: Duke William+Spinney, First/Second Barrow, Buckles, Willow Hall, Taylors Grove, Oak Ride, Polly Borehams B
+- **Sugarbeet fields → Maize only** (late harvest, no alternative)
+- **Pig fields** (60 Acres, Bottom Cullum, Duffers Gore N, Leys North, Leys South, Middle Breck N, Middle Breck S, Road Breck, The Leys.A) — permanent Pigs through 2027, enter rotation 2028
+- **Euston Allotments (West)** = Sugarbeet, farmed by Euston estate themselves
+- **Rymer area** (Eighty Five Acres, Seventy Six Acres, Maidens Walk, Home Field Rymer) = zone Rymer, excluded from greening
 
-# CEREAL / OWC RULE AT RACKHAM
-
-All cereal break crops at Rackham Farms are recorded as **Over Winter Cereal (OWC)** in the rotation plan. These are **partner-farmed** from June 2026 and are not counted as ours. OWC remains in the rotation as a necessary break crop but Abreys does not farm them directly.
-
----
-
-# MAIZE RULES
-
-- **Wretham Maize = ours** (goes to AD plant)
-- **Chandler Maize = ours** (goes to AD plant)
-- **Everywhere else = partner-farmed / NOT ours**
-- **Euston Maize = partner ~1,000 acres/year** — must stay 975–1,025ac (checker in Totals tab flags if outside range)
-- Euston Maize is NOT counted in AD plant totals
-
----
-
-# AD PLANT CAPS (Wretham + Chandler combined)
-
-- **Maize: target 270ha** (aim for the cap, not under it)
-- **Rye A: target 220ha** (Wretham, Chandler + Euston only — Pickenham excluded)
-- Pickenham Rye A shown in AD tab for information only, greyed out, NOT included in total
+## Rackham
+- OWC = Wheat/Barley equivalent. Never label as plain "Wheat" or "Rye".
+- Max 1 consecutive OWC — break with partner Maize
+- Pig rotation (Lodge Farm Gasthorpe ~33–40ha/yr):
+  - 2027–2028: LF Breck 2 · 2029–2030: Pale Breck · 2031–2032: Breck 1
+  - After pigs: min one OWC/Maize year before any SOL crop
+- A14 North + A14 South: Seed Potatoes 2027, then OWC/Maize only until 6yr gap clears (2033)
 
 ---
 
-# GREENING — COVER CROPS
+# AD PLANT TARGETS (Wretham + Chandler + Euston our Rye)
 
-**Single mix only: Maxi Veg**
-(Replaces old Maxi-Graze and Maxi-Cover/Veg — now fully unified into one mix)
+| Crop | Target | Notes |
+|---|---|---|
+| Maize | 270ha | Wretham + Chandler only |
+| Rye (all types) | 220ha | Wretham + Chandler + Euston (our Rye + Conventional Rye) |
 
-- **Eligible before:** Maize or Potatoes (any Potato type)
-- **Eligible from:** cereal/OWC harvest OR Carrots OR Onions harvest
-- Outgoing crop must be farmed by us (isOurs)
-- Greening dot shown on the INCOMING crop year in the Cropping Plan tab
-- Applies to ALL estates
+- Pickenham Rye A: excluded from AD total (separate buyer). Shown greyed in AD tab.
+- Euston Maize: partner-farmed, excluded from AD total. Target ~1,000ac/yr.
+- Conventional Rye = same as Rye for all AD calculations
 
 ---
 
-# WATER BUDGETS & RATES
+# GREENING — EUSTON 2026
+
+**Confirmed greening list (24 fields, 209.8ha):**
+Ann Harts, Behind Barn, Big Field (Euston), Big Hodna (Cereals), Covey Land.A, Corner Field, Farmhouse Field, Heath Meadow, Landing Lights, Long Field (Euston), New Beyton Grove.A, Nobles Ash, Old Beyt Grove.A, Pear Pit, Pit Field.A, R H Side of the Road, Railway Line.A, Sap 10 Acres, Sixteen Acres, Tableland, Thetford Road.A, Tin Shed D, Top Cullum, 36 Acres.A
+
+**Stubble Turnips 2026 (6 fields, 32.3ha — red dot):**
+Ann Harts, Behind Barn, Big Hodna (Cereals), Heath Meadow, Sixteen Acres, Euston Allotments (West)
+
+**Greening rules:**
+- Eligible from: Wheat, Barley, Carrots, Onions, OWC (outgoing crop, must be ours)
+- Eligible before: Maize or Potatoes (any type) — incoming 2027 crop
+- Excluded: Rymer area, West Farm, Headings fields
+- Green dot = Maxi Veg; Red dot = Stubble Turnips
+
+---
+
+# GREENING — ALL ESTATES
+- Single Maxi Veg mix only
+- Eligible before: Maize or Potatoes
+- Eligible from: cereal/OWC, Carrots, or Onions (outgoing crop must be isOurs=true)
+- Dot shown on the INCOMING crop year
+
+---
+
+# WATER BUDGETS
 
 | Zone | Budget | Rate | Machines |
 |---|---|---|---|
-| Rackham — Dolphin Farm | 40M gal (+5M from Chandler) | £30/ac-in | 3 |
+| Rackham — Dolphin Farm | 40M gal | £30/ac-in | 3 |
 | Rackham — Moorland Stud | 23M gal | £30/ac-in | 2 |
-| Rackham — Lodge Farm | 47M gal (+5M from Chandler) | £30/ac-in | 4 |
+| Rackham — Lodge Farm | 47M gal | £30/ac-in | 4 |
 | Rackham — Manor Farm | 55M gal | £30/ac-in | 4 |
-| Blakeney + Wretham | 125M gal combined | £25/ac-in | 16 |
+| Blakeney + Wretham (combined) | 125M gal | £25/ac-in | 16 |
 | Euston — Bore/West Pump | 52M gal | £38/ac-in | 4–5 |
 | Euston — Main Pump | 160M gal | £38/ac-in | 12 |
 | Pickenham — SPEC | 117M gal | £48/ac-in | 10 |
@@ -3409,161 +3397,17 @@ All cereal break crops at Rackham Farms are recorded as **Over Winter Cereal (OW
 | Gooderham — Home Farm | 25M gal | £65/ac-in | 3 |
 | Gooderham — Snare Hill | 25M gal | £65/ac-in | 3 |
 
-**Target:** 75–100% of zone budget per year. Seed Potatoes require zero irrigation — not counted.
+Blakeney takes irrigation priority over Wretham from shared 125M gal.
+Seed Potatoes = zero irrigation water.
 
-### Water coefficients (ac-in per acre)
-| Crop | ac-in/ac |
-|---|---|
-| Potatoes | 11.12 |
-| Salad Potatoes | 9.37 |
-| Seed Potatoes | 0 (no irrigation) |
-| Parsnips | 9.44 |
-| Carrots | 6.54 |
-| Onions | 4.91 |
-| Maize (Chandler/Wretham AD) | 3.20 |
-| OWC / Wheat / Rye / Barley | 0 |
-
----
-
-# RACKHAM FARMS — SPECIFIC RULES
-
-### Crop caps (guideline, not hard limit)
-- Potatoes + Salad Potatoes combined: ~115ha/year
-- Carrots: ~95ha/year
-- Onions: ~60ha/year
-- 2027 accepted at 134ha SOL (some flexibility at rotation re-entry)
-
-### Pig rotation (Lodge Farm Gasthorpe)
-~33–40ha of pigs allocated every year. Fields: Pale Breck (36ha), LF Breck 2 (33.4ha), Breck 1 (26.2ha).
-- 2027–2028: LF Breck 2 (33ha)
-- 2029–2030: Pale Breck (36ha)
-- 2031–2032: Breck 1 (26ha)
-After pigs leave → at least one year OWC/Maize break before any SOL crop.
-
-### Seed Potatoes at Rackham (Moorland Stud)
-A14 North and A14 South = Seed Potatoes in 2027. Then OWC/Maize only until 6yr gap clears (not before 2033).
-
-### Moorland Stud — cereal management
-Moorland has limited veg potential. OWC runs are broken with partner Maize to avoid consecutive cereal years. No more than one consecutive OWC on any Moorland field.
-
----
-
-# CHANDLER ESTATE — SPECIFIC RULES
-
-**Field areas (correct as of June 2026):**
-Brettenham 6.79ha · Camp 6.73ha · 37 Brek 13.39ha · 16 Brek 6.17ha · Lilac Row 19.60ha · Park 38 11.18ha · Garden Field 19.24ha · School Field 14.89ha · 25 Brek 8.20ha · 30 Brek 12.95ha · Park 20 4.19ha · 23 Brek 8.53ha · Lower Brandy 8.53ha · Home Breck 13.20ha · Park 75 22.59ha · Parsons 3.79ha · Lime Kiln 17.41ha · Top Brandy 10.65ha · Searchlight 7.85ha (SFI — fixed all years)
-
-**SFI:** Searchlight (7.85ha) = SFI for ALL plan years 2027–2032 (fixed, never re-crop).
-
-**AD Rye A target:** ~30ha/year at Chandler.
-
----
-
-# EUSTON ESTATE
-
-### Permanent / non-cropable fields (locked all years)
-**Carbon Trees (27 fields):** 3 Acres, Article Hill, Beeches (Honington), Big Bullsies, Big Field (Honington), Big Hodna, Brickets, Double Pits, Euston Allotments, First Austins, First Doles, Foot Path, Fore Close, Fox Lead.A, Front Meadow, Gaught Field, Great Grove Field, Little Bullsies, Middle Field A, Norwich Field, Park Close, Sap Top Meadow, Second Austins, Sows Bottom, Sparkes Field.A, Third Austins, Wireless Stat.
-
-**Grass (9 fields):** 4 Acres, Aerodrome, Behind Tilbrook, Below Tipson, Beside Shavers, Hon Allotments, Lime Pit, Village Hall, Wash Pits
-
-**Solar (8 fields):** 19 Acres, Brick Hill, Flats, Foremans Break.A, Gospel Hill, Lottment Break, Timson, Triangle
-
-**ELS/HLS (14 fields):** Dry Close, Garden Paddocks.A, Heath Field, Hilly Holey, Keepers Paddock, Little Cranwell Hill, Monument, New Zeland Corner, R Rd Left Hand, Sandy Field, Temple Bottom.A, The Sales, The Sales B, Thetford Rd 15 Acres
-
-**Chickens (3):** 6 Acres, Field Barn, Magna Field.A · **Pheasants:** Pin Field
-
-**Pigs (9 fields — permanent through 2027 only, enter rotation from 2028):**
-60 Acres, Bottom Cullum, Duffers Gore N, Leys North, Leys South, Middle Breck N, Middle Breck S, Road Breck, The Leys.A
-
-### Maize — partner arrangement
-Partner requires exactly **1,000 acres (405ha)** of Maize on Euston every year. Floats freely to any field. Use strategically as a break crop on heavy non-suited fields. Max 2 consecutive Maize on any field. Total must stay ≤405ha/year.
-
-### Rotation rules at Euston
-- Max 2 consecutive Wheat — NEVER 3 in a row
-- Max 2 consecutive Maize
-- 6-year family breaks (SOL, API, ALI)
-- Carrots must follow Wheat only — never after Potatoes
-- No Carrots on Headings Farm fields
-- No Rye or Rye A at Euston
-- No Potatoes directly after Pigs — minimum one OWC/Maize break year
-
-### Water — split system
-- **Bore/West Pump (52M gal):** Bore zone (44 fields, 452ha) + West zone (17 fields, 257ha). Veg target ~135–145ha/year.
-- **Main Pump (160M gal):** Euston zone (160 fields), Bardwell (5), Rymer (3). Handles bulk veg ~320–330ha.
-- Combined target: ~95% of 212M UK gal budget.
-
----
-
-# BEARD ESTATE
-
-Seed Potatoes only. All other years: Wheat or Barley in alternating rotation.
-
-| Year | Fields in Seed Potatoes | Ha |
-|---|---|---|
-| 2027 | Next Door Field | 6.3ha |
-| 2028 | Back Field, Canada, Two Five Acres | 13.2ha |
-| 2029 | Shropham Field, Spinney (Beard) | 17.9ha |
-| 2030 | 17 Acre, Breckles Common | 18.2ha |
-| 2031 | Pikel Left, Pikel Right | 11.0ha |
-| 2032 | Mill Hill, Observer Post_A, Unit 2_A, Unit 2_B | 18.4ha |
-
----
-
-# WRETHAM ESTATE
-
-Break crops: Maize, OWC and Rye A only. No Barley at Wretham.
-- **No Rye A after Onions** (exception: Airfield 3, 4, 9 permitted)
-- **No double Wheat** (max 1 consecutive) — Rye A after Wheat is ideal
-- **No triple Rye A** — max 2 consecutive Rye A runs
-- **Wheat cannot follow Rye or Rye A — ever**
-- **Too late to drill Rye A after Potatoes** — use Wheat if Potatoes are in the previous year
-- Maize target from Wretham: ~270ha minus Chandler Maize (~49ha) = ~221ha
-- Rye A target from Wretham: ~190ha minus Chandler Rye A (~20ha) minus Pickenham Rye A (~101ha) = ~69ha
-
-**Fowlmere fields (2–6):** Locked to Maize except every 6 years when eligible for Seed Potatoes. Last Seed Potatoes = 2022, next window = 2028.
-
----
-
-# BLAKENEY ESTATE
-
-We farm veg only. Partner/tenant crops (Maize, Rye, Pigs) shown for rotation context only, not counted in our totals.
-
-**Rotation cycle:** Potatoes → Rye → Pigs → Pigs → Maize → Onions → repeat
-
-Blakeney takes priority over Wretham from the shared 125M gal irrigation budget.
-
----
-
-# PICKENHAM ESTATE
-
-We farm veg and Rye A only. Everything else (Wheat, Barley, Maize, OSR, Sugarbeet, Vining Peas, Rye, Pigs) is the Pickenham team's farming.
-
-- Rye A cap: 100ha/year maximum (AD plant constraint)
-- 2027 plan is locked — do not change
-
-| Crop | 2027 (locked) | Target 2028+ |
-|---|---|---|
-| Potatoes | 240ha | ~240ha |
-| Onions | 178ha | ~175–185ha |
-| Carrots | 99ha | ~100ha |
-| Rye A | 113ha | 100ha (capped) |
-
----
-
-# CROP EDITOR — HOW IT WORKS
-
-Click any plan year cell (2027–2032 amber columns) in the Cropping Plan tab to change the crop. Rotation rules are enforced on every change:
-- Rye after Maize → blocked with confirmation prompt
-- Carrots after Potatoes → blocked with confirmation prompt
-- Family gap <5yr → blocked with confirmation prompt
-- Family gap =5yr → warning with confirmation prompt
-- Historic years (2026 and earlier) are read-only
+### Water rates (ac-in/acre)
+Potatoes 11.12 · Salad Potatoes 9.37 · Seed Potatoes 0 · Parsnips 9.44 · Carrots 6.54 · Onions 4.91 · Maize (AD only) 3.20 · OWC/Wheat/Rye/Barley 0
 
 ---
 
 # CHANGE TRACKING
 
-When changes are pushed to GitHub, the app shows an orange banner listing which fields changed and in which years. Your colleague can click **Accept & clear** to dismiss the highlights — these are stored in her browser so she doesn't see them again even after refreshing. The highlights reappear automatically when new changes are pushed.
+When changes are pushed to GitHub, the app shows an orange banner listing changed fields. Click Accept & clear to dismiss. Highlights stored in browser per user.
 `;
 
 function renderMarkdown(md){
