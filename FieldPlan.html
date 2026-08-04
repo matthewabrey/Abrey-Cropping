@@ -5287,23 +5287,6 @@ function _buildMap(){
     var mapEl=document.getElementById('mp-map');
     if(!mapEl||!window.L) return;
     _mapObj=L.map('mp-map',{zoomControl:false,zoomSnap:0.25,zoomDelta:0.5,wheelPxPerZoomLevel:120});
-    // Inject hatch pattern into Leaflet's SVG layer
-    _mapObj.on('layeradd',function(){
-      var lfSvg=document.querySelector('#mp-map .leaflet-overlay-pane svg');
-      if(!lfSvg||lfSvg.querySelector('#lf-hatch')) return;
-      var ns='http://www.w3.org/2000/svg';
-      var defs=lfSvg.querySelector('defs');
-      if(!defs){defs=document.createElementNS(ns,'defs');lfSvg.insertBefore(defs,lfSvg.firstChild);}
-      var pat=document.createElementNS(ns,'pattern');
-      pat.setAttribute('id','lf-hatch');pat.setAttribute('patternUnits','userSpaceOnUse');
-      pat.setAttribute('width','8');pat.setAttribute('height','8');
-      pat.setAttribute('patternTransform','rotate(45)');
-      var line=document.createElementNS(ns,'line');
-      line.setAttribute('x1','0');line.setAttribute('y1','0');
-      line.setAttribute('x2','0');line.setAttribute('y2','8');
-      line.setAttribute('stroke','rgba(0,0,0,0.55)');line.setAttribute('stroke-width','2.5');
-      pat.appendChild(line);defs.appendChild(pat);
-    });
     // SVG hatch pattern defined in page body
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
       attribution:'&copy; OpenStreetMap contributors',maxZoom:19
@@ -5339,6 +5322,28 @@ function _mapRebuild(){
     if(f.rings.length===1){
       var lls=f.rings[0].map(function(p){return[p[1],p[0]];});
       var poly=L.polygon(lls,style).addTo(_mapObj);
+      if(!ours){
+        // Add hatch overlay polygon on top
+        setTimeout(function(){
+          var lfSvg=document.querySelector('#mp-map .leaflet-overlay-pane svg');
+          if(lfSvg&&!lfSvg.querySelector('#lf-hatch')){
+            var ns='http://www.w3.org/2000/svg';
+            var defs=lfSvg.querySelector('defs')||lfSvg.insertBefore(document.createElementNS(ns,'defs'),lfSvg.firstChild);
+            var pat=document.createElementNS(ns,'pattern');
+            pat.id='lf-hatch';pat.setAttribute('patternUnits','userSpaceOnUse');
+            pat.setAttribute('width','8');pat.setAttribute('height','8');
+            pat.setAttribute('patternTransform','rotate(45)');
+            var ln=document.createElementNS(ns,'line');
+            ln.setAttribute('x1','0');ln.setAttribute('y1','0');
+            ln.setAttribute('x2','0');ln.setAttribute('y2','8');
+            ln.setAttribute('stroke','rgba(0,0,0,0.55)');ln.setAttribute('stroke-width','2.5');
+            pat.appendChild(ln);defs.appendChild(pat);
+          }
+          // Apply pattern fill to this polygon's path elements
+          var paths=poly._path?[poly._path]:(poly._renderer&&poly._renderer._container?poly._renderer._container.querySelectorAll('path'):[]);
+          poly.eachLayer?poly.eachLayer(function(l){if(l._path)l._path.style.fill='url(#lf-hatch)';}):(poly._path&&(poly._path.style.fill='url(#lf-hatch)'));
+        },50);
+      }
       poly._mpField=f;
       poly.on('click',function(){_mapInfo(f);});
       poly.on('mouseover',function(){poly.setStyle({weight:3,fillOpacity:.92});});
