@@ -5270,6 +5270,8 @@ function _buildMap(){
     +'<option>Wretham</option><option>Beard</option><option>Rackham Farms</option><option>Pickenham</option><option>Gooderham</option><option>Euston</option><option>Chandler</option><option>Blakeney</option>'
     +'</select>'
     +'<div id="mp-yrbts" style="display:flex;gap:3px;flex-wrap:wrap"></div>'
+    +'<button id="mp-grn-btn" onclick="_mapToggleGreening()" title="Toggle greening view" style="padding:3px 10px;font-size:11px;background:rgba(39,174,96,0.2);border:1px solid #27ae60;color:#c8e6c9;border-radius:3px;cursor:pointer">'
+    +'&#9679; Greening</button>'
     +'<div style="margin-left:auto;display:flex;gap:4px;align-items:center">'
     +'<button onclick="if(_mapObj)_mapObj.zoomIn(0.1)" title="Fine zoom in" '
     +'style="width:28px;height:28px;font-size:18px;font-weight:bold;background:rgba(255,255,255,.15);border:1px solid #27ae60;color:#c8e6c9;border-radius:3px;cursor:pointer;padding:0">+</button>'
@@ -5419,6 +5421,42 @@ function _mapRebuild(){
     // Skip sub-parcel children on map - they share parent's polygon
     if((SUBPARCELS[_mapEstate]||{})[f.name]) return;
     var ours=_mapIsOurs(f);
+    // Greening mode: colour by greening type instead of crop
+    if(_mapGreeningMode && _mapEstate==='Euston'){
+      var grType=null;
+      if(EUSTON_STUBBLE_TURNIPS_2026.indexOf(f.field)>=0) grType='ST';
+      else if(EUSTON_GREENING_END_2026.indexOf(f.field)>=0) grType='GR';
+      if(!grType){
+        // Draw non-greening fields as light grey
+        var col='#e8e8e8';
+        var style={fillColor:col,color:'#ccc',fillOpacity:0.5,weight:0.8,className:''};
+        if(f.rings&&f.rings.length===1){
+          var lls=f.rings[0].map(function(p){return[p[1],p[0]];});
+          var poly=L.polygon(lls,style).addTo(_mapObj);
+          poly._mpField=f;
+          poly.on('click',function(){_mapInfo(f);});
+          _mapPolygons.push(poly);
+          lls.forEach(function(ll){allBounds.push(ll);});
+        }
+        return;
+      }
+      // Greening field: colour by type
+      var col=grType==='ST'?'#e74c3c':'#27ae60';
+      var style={fillColor:col,color:grType==='ST'?'#c0392b':'#1e8449',
+        fillOpacity:0.75,weight:1.5,className:''};
+      var label=grType==='ST'?'Stubble Turnips':'Greening';
+      if(f.rings&&f.rings.length===1){
+        var lls=f.rings[0].map(function(p){return[p[1],p[0]];});
+        var poly=L.polygon(lls,style).addTo(_mapObj);
+        poly._mpField=f;
+        poly.on('click',function(){_mapInfo(f);});
+        poly.on('mouseover',function(){poly.setStyle({weight:3,fillOpacity:.92});});
+        poly.on('mouseout',function(){poly.setStyle({weight:1.5,fillOpacity:.75});});
+        _mapPolygons.push(poly);
+        lls.forEach(function(ll){allBounds.push(ll);});
+      }
+      return;
+    }
     // Never skip partner fields — show with hatch overlay
     var col=_mapCol(f);
     if(_mapOursOnly&&!ours) col='#cccccc'; // grey if ours-only mode
@@ -5516,6 +5554,19 @@ function _mapUpdate(){
     p.setStyle({fillColor:col,color:_mapDarken(col)});
   });
   _mapLegend();
+}
+
+var _mapGreeningMode=false;
+
+function _mapToggleGreening(){
+  _mapGreeningMode=!_mapGreeningMode;
+  var btn=document.getElementById('mp-grn-btn');
+  if(btn){
+    btn.style.background=_mapGreeningMode?'#27ae60':'rgba(39,174,96,0.2)';
+    btn.style.fontWeight=_mapGreeningMode?'bold':'normal';
+    btn.textContent=_mapGreeningMode?'✕ Greening':'● Greening';
+  }
+  _renderMap(_mapSelYr,_mapOursOnly);
 }
 
 function _mapPrint(){
