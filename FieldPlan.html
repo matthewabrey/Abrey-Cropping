@@ -161,7 +161,7 @@ const CC={
   'Euston Rye':      '#78909C',  // Blue-grey (partner rye)
   'Veg (RLLONG)':    '#880E4F',  // Dark magenta (long-season veg)
   'Rye':             '#00BCD4',  // Cyan
-  'Conventional Rye':'#00BCD4',  // Purple
+  'Conventional Rye':'#006064',  // Dark cyan
   'Rye A':           '#0097A7',  // Dark cyan
   'Wholecrop':       '#00ACC1',  // Cyan variant
   // ── Other crops — muted but distinct colours ──────────────────────────
@@ -5287,6 +5287,25 @@ function _buildMap(){
     var mapEl=document.getElementById('mp-map');
     if(!mapEl||!window.L) return;
     _mapObj=L.map('mp-map',{zoomControl:false,zoomSnap:0.25,zoomDelta:0.5,wheelPxPerZoomLevel:120});
+    // Inject hatch pattern into Leaflet SVG once available
+    var _hatchObserver=new MutationObserver(function(){
+      var lfSvg=document.querySelector('#mp-map .leaflet-overlay-pane svg');
+      if(!lfSvg||lfSvg.querySelector('#lf-hatch')) return;
+      var ns='http://www.w3.org/2000/svg';
+      var defs=lfSvg.querySelector('defs');
+      if(!defs){defs=document.createElementNS(ns,'defs');lfSvg.insertBefore(defs,lfSvg.firstChild);}
+      var pat=document.createElementNS(ns,'pattern');
+      pat.id='lf-hatch';pat.setAttribute('patternUnits','userSpaceOnUse');
+      pat.setAttribute('width','8');pat.setAttribute('height','8');
+      pat.setAttribute('patternTransform','rotate(45)');
+      var ln=document.createElementNS(ns,'line');
+      ln.setAttribute('x1','0');ln.setAttribute('y1','0');
+      ln.setAttribute('x2','0');ln.setAttribute('y2','8');
+      ln.setAttribute('stroke','rgba(0,0,0,0.6)');ln.setAttribute('stroke-width','2.5');
+      pat.appendChild(ln);defs.appendChild(pat);
+      _hatchObserver.disconnect();
+    });
+    _hatchObserver.observe(document.getElementById('mp-map'),{childList:true,subtree:true});
     // SVG hatch pattern defined in page body
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
       attribution:'&copy; OpenStreetMap contributors',maxZoom:19
@@ -5316,39 +5335,24 @@ function _mapRebuild(){
     // Skip sub-parcel children on map - they share parent's polygon
     if((SUBPARCELS[_mapEstate]||{})[f.name]) return;
     var ours=_mapIsOurs(f);
-    if(_mapOursOnly&&!ours) return;
+    // Never skip partner fields — show with hatch overlay
     var col=_mapCol(f);
+    if(_mapOursOnly&&!ours) col='#cccccc'; // grey if ours-only mode
     var style={fillColor:col,color:_mapDarken(col),fillOpacity:ours?0.72:0.55,weight:1.5,className:ours?'':'mp-hatch'};
     if(f.rings.length===1){
       var lls=f.rings[0].map(function(p){return[p[1],p[0]];});
       var poly=L.polygon(lls,style).addTo(_mapObj);
-      if(!ours){
-        // Add hatch overlay polygon on top
-        setTimeout(function(){
-          var lfSvg=document.querySelector('#mp-map .leaflet-overlay-pane svg');
-          if(lfSvg&&!lfSvg.querySelector('#lf-hatch')){
-            var ns='http://www.w3.org/2000/svg';
-            var defs=lfSvg.querySelector('defs')||lfSvg.insertBefore(document.createElementNS(ns,'defs'),lfSvg.firstChild);
-            var pat=document.createElementNS(ns,'pattern');
-            pat.id='lf-hatch';pat.setAttribute('patternUnits','userSpaceOnUse');
-            pat.setAttribute('width','8');pat.setAttribute('height','8');
-            pat.setAttribute('patternTransform','rotate(45)');
-            var ln=document.createElementNS(ns,'line');
-            ln.setAttribute('x1','0');ln.setAttribute('y1','0');
-            ln.setAttribute('x2','0');ln.setAttribute('y2','8');
-            ln.setAttribute('stroke','rgba(0,0,0,0.55)');ln.setAttribute('stroke-width','2.5');
-            pat.appendChild(ln);defs.appendChild(pat);
-          }
-          // Apply pattern fill to this polygon's path elements
-          var paths=poly._path?[poly._path]:(poly._renderer&&poly._renderer._container?poly._renderer._container.querySelectorAll('path'):[]);
-          poly.eachLayer?poly.eachLayer(function(l){if(l._path)l._path.style.fill='url(#lf-hatch)';}):(poly._path&&(poly._path.style.fill='url(#lf-hatch)'));
-        },50);
-      }
       poly._mpField=f;
       poly.on('click',function(){_mapInfo(f);});
       poly.on('mouseover',function(){poly.setStyle({weight:3,fillOpacity:.92});});
       poly.on('mouseout',function(){poly.setStyle({weight:1.5,fillOpacity:.72});});
       _mapPolygons.push(poly);
+      // Partner field: add hatch overlay as separate polygon on top
+      if(!ours){
+        var hPoly=L.polygon(lls,{fillColor:'transparent',color:'transparent',
+          fillOpacity:1,weight:0,className:'mp-hatch',interactive:false}).addTo(_mapObj);
+        _mapPolygons.push(hPoly);
+      }
       lls.forEach(function(ll){allBounds.push(ll);});
     } else {
       var grp=L.featureGroup().addTo(_mapObj);
