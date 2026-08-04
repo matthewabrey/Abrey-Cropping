@@ -5330,6 +5330,63 @@ function _mapRebuild(){
   _mapPolygons=[];_mapLabels=[];
   var geo=ALL_ESTATES_GEO[_mapEstate]||[];
   var allBounds=[];
+  // Canvas hatch function for partner fields
+  function _drawHatchCanvas(geo){
+    var mapDiv=document.getElementById('mp-map');
+    if(!mapDiv) return;
+    // Remove old canvas if exists
+    var old=mapDiv.querySelector('.hatch-canvas');
+    if(old) old.parentNode.removeChild(old);
+    var rect=mapDiv.getBoundingClientRect();
+    var cv=document.createElement('canvas');
+    cv.className='hatch-canvas';
+    cv.width=rect.width; cv.height=rect.height;
+    cv.style.cssText='position:absolute;top:0;left:0;pointer-events:none;z-index:400';
+    mapDiv.appendChild(cv);
+    var ctx=cv.getContext('2d');
+    ctx.strokeStyle='rgba(0,0,0,0.45)'; ctx.lineWidth=1.5;
+    geo.forEach(function(f){
+      if(!f.rings||!f.rings.length) return;
+      if(_mapIsOurs(f)) return; // only partner fields
+      f.rings.forEach(function(ring){
+        if(!ring.length) return;
+        // Convert lat/lng to pixel coords
+        var pts=ring.map(function(p){
+          var ll=L.latLng(p[1],p[0]);
+          var px=_mapObj.latLngToContainerPoint(ll);
+          return px;
+        });
+        // Get bounding box
+        var xs=pts.map(function(p){return p.x;});
+        var ys=pts.map(function(p){return p.y;});
+        var x0=Math.min.apply(null,xs), x1=Math.max.apply(null,xs);
+        var y0=Math.min.apply(null,ys), y1=Math.max.apply(null,ys);
+        // Clip to polygon and draw diagonal lines
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x,pts[0].y);
+        for(var i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y);
+        ctx.closePath();
+        ctx.clip();
+        var sp=7;
+        var d=x1-x0+y1-y0;
+        for(var t=x0-d;t<x1+d;t+=sp){
+          ctx.beginPath();
+          ctx.moveTo(t,y0-5);
+          ctx.lineTo(t+(y1-y0)+10,y1+5);
+          ctx.stroke();
+        }
+        ctx.restore();
+      });
+    });
+    // Redraw on map move/zoom
+    _mapObj.off('moveend',_mapHatchRedraw);
+    _mapHatchRedraw=function(){_drawHatchCanvas(geo);};
+    _mapObj.on('moveend',_mapHatchRedraw);
+    _mapObj.on('zoomend',_mapHatchRedraw);
+  }
+  var _mapHatchRedraw=null;
+
   geo.forEach(function(f){
     if(!f.rings||!f.rings.length) return;
     // Skip sub-parcel children on map - they share parent's polygon
@@ -5347,12 +5404,6 @@ function _mapRebuild(){
       poly.on('mouseover',function(){poly.setStyle({weight:3,fillOpacity:.92});});
       poly.on('mouseout',function(){poly.setStyle({weight:1.5,fillOpacity:.72});});
       _mapPolygons.push(poly);
-      // Partner field: add hatch overlay as separate polygon on top
-      if(!ours){
-        var hPoly=L.polygon(lls,{fillColor:'transparent',color:'transparent',
-          fillOpacity:1,weight:0,className:'mp-hatch',interactive:false}).addTo(_mapObj);
-        _mapPolygons.push(hPoly);
-      }
       lls.forEach(function(ll){allBounds.push(ll);});
     } else {
       var grp=L.featureGroup().addTo(_mapObj);
@@ -5369,34 +5420,8 @@ function _mapRebuild(){
     }
   });
   if(allBounds.length) _mapObj.fitBounds(allBounds,{padding:[20,20]});
-  // Draw hatch lines on canvas overlay for partner fields
-  setTimeout(function(){
-    var lfSvg=document.querySelector('#mp-map .leaflet-overlay-pane svg');
-    if(!lfSvg) return;
-    var ns='http://www.w3.org/2000/svg';
-    if(!lfSvg.querySelector('#lf-hatch')){
-      var defs=lfSvg.querySelector('defs');
-      if(!defs){defs=document.createElementNS(ns,'defs');lfSvg.insertBefore(defs,lfSvg.firstChild);}
-      var pat=document.createElementNS(ns,'pattern');
-      pat.id='lf-hatch';pat.setAttribute('patternUnits','userSpaceOnUse');
-      pat.setAttribute('width','8');pat.setAttribute('height','8');
-      pat.setAttribute('patternTransform','rotate(45)');
-      var ln=document.createElementNS(ns,'line');
-      ln.setAttribute('x1','0');ln.setAttribute('y1','0');
-      ln.setAttribute('x2','0');ln.setAttribute('y2','8');
-      ln.setAttribute('stroke','rgba(0,0,0,0.6)');ln.setAttribute('stroke-width','2.5');
-      pat.appendChild(ln);defs.appendChild(pat);
-    }
-    // Apply fill to all .mp-hatch paths
-    lfSvg.querySelectorAll('path.leaflet-interactive').forEach(function(p){
-      // check if parent g has mp-hatch class
-    });
-    // Direct approach: find all polygons with mp-hatch class
-    document.querySelectorAll('.mp-hatch path').forEach(function(p){
-      p.setAttribute('fill','url(#lf-hatch)');
-      p.setAttribute('fill-opacity','0.7');
-    });
-  }, 300);
+  // Hatch partner fields using canvas overlay
+  _drawHatchCanvas(geo);
 
   // Labels
   var z=_mapObj?_mapObj.getZoom():0;
