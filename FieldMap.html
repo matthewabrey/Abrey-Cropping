@@ -361,8 +361,6 @@ function render(){
   geo.forEach(function(f){
     var fdata=(F_LOOKUP[S.estate]&&F_LOOKUP[S.estate][f.name]);var crop=(fdata&&fdata.crops&&fdata.crops[S.year])||'';var fha=(fdata&&fdata.ha)||f.ha||0;
     var r=getStyle(f,crop);
-    if(!r.rings) return;
-
     var rings=f.rings||[];
     if(!rings.length) return;
     var lls=rings.length===1
