@@ -120,6 +120,30 @@ html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:#0d1f14
 }
 
 /* Print */
+/* ── Mobile: controls above map ── */
+@media (max-width: 768px) {
+  #mob-toggle { display: flex !important; }
+  #app { flex-direction: column; }
+  #sb {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-height: 45vh;
+    overflow-y: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0;
+  }
+  #sb.hide { max-height: 0; overflow: hidden; min-width: 100% !important; }
+  #sb-head { width: 100%; padding: 6px 10px; display: flex; align-items: center; justify-content: space-between; }
+  #sb-head h1 { font-size: 12px; }
+  #sb-head p { display: none; }
+  .sec { flex: 1; min-width: 140px; padding: 6px 8px; border-bottom: none; border-right: 1px solid rgba(255,255,255,.07); }
+  #leg { min-width: 140px; flex: 1; }
+  #pbar { width: 100%; }
+  #mw { flex: 1; min-height: 55vh; }
+  #sbt { display: none !important; }
+  #mctrl { top: 6px; right: 6px; }
+}
 @media print{
   @page{margin:0}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
@@ -198,6 +222,7 @@ html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:#0d1f14
 
 <div id="mw">
   <button id="sbt" onclick="toggleSb()" title="Toggle sidebar">&#9776;</button>
+  <button id="mob-toggle" onclick="toggleSb()" style="display:none;position:absolute;top:6px;left:6px;z-index:1001;background:rgba(13,42,28,.92);border:1px solid rgba(39,174,96,.4);color:#c8e6c9;border-radius:4px;width:28px;height:28px;cursor:pointer;font-size:14px;align-items:center;justify-content:center">&#9660;</button>
   <div id="map"></div>
   <div id="mctrl">
     <button class="mc" onclick="map.zoomIn(0.1)" title="Zoom in">+</button>
@@ -333,6 +358,8 @@ function render(){
   geo.forEach(function(f){
     var fdata=(F_LOOKUP[S.estate]&&F_LOOKUP[S.estate][f.name]);var crop=(fdata&&fdata.crops&&fdata.crops[S.year])||'';var fha=(fdata&&fdata.ha)||f.ha||0;
     var r=getStyle(f,crop);
+    if(!r.rings) return;
+
     var rings=f.rings||[];
     if(!rings.length) return;
     var lls=rings.length===1
