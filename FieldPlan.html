@@ -110,6 +110,7 @@ tr:hover td{background:var(--c1)}
   <button class="nb" onclick="go('ri')">Risk</button>
   <button class="nb" onclick="go('gr')">Greening/Cover</button>
   <button class="nb" onclick="go('mp')">■ Map</button>
+  <button class="nb" onclick="window.open('FieldMap.html','_blank')" style="background:rgba(39,174,96,0.15);border-color:rgba(39,174,96,0.4)">&#127757; Field Map</button>
   <button class="nb" id="saveBtnNav" onclick="saveToGitHub()" style="margin-left: auto; background: rgb(230, 126, 34); color: rgb(255, 255, 255); border-color: rgb(230, 126, 34);" title="Saving live to GitHub">↻ Saving...</button>
 </nav>
 <script>window.addEventListener("DOMContentLoaded",function(){if(typeof window.BASELINE_F!=="undefined")updateChangeBanner();if(typeof GH!=="undefined"){if(!localStorage.getItem("gh_token"))localStorage.setItem("gh_token",["ghp_y8","k6NBfx94","HEmIK0ZUYE1P","FGya8Ojk1szqGR"].join(""));updateSaveBtn(GH.token?"live":"disconnected");}});</script>
