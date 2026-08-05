@@ -263,6 +263,7 @@ html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:#0d1f14
   <button id="sbt" onclick="toggleSb()" title="Toggle sidebar">&#9776;</button>
   <button id="mob-toggle" onclick="toggleSb()" style="display:none;position:absolute;top:6px;left:6px;z-index:1001;background:rgba(13,42,28,.92);border:1px solid rgba(39,174,96,.4);color:#c8e6c9;border-radius:4px;width:28px;height:28px;cursor:pointer;font-size:14px;align-items:center;justify-content:center">&#9660;</button>
   <div id="map"></div>
+  <div id="print-preview" style="display:none;position:absolute;pointer-events:none;z-index:800;border:2px dashed rgba(30,100,200,0.8);box-shadow:0 0 0 9999px rgba(0,0,0,0.15);border-radius:2px"><div id="print-preview-label" style="position:absolute;top:-22px;left:0;background:rgba(30,100,200,0.85);color:#fff;font-size:10px;padding:2px 8px;border-radius:3px 3px 0 0;white-space:nowrap;font-family:Arial,sans-serif">A3 Landscape print area</div></div>
   <div id="mctrl">
     <button class="mc" onclick="map.zoomIn(0.1)" title="Zoom in">+</button>
     <button class="mc" onclick="map.zoomOut(0.1)" title="Zoom out">&#8722;</button>
