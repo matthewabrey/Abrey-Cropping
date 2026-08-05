@@ -145,42 +145,50 @@ html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:#0d1f14
   #mctrl { top: 6px; right: 6px; }
 }
 @media print{
-  @page{margin:0}
+  @page{margin:0;size:A3 landscape}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   #sb,#mctrl,#sbt,#fpop,#pbar{display:none!important}
-  #app{display:block}
-  #mw,#map{width:100vw!important;height:100vh!important}
-  #print-legend{display:block!important}
+  #app{display:block;height:100vh}
+  #mw{width:100vw!important;height:calc(100vh - 36px)!important;position:fixed;top:0;left:0}
+  #map{width:100%!important;height:100%!important}
+  #print-legend{display:flex!important}
 }
-/* Print legend overlay */
+/* Print legend - full width footer strip */
 #print-legend{
   display:none;
   position:fixed;
-  bottom:12px;right:12px;
-  background:rgba(25,45,25,0.93);
+  bottom:0;left:0;right:0;
+  background:rgba(15,35,20,0.92);
   color:#eee;
-  padding:10px 12px;
-  border-radius:8px;
-  font-size:11px;
+  padding:6px 14px;
   z-index:9999;
-  min-width:150px;
-  max-width:220px;
   font-family:'Segoe UI',Arial,sans-serif;
+  font-size:10px;
+  display:none;
+  align-items:center;
+  gap:0;
+  flex-wrap:nowrap;
+  border-top:2px solid #27ae60;
 }
 #print-legend .pl-title{
-  font-weight:700;font-size:12px;
-  border-bottom:1px solid rgba(255,255,255,.3);
-  padding-bottom:4px;margin-bottom:5px;
+  font-weight:700;font-size:11px;
   color:#a8d5b5;
+  white-space:nowrap;
+  margin-right:12px;
+  padding-right:12px;
+  border-right:1px solid rgba(255,255,255,.2);
+}
+#print-legend .pl-items{
+  display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;
 }
 #print-legend .pl-row{
-  display:flex;align-items:center;gap:5px;padding:1px 0;
+  display:flex;align-items:center;gap:4px;white-space:nowrap;
 }
 #print-legend .pl-swatch{
-  width:11px;height:11px;border-radius:2px;flex-shrink:0;
+  width:10px;height:10px;border-radius:2px;flex-shrink:0;
 }
-#print-legend .pl-name{flex:1}
-#print-legend .pl-ha{color:rgba(200,230,200,.5);font-size:10px}
+#print-legend .pl-name{color:#ddd}
+#print-legend .pl-ha{color:rgba(200,230,200,.55);font-size:9px;margin-left:2px}
 </style>
 </head>
 <body>
@@ -611,6 +619,6 @@ function doPrint(sz){
   },400);
 }
 </script>
-<div id="print-legend"><div class="pl-title">CROP AREAS</div><div id="pl-rows"></div></div>
+<div id="print-legend"><div class="pl-title">CROP AREAS</div><div class="pl-items" id="pl-rows"></div></div>
 </body>
 </html>
