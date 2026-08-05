@@ -151,9 +151,9 @@ html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:#0d1f14
   #app{display:block;height:100vh}
   #mw{width:100vw!important;height:calc(100vh - 36px)!important;position:fixed;top:0;left:0}
   #map{width:100%!important;height:100%!important}
-  #print-legend{display:flex!important}
+  #print-legend{display:flex!important;position:fixed;bottom:0;left:0;right:0}
 }
-/* Print legend - full width footer strip */
+/* Print legend - full width footer strip (hidden on screen, shown on print) */
 #print-legend{
   display:none;
   position:fixed;
@@ -164,12 +164,12 @@ html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:#0d1f14
   z-index:9999;
   font-family:'Segoe UI',Arial,sans-serif;
   font-size:10px;
-  display:none;
   align-items:center;
   gap:0;
   flex-wrap:nowrap;
   border-top:2px solid #27ae60;
 }
+
 #print-legend .pl-title{
   font-weight:700;font-size:11px;
   color:#a8d5b5;
