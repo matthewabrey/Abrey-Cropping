@@ -322,6 +322,9 @@ window.onload=function(){
   });
   document.getElementById('est-sel').value=S.estate;
   render(); fitEst();
+  // Force map resize in case of iframe
+  setTimeout(function(){map.invalidateSize();fitEst();},300);
+  setTimeout(function(){map.invalidateSize();},800);
 };
 
 // ── Master state setter ──
