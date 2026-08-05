@@ -255,6 +255,7 @@ html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:#0d1f14
   <div id="pbar">
     <button class="pb a3" onclick="doPrint('A3')">&#128438; Print A3</button>
     <button class="pb a4" onclick="doPrint('A4')">&#128438; Print A4</button>
+    <button class="pb" id="preview-btn" onclick="togglePreview()" style="background:rgba(30,100,200,0.25);border:1px solid rgba(30,100,200,0.5);color:#aac4f0">&#9635; Preview</button>
   </div>
 </div>
 
@@ -602,7 +603,39 @@ function toggleSb(){
 }
 
 // ── Print ──
+var _previewOn=false,_previewSz='A3';
+
+function togglePreview(){
+  _previewOn=!_previewOn;
+  var btn=document.getElementById('preview-btn');
+  if(btn){btn.style.background=_previewOn?'rgba(30,100,200,0.6)':'rgba(30,100,200,0.25)';
+    btn.textContent=_previewOn?'\u2715 Hide':'\u2610 Preview';}
+  if(_previewOn){map.on('moveend',updatePreview);map.on('zoomend',updatePreview);}
+  else{map.off('moveend',updatePreview);map.off('zoomend',updatePreview);}
+  updatePreview();
+}
+
+function updatePreview(){
+  var box=document.getElementById('print-preview');
+  if(!box) return;
+  if(!_previewOn){box.style.display='none';return;}
+  var mw=document.getElementById('mw');
+  if(!mw) return;
+  var mwW=mw.offsetWidth,mwH=mw.offsetHeight;
+  var ratio=_previewSz==='A3'?(1587/1075):(1123/747);
+  var boxW,boxH;
+  if(mwW/mwH>ratio){boxH=mwH*0.9;boxW=boxH*ratio;}
+  else{boxW=mwW*0.9;boxH=boxW/ratio;}
+  var left=(mwW-boxW)/2,top=(mwH-boxH)/2;
+  box.style.display='block';
+  box.style.left=left+'px';box.style.top=top+'px';
+  box.style.width=boxW+'px';box.style.height=boxH+'px';
+  var lbl=document.getElementById('print-preview-label');
+  if(lbl) lbl.textContent=_previewSz+' Landscape print area';
+}
+
 function doPrint(sz){
+  _previewSz=sz;
   var s=document.createElement('style');
   s.id='_ps';
   s.textContent='@page{margin:0;size:'+sz+' landscape}';
