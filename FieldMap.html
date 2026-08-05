@@ -181,7 +181,7 @@ html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:#0d1f14
 
   <div class="sec">
     <div class="lbl">Highlight Crop</div>
-    <input id="cs" type="text" placeholder="Search crops&#8230;" oninput="filterCrops(this.value)">
+    <div style="display:flex;gap:4px;margin-bottom:4px"><input id="cs" type="text" placeholder="Search crops&#8230;" oninput="filterCrops(this.value)" style="flex:1"><button onclick="clearHL()" style="font-size:10px;padding:2px 6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(200,230,200,.6);border-radius:3px;cursor:pointer">Clear</button></div>
     <div id="cl"></div>
   </div>
 
@@ -454,7 +454,7 @@ function renderCropList(geo){
   var crops={};
   geo.forEach(function(f){var c=(f.crops&&f.crops[S.year])||'';if(c)crops[c]=true;});
   document.getElementById('cl').innerHTML=Object.keys(crops).sort().map(function(c){
-    var on=S.highlight===c;
+    var on=S.highlights.indexOf(c)>=0;
     return'<label class="cc'+(on?' on':'')+'" data-crop="'+c+'">'
       +'<input type="checkbox"'+(on?' checked':'')
       +' onchange="hlCrop(\''+c+'\',this.checked)">'
@@ -492,6 +492,14 @@ function showPop(f,crop){
 function closePop(){document.getElementById('fpop').style.display='none';}
 
 // ── Fit ──
+function clearHL(){
+  S.highlights=[];
+  document.querySelectorAll('.cc').forEach(function(c){
+    c.classList.remove('on');c.querySelector('input').checked=false;
+  });
+  render();
+}
+
 function fitEst(){
   var geo=ALL_ESTATES_GEO[S.estate]||[];
   var pts=[];
