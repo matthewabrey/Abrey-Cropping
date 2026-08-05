@@ -2264,52 +2264,26 @@ function rWt(){
 
   // ── fuel gauge SVG for a zone
   function fuelGauge(pct, label, used, budget, cost, vegHa, machines){
-    var clamp=Math.min(pct,100);
-    var col=pct>97?'#c0392b':pct>80?'#e67e22':pct>50?'#27ae60':'#2980b9';
-    var r=52, cx=70, cy=70;
-    // Arc: 210deg sweep (from 195deg to 345deg in SVG terms = -165 to +45)
-    // We draw background arc then filled arc
-    var startAngle=210, sweep=300; // 300 degree sweep gauge
-    function polarToXY(deg,radius){
-      var rad=(deg-90)*Math.PI/180;
-      return {x:cx+radius*Math.cos(rad), y:cy+radius*Math.sin(rad)};
+    var clamp=Math.min(Math.max(pct,0),150);
+    var col=pct>110?'#922b21':pct>97?'#c0392b':pct>80?'#e67e22':pct>50?'#27ae60':'#2980b9';
+    var bgCard=pct>97?'#fef0f0':pct>80?'#fff8f0':'#f8faf8';
+    var borderCard=pct>97?'#f1948a':pct>80?'#f0a070':'#cde';
+    var W=180,H=120,cx=90,cy=80,r=60;
+    function polar(deg,rad){
+      var a=(deg-90)*Math.PI/180;
+      return {x:cx+rad*Math.cos(a),y:cy+rad*Math.sin(a)};
     }
-    function arcPath(startDeg, endDeg, r, largeArc){
-      var s=polarToXY(startDeg,r);
-      var e=polarToXY(endDeg,r);
-      return 'M '+s.x+' '+s.y+' A '+r+' '+r+' 0 '+(largeArc?1:0)+' 1 '+e.x+' '+e.y;
+    function arc(a1,a2,rad,la){
+      var s=polar(a1,rad),e=polar(a2,rad);
+      return 'M '+s.x.toFixed(1)+' '+s.y.toFixed(1)+' A '+rad+' '+rad+' 0 '+(la?1:0)+' 1 '+e.x.toFixed(1)+' '+e.y.toFixed(1);
     }
-    var arcStart=120; // degrees from top going clockwise
-    var arcEnd=420;   // 300 degree sweep
-    var fillEnd=arcStart+(clamp/100)*300;
-    var large=clamp>50?1:0;
-    var bgPath=arcPath(arcStart,arcEnd,r,1);
-    var fgPath=clamp>0?arcPath(arcStart,fillEnd,r,large):'';
-    var tick75=polarToXY(arcStart+225,r+6);
-    var tick75i=polarToXY(arcStart+225,r-2);
-
-    return '<div class="wt-gauge-card" style="break-inside:avoid">'
-      +'<div style="font-size:12px;font-weight:bold;color:var(--g1);margin-bottom:4px;line-height:1.3">'+label+'</div>'
-      +'<svg viewBox="0 0 140 100" width="140" height="100" style="display:block;margin:0 auto">'
-      // background arc
-      +'<path d="'+bgPath+'" fill="none" stroke="#e0e0d0" stroke-width="14" stroke-linecap="round"/>'
-      // 75% target tick
-      +'<line x1="'+tick75i.x+'" y1="'+tick75i.y+'" x2="'+tick75.x+'" y2="'+tick75.y+'" stroke="#aaa" stroke-width="2"/>'
-      // fill arc
-      +(fgPath?'<path d="'+fgPath+'" fill="none" stroke="'+col+'" stroke-width="14" stroke-linecap="round"/>':'')
-      // centre text
-      +'<text x="'+cx+'" y="'+(cy-4)+'" text-anchor="middle" font-size="22" font-weight="bold" fill="'+col+'">'+Math.round(pct)+'%</text>'
-      +'<text x="'+cx+'" y="'+(cy+14)+'" text-anchor="middle" font-size="9" fill="#888">of budget</text>'
-      // small labels
-      +'<text x="20" y="96" text-anchor="middle" font-size="8" fill="#aaa">0%</text>'
-      +'<text x="120" y="96" text-anchor="middle" font-size="8" fill="#aaa">100%</text>'
-      +'</svg>'
-      +'<div style="font-size:11px;color:var(--tx2);text-align:center;line-height:1.8;margin-top:2px">'
-      +'<span style="color:'+col+';font-weight:bold">'+Math.round(used).toLocaleString()+'</span> / '+Math.round(budget).toLocaleString()+' ac-in<br>'
-      +(vegHa>0?'<span style="color:var(--g1)">'+Math.round(vegHa)+'ha</span> veg'+(machines?' · '+machines+' mach':''):'<span style="color:var(--tx3)">no veg</span>')+'<br>'
-      +'<span style="color:var(--tx3)">£'+Math.round(cost).toLocaleString()+' est.</span>'
-      +'</div>'
-      +'</div>';
+    var as=150,ae=390,fill=Math.min(clamp,100);
+    var fe=as+(fill/100)*240,la=fill>50?1:0;
+    var t75=polar(as+180,r+8),t75i=polar(as+180,r-4);
+    var t100=polar(ae,r+8),t100i=polar(ae,r-4);
+    var usedK=(used/1000).toFixed(0)+'K',budK=(budget/1000).toFixed(0)+'K';
+    var galM=(budget/22611).toFixed(0)+'M gal';
+    return '<div class="wt-gauge-card" style="background:'+bgCard+';border:1.5px solid '+borderCard+';border-radius:12px;padding:10px 8px 8px;break-inside:avoid">'      +'<div style="font-size:11px;font-weight:700;color:#1a5c2e;text-align:center;margin-bottom:4px;min-height:30px;line-height:1.3">'+label+'</div>'      +'<svg viewBox="0 0 '+W+' '+H+'" style="display:block;margin:0 auto;width:'+W+'px;height:'+H+'px">'      +'<path d="'+arc(as,ae,r,1)+'" fill="none" stroke="#e0e0e0" stroke-width="18" stroke-linecap="round"/>'      +(fill>0?'<path d="'+arc(as,fe,r,la)+'" fill="none" stroke="'+col+'" stroke-width="18" stroke-linecap="round"/>':'')      +'<line x1="'+t75i.x.toFixed(1)+'" y1="'+t75i.y.toFixed(1)+'" x2="'+t75.x.toFixed(1)+'" y2="'+t75.y.toFixed(1)+'" stroke="#bbb" stroke-width="2.5"/>'      +'<line x1="'+t100i.x.toFixed(1)+'" y1="'+t100i.y.toFixed(1)+'" x2="'+t100.x.toFixed(1)+'" y2="'+t100.y.toFixed(1)+'" stroke="'+col+'" stroke-width="2.5"/>'      +'<text x="'+cx+'" y="'+(cy-2)+'" text-anchor="middle" font-size="26" font-weight="800" fill="'+col+'" font-family="Arial,sans-serif">'+Math.round(pct)+'%</text>'      +'<text x="'+cx+'" y="'+(cy+16)+'" text-anchor="middle" font-size="10" fill="#888" font-family="Arial,sans-serif">of budget</text>'      +'<text x="'+cx+'" y="'+(cy+30)+'" text-anchor="middle" font-size="9" fill="'+col+'" font-weight="600" font-family="Arial,sans-serif">'+usedK+' / '+budK+' ac-in</text>'      +'</svg>'      +'<div style="text-align:center;font-size:11px;line-height:1.9;border-top:1px solid rgba(0,0,0,.08);margin-top:4px;padding-top:5px">'      +(vegHa>0?'<span style="color:#1a5c2e;font-weight:600">'+Math.round(vegHa)+'ha veg</span>'+(machines?' · '+machines+' mach':'')+'<br>':'<span style="color:#aaa">no veg</span><br>')      +'<span style="color:#999;font-size:10px">'+galM+'</span><br>'      +'<span style="font-weight:700;color:'+col+'">£'+Math.round(cost/1000)+'K est.</span>'      +'</div>'      +'</div>';
   }
 
   // ── build gauge cards
@@ -2753,7 +2727,7 @@ function printWaterTab(){
     +'h2{font-size:13px;font-weight:normal;color:#1a3d2b;margin:20px 0 8px;border-bottom:1px solid #d0d0c0;padding-bottom:4px}'
     +'.sub{font-size:11px;color:#8a8a7a;margin-bottom:16px}'
     +'.gauges{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:4px}'
-    +'.wt-gauge-card{border:1px solid #d0d0c0;border-radius:8px;padding:10px 12px;min-width:150px;max-width:170px;break-inside:avoid;background:#fafaf5}'
+    +'.wt-gauge-card{width:200px;flex-shrink:0}'
     +'table{border-collapse:collapse;width:100%;font-size:11px}'
     +'th{background:#1a3d2b;color:#fff;padding:4px 8px;text-align:left}'
     +'th[style*="background:#c8821a"]{background:#c8821a!important}'
