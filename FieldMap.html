@@ -332,7 +332,7 @@ function render(){
   geo.forEach(function(f){
     var crop=(f.crops&&f.crops[S.year])||'';
     var r=getStyle(f,crop);
-    if(!r.rings) return;
+    if(!f.rings||!f.rings.length) return;
 
     var rings=f.rings||[];
     if(!rings.length) return;
@@ -392,7 +392,7 @@ function getStyle(f,crop){
     var isGR=GREENING.indexOf(f.name)>=0;
     if(isST){fill='#e74c3c';border='#c0392b';opacity=0.82;weight=2;}
     else if(isGR){fill='#27ae60';border='#1e8449';opacity=0.82;weight=2;}
-    else{fill='#d8d8d8';border='#bbb';opacity:0.3;weight=0.5;}
+    else{fill='#d8d8d8';border='#bbb';opacity=0.3;weight=0.5;}
     return{fill:fill,border:border,opacity:opacity,weight:weight};
   }
 
