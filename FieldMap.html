@@ -150,7 +150,37 @@ html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:#0d1f14
   #sb,#mctrl,#sbt,#fpop,#pbar{display:none!important}
   #app{display:block}
   #mw,#map{width:100vw!important;height:100vh!important}
+  #print-legend{display:block!important}
 }
+/* Print legend overlay */
+#print-legend{
+  display:none;
+  position:fixed;
+  bottom:12px;right:12px;
+  background:rgba(25,45,25,0.93);
+  color:#eee;
+  padding:10px 12px;
+  border-radius:8px;
+  font-size:11px;
+  z-index:9999;
+  min-width:150px;
+  max-width:220px;
+  font-family:'Segoe UI',Arial,sans-serif;
+}
+#print-legend .pl-title{
+  font-weight:700;font-size:12px;
+  border-bottom:1px solid rgba(255,255,255,.3);
+  padding-bottom:4px;margin-bottom:5px;
+  color:#a8d5b5;
+}
+#print-legend .pl-row{
+  display:flex;align-items:center;gap:5px;padding:1px 0;
+}
+#print-legend .pl-swatch{
+  width:11px;height:11px;border-radius:2px;flex-shrink:0;
+}
+#print-legend .pl-name{flex:1}
+#print-legend .pl-ha{color:rgba(200,230,200,.5);font-size:10px}
 </style>
 </head>
 <body>
@@ -471,10 +501,21 @@ function updateLabels(){
 // ── Legend ──
 function renderLeg(totals){
   var rows=Object.keys(totals).sort(function(a,b){return totals[b]-totals[a];});
-  document.getElementById('leg-rows').innerHTML=rows.map(function(c){
+  var html=rows.map(function(c){
     var col=S.view==='greening'?(c==='Stubble Turnips'?'#e74c3c':'#27ae60'):(CC[c]||'#888');
-    return'<div class="lr"><span class="lsw" style="background:'+col+'"></span>'
-      +'<span>'+c+'</span><span class="lha">'+Math.round(totals[c])+'ha</span></div>';
+    return{c:c,col:col,ha:Math.round(totals[c])};
+  });
+  document.getElementById('leg-rows').innerHTML=html.map(function(r){
+    return'<div class="lr"><span class="lsw" style="background:'+r.col+'"></span>'
+      +'<span>'+r.c+'</span><span class="lha">'+r.ha+'ha</span></div>';
+  }).join('');
+  // Also update print legend
+  var pl=document.getElementById('pl-rows');
+  if(pl) pl.innerHTML=html.map(function(r){
+    return'<div class="pl-row">'
+      +'<span class="pl-swatch" style="background:'+r.col+'"></span>'
+      +'<span class="pl-name">'+r.c+'</span>'
+      +'<span class="pl-ha">'+r.ha+'ha</span></div>';
   }).join('');
 }
 
@@ -570,5 +611,6 @@ function doPrint(sz){
   },400);
 }
 </script>
+<div id="print-legend"><div class="pl-title">CROP AREAS</div><div id="pl-rows"></div></div>
 </body>
 </html>
