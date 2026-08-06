@@ -5221,9 +5221,7 @@ function queueAutoSave(){
 
 // Restore file handle on page load
 document.addEventListener('DOMContentLoaded', async function(){
-  var nl=document.getElementById('navLogo');
-  if(nl&&typeof LOGO_URI!=='undefined')nl.src=LOGO_URI;
-
+  va
   // Try to restore previous file handle
   var stored = await getStoredHandle();
   if(stored){
@@ -5236,7 +5234,7 @@ document.addEventListener('DOMContentLoaded', async function(){
 
 
 
-document.addEventListener('DOMContentLoaded',function(){var nl=document.getElementById('navLogo');if(nl&&typeof LOGO_URI!=='undefined')nl.src=LOGO_URI;});
+document.addEventListener('DOMContentLoaded',function(){va});
 rOv();
 
 // ── MAP TAB ──────────────────────────────────────────────────────────────────
