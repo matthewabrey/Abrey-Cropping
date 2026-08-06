@@ -362,7 +362,7 @@ function renderCropList(geo){
   });
   document.getElementById('cl').innerHTML=Object.keys(crops).sort().map(function(c){
     var on=S.highlights.indexOf(c)>=0;
-    return'<label class="cc'+(on?' on':'')+'" data-crop="'+c+'"><input type="checkbox"'+(on?' checked':'')+' onchange="hlCrop(''+c+'',this.checked)"><span class="csw" style="background:'+(CC[c]||'#888')+'"></span><span>'+c+'</span></label>';
+    return'<label class="cc'+(on?' on':'')+'" data-crop="'+c+'"><input type="checkbox"'+(on?' checked':'')+' onchange="hlCrop(\"'+c+'\",this.checked)"><span class="csw" style="background:'+(CC[c]||'#888')+'"></span><span>'+c+'</span></label>';
   }).join('');
 }
 
