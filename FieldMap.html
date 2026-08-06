@@ -485,8 +485,9 @@ function doPrint(sz){
     +'<scr'+'ipt src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></scr'+'ipt>'
     +'<scr'+'ipt>'
     +'var CC='+CC_S+';var GEO='+GEO_S+';var FL='+FL_S+';var yr="'+yr+'";'
-    +'var map=L.map("map",{zoomControl:false,zoomSnap:0.1,attributionControl:false})'
-    +'.setView(['+ctr.lat+','+ctr.lng+'],'+zoom+');'
+    +'var map=L.map("map",{zoomControl:false,zoomSnap:0.1,zoomDelta:0.1,'
+    +'attributionControl:false,minZoom:'+zoom+',maxZoom:'+zoom+'})'
+    +'.setView(['+ctr.lat+','+ctr.lng+'],'+zoom+',{animate:false});'
     +'L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:20}).addTo(map);'
     +'GEO.forEach(function(f){'
     +'var fd=FL[f.name];var crop=(fd&&fd.crops&&fd.crops[yr])||"";'
@@ -497,7 +498,7 @@ function doPrint(sz){
     +'var lls=f.rings.length===1?f.rings[0].map(function(p){return[p[1],p[0]];}):f.rings.map(function(r){return r.map(function(p){return[p[1],p[0]];});});'
     +'L.polygon(lls,{fillColor:col,color:dk,fillOpacity:0.75,weight:1.5}).addTo(map);'
     +'});'
-    +'setTimeout(function(){map.setView(['+ctr.lat+','+ctr.lng+'],'+zoom+',{animate:false});},400);'
+    +'map.once("load",function(){map.setView(['+ctr.lat+','+ctr.lng+'],'+zoom+',{animate:false});});'
     +'</scr'+'ipt></body></html>';
   w.document.write(html);
   w.document.close();
