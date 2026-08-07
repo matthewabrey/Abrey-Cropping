@@ -546,26 +546,29 @@ function toggleSb(){
 // ── Print ──
 function doPrint(sz){
   _previewSz=sz;
-  // Calculate exact lat/lng bounds of the preview box
-  var mw=document.getElementById('mw');if(!mw)return;
+  var mw=document.getElementById('mw');
+  var mapEl=document.getElementById('map');
+  if(!mw||!mapEl)return;
   var mwW=mw.offsetWidth,mwH=mw.offsetHeight;
+  // Preview box dimensions
   var ratio=sz==='A3'?(420/297):(297/210);
   var boxW,boxH;
   if(mwW/mwH>ratio){boxH=mwH*0.9;boxW=boxH*ratio;}else{boxW=mwW*0.9;boxH=boxW/ratio;}
-  var left=(mwW-boxW)/2,top=(mwH-boxH)/2;
-  // Get the exact map zoom and centre from current view
-  var zoom=map.getZoom();
-  var ctr=map.getCenter();
-  // Convert preview box pixels to lat/lng
-  var mapOffset=map.getContainer().getBoundingClientRect();
-  var mwOffset=mw.getBoundingClientRect();
-  var boxLeft=left+(mwOffset.left-mapOffset.left);
-  var boxTop=top+(mwOffset.top-mapOffset.top);
-  var sw=map.containerPointToLatLng([boxLeft,boxTop+boxH]);
-  var ne=map.containerPointToLatLng([boxLeft+boxW,boxTop]);
+  var boxLeft=(mwW-boxW)/2, boxTop=(mwH-boxH)/2;
+  // Offset from mw to map container (map may not start at top of mw due to toggle button)
+  var mapOff=mapEl.getBoundingClientRect();
+  var mwOff=mw.getBoundingClientRect();
+  var offX=mwOff.left-mapOff.left;
+  var offY=mwOff.top-mapOff.top;
+  // Preview box corners in map container coordinates
+  var pxSW=L.point(boxLeft+offX, boxTop+boxH+offY);
+  var pxNE=L.point(boxLeft+offX+boxW, boxTop+offY);
+  var sw=map.containerPointToLatLng(pxSW);
+  var ne=map.containerPointToLatLng(pxNE);
   var PW=sz==='A3'?1587:1123,PH=sz==='A3'?1123:794,MAP_H=PH-52;
   var est=S.estate||'',yr=S.year||'2027';
-  var plEl=document.getElementById('pl-rows');var legRows=plEl?plEl.innerHTML:'';
+  var plEl=document.getElementById('pl-rows');
+  var legRows=plEl?plEl.innerHTML:'';
   var GEO_S=JSON.stringify((ALL_ESTATES_GEO[est]||[]).map(function(f){return{name:f.name,ha:f.ha,rings:f.rings};}));
   var FL_S=JSON.stringify(F_LOOKUP[est]||{});
   var legHtml=legRows.replace(/class="pl-row"/g,'class="lr"').replace(/class="pl-swatch"/g,'class="ls"').replace(/class="pl-name"/g,'class="ln"').replace(/class="pl-ha"/g,'class="lh"');
@@ -598,16 +601,16 @@ function doPrint(sz){
     +'var GEO='+GEO_S+';'
     +'var FL='+FL_S+';'
     +'var yr="'+yr+'";'
-    // Use exact same zoom as source map; fit the exact lat/lng bounds of the preview box
-    +'var map=L.map("map",{zoomControl:false,attributionControl:false})'
-    +'  .fitBounds([['+sw.lat+','+sw.lng+'],['+ne.lat+','+ne.lng+']],{animate:false,padding:[0,0]});'
+    +'var map=L.map("map",{zoomControl:false,attributionControl:false,preferCanvas:true})'
+    +'  .fitBounds([['+sw.lat+','+sw.lng+'],['+ne.lat+','+ne.lng+']],{padding:[0,0],animate:false});'
     +'L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:22}).addTo(map);'
     +'GEO.forEach(function(f){'
     +'  var fd=FL[f.name];var crop=(fd&&fd.crops&&fd.crops[yr])||"";var col=CC[crop]||"#aaa";'
     +'  var ri=parseInt(col.slice(1,3),16),gi=parseInt(col.slice(3,5),16),bi=parseInt(col.slice(5,7),16);'
     +'  var dk="rgb("+Math.round(ri*.5)+","+Math.round(gi*.5)+","+Math.round(bi*.5)+")";'
     +'  if(!f.rings||!f.rings.length)return;'
-    +'  var lls=f.rings.length===1?f.rings[0].map(function(p){return[p[1],p[0]];}):f.rings.map(function(r){return r.map(function(p){return[p[1],p[0]];});});'
+    +'  var lls=f.rings.length===1?f.rings[0].map(function(p){return[p[1],p[0]];})'
+    +'    :f.rings.map(function(r){return r.map(function(p){return[p[1],p[0]];});});'
     +'  L.polygon(lls,{fillColor:col,color:dk,fillOpacity:0.75,weight:1.5}).addTo(map);'
     +'});'
     +'</scr'+'ipt></body></html>';
