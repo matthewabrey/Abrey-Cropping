@@ -420,6 +420,8 @@ function getStyle(f,crop){
     return{fill:fill,border:border,opacity:opacity,weight:weight};
   }
 
+  // Env margins mode: show boundary outline only, no crop fill
+  if(S.envMode) return{fill:'transparent',border:'#888',opacity:0,weight:1.0,dash:null};
   fill=CC[crop]||'#aaa';
   weight=1.2;
 
