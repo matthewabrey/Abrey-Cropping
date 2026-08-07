@@ -164,6 +164,7 @@ html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:#0d1f14
   <div class="sec">
     <div class="lbl">Estate</div>
     <select id="est-sel" onchange="go('estate',this.value)">
+      <option value="">— Select estate —</option>
       <option>Wretham</option><option>Euston</option><option>Chandler</option>
       <option>Rackham Farms</option><option>Pickenham</option><option>Gooderham</option>
       <option>Blakeney</option><option>Beard</option><option>Warren</option>
@@ -302,14 +303,14 @@ var LANDMAP_META={"AB1":{"label":"AB1","color":"#FF6F00","opacity":0.45,"dash":"
 var _lmLayers={};
 
 // ── State ──
-var S={estate:'Euston',year:'2027',view:'all',label:'name',highlight:null};
+var S={estate:'',year:'2027',view:'all',label:'name',highlight:null};
 var YEARS=['2021','2022','2023','2024','2025','2026','2027','2028','2029','2030','2031','2032'];
 var polys=[], labels=[], map;
 
 // ── Boot ──
 window.onload=function(){
   map=L.map('map',{zoomControl:false,zoomSnap:0.1,zoomDelta:0.25,wheelPxPerZoomLevel:80})
-    .setView([52.36,0.81],12);
+    .setView([52.45,0.75],9);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     {maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
   map.on('zoomend',function(){updateLabels();});
@@ -525,6 +526,7 @@ function closePop(){document.getElementById('fpop').style.display='none';}
 
 // ── Fit ──
 function fitEst(){
+  if(!S.estate){map.setView([52.45,0.75],9);return;}
   var geo=ALL_ESTATES_GEO[S.estate]||[];
   var pts=[];
   geo.forEach(function(f){(f.rings||[]).forEach(function(r){r.forEach(function(p){pts.push([p[1],p[0]]);});});});
