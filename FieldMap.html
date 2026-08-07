@@ -226,6 +226,7 @@ html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:#0d1f14
   <button id="sbt" onclick="toggleSb()" title="Toggle sidebar">&#9776;</button>
   <button id="mob-toggle" onclick="toggleSb()" style="display:none;position:absolute;top:6px;left:6px;z-index:1001;background:rgba(13,42,28,.92);border:1px solid rgba(39,174,96,.4);color:#c8e6c9;border-radius:4px;width:28px;height:28px;cursor:pointer;font-size:14px;align-items:center;justify-content:center">&#9660;</button>
   <div id="map"></div>
+  <div id="env-legend" style="display:none;position:absolute;top:10px;left:10px;z-index:900;background:rgba(13,30,18,.92);border:1px solid rgba(255,143,0,.4);border-radius:6px;padding:8px 10px;min-width:130px;pointer-events:none"></div>
   <div id="mctrl">
     <button class="mc" onclick="map.zoomIn(0.1)" title="Zoom in">+</button>
     <button class="mc" onclick="map.zoomOut(0.1)" title="Zoom out">&#8722;</button>
@@ -594,6 +595,21 @@ function toggleEnv(){
     _envOn=true;
     if(btn)btn.classList.add('on');
   }
+  updateEnvLegend();
+}
+
+function updateEnvLegend(){
+  var leg=document.getElementById('env-legend');
+  if(!leg) return;
+  if(!_envOn){leg.style.display='none';return;}
+  leg.style.display='block';
+  leg.innerHTML='<div style="font-weight:700;font-size:11px;color:#FF8F00;margin-bottom:5px">Env Margins</div>'
+    +Object.keys(ENV_META).map(function(k){
+      var m=ENV_META[k];
+      return '<div style="display:flex;align-items:center;gap:5px;padding:1px 0">'
+        +'<span style="width:10px;height:10px;border-radius:2px;flex-shrink:0;background:'+m.color+';display:inline-block"></span>'
+        +'<span style="font-size:10px;color:#ddd">'+m.label+'</span></div>';
+    }).join('');
 }
 
 </script>
