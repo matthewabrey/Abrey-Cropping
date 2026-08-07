@@ -362,7 +362,7 @@ function render(){
 
     var poly=L.polygon(lls,{
       fillColor:r.fill, color:r.border,
-      fillOpacity:r.opacity, weight:r.weight,
+      fillOpacity:(r.fillOpacity!==undefined?r.fillOpacity:r.opacity), weight:r.weight,
       dashArray:r.dash||null
     }).addTo(map);
 
