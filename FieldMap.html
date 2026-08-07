@@ -199,10 +199,9 @@ html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:#0d1f14
 
   <div class="sec">
     <div class="lbl">Field Labels</div>
-    <div id="lbl-row">
-      <button class="lb on" data-l="name" onclick="go('label','name')">Name</button>
-      <button class="lb" data-l="crop" onclick="go('label','crop')">Crop</button>
-      <button class="lb" data-l="none" onclick="go('label','none')">None</button>
+    <div id="lbl-row" style="display:flex;flex-direction:column;gap:5px">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:#c8e6c9;font-size:11px"><input type="checkbox" id="lbl-name" checked onchange="toggleLabel('name',this.checked)"> Field Name</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:#c8e6c9;font-size:11px"><input type="checkbox" id="lbl-area" onchange="toggleLabel('area',this.checked)"> Area (ha)</label>
     </div>
   </div>
 
@@ -341,10 +340,7 @@ function go(key,val){
   if(key==='year'){
     document.querySelectorAll('.yb').forEach(function(b){b.classList.toggle('on',b.dataset.y===val);});
   }
-  if(key==='label'){
-    document.querySelectorAll('.lb').forEach(function(b){b.classList.toggle('on',b.dataset.l===val);});
-    updateLabels(); return;
-  }
+  if(key==='label'){ updateLabels(); return; }
   if(key==='estate'){
     document.getElementById('est-sel').value=val;
     render(); fitEst(); return;
@@ -383,7 +379,11 @@ function render(){
     polys.push(poly);
 
     // Label
-    var lText=S.label==='name'?f.name:S.label==='crop'?crop:'';
+    var isDimmedL=S.highlights&&S.highlights.length>0&&S.highlights.indexOf(crop)<0;
+    var lParts=[];
+    if(S.labelName&&!isDimmedL) lParts.push(f.name);
+    if(S.labelArea&&!isDimmedL) lParts.push(fha.toFixed(1)+'ha');
+    var lText=lParts.join(' ');
     if(lText&&rings[0]&&rings[0].length){
       var cx=0,cy=0,n=rings[0].length;
       rings[0].forEach(function(p){cx+=p[0];cy+=p[1];});
@@ -462,7 +462,7 @@ function updateLabels(){
     if(!el) return;
     // Show labels only at zoom >= 12, hide dimmed field labels below 13
     var show=z>=12&&!(l._zoom_hide&&z<13);
-    el.style.display=show&&S.label!=='none'?'':'none';
+    el.style.display=(show&&(S.labelName||S.labelArea))?'':'none';
     // Scale font with zoom
     var div=el.querySelector('div');
     if(div) div.style.fontSize=Math.max(7,Math.min(11,Math.round(z*0.85)))+'px';
@@ -533,6 +533,12 @@ function showPop(f,crop){
 function closePop(){document.getElementById('fpop').style.display='none';}
 
 // ── Fit ──
+function toggleLabel(which,checked){
+  if(which==='name') S.labelName=checked;
+  if(which==='area') S.labelArea=checked;
+  render();
+}
+
 function fitEst(){
   var geo=ALL_ESTATES_GEO[S.estate]||[];
   var pts=[];
