@@ -330,7 +330,11 @@ window.onload=function(){
 function go(key,val){
   S[key]=val;
   if(key==='view'){
-    S.highlight=null;
+    S.highlights=[];
+    S.envMode=false;_envOn=false;
+    (_envLayers||[]).forEach(function(p){try{map.removeLayer(p);}catch(e){}});
+    _envLayers=[];
+    var eb=document.getElementById('env-btn');if(eb)eb.classList.remove('on');
     document.querySelectorAll('.vb').forEach(function(b){b.classList.toggle('on',b.dataset.v===val);});
     document.querySelectorAll('.cc').forEach(function(c){c.classList.remove('on');c.querySelector('input').checked=false;});
   }
