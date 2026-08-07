@@ -299,7 +299,7 @@ var _envOn=false,_envLayers=[],_previewOn=false,_previewSz="A3";
 
 
 // ── State ──
-var S={estate:'',year:'2027',view:'all',label:'name',highlight:null};
+var S={estate:'',year:'2027',view:'all',labelName:true,labelArea:false,highlights:[],envMode:false,label:'name',highlight:null};
 var YEARS=['2021','2022','2023','2024','2025','2026','2027','2028','2029','2030','2031','2032'];
 var polys=[], labels=[], map;
 
@@ -369,7 +369,7 @@ function render(){
 
     var poly=L.polygon(lls,{
       fillColor:r.fill, color:r.border,
-      fillOpacity:r.opacity, weight:r.weight,
+      fillOpacity:(r.fillOpacity!==undefined?r.fillOpacity:r.opacity), weight:r.weight,
       dashArray:r.dash||null
     }).addTo(map);
 
@@ -415,6 +415,7 @@ function getStyle(f,crop){
   var ours=isOursMap(S.estate,crop,S.year);
   var fill, border, opacity, weight, dash;
 
+  if(S.envMode)return{fill:'#ffffff',border:'#999',opacity:0,fillOpacity:0,weight:0.8,dash:null};
   if(S.view==='greening'){
     if(S.estate!=='Euston'){
       return{fill:'#888',border:'#666',opacity:0.15,weight:0.5};
