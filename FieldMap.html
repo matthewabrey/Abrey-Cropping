@@ -328,7 +328,10 @@ window.onload=function(){
 function go(key,val){
   S[key]=val;
   if(key==='view'){
-    S.highlight=null;
+    S.highlights=[];S.envMode=false;
+    _envLayers.forEach(function(p){try{map.removeLayer(p);}catch(e){}});_envLayers=[];_envOn=false;
+    var eb=document.getElementById('env-btn');if(eb)eb.classList.remove('on');
+    updateEnvLegend();
     document.querySelectorAll('.vb').forEach(function(b){b.classList.toggle('on',b.dataset.v===val);});
     document.querySelectorAll('.cc').forEach(function(c){c.classList.remove('on');c.querySelector('input').checked=false;});
   }
@@ -337,6 +340,9 @@ function go(key,val){
   }
   if(key==='label'){ updateLabels(); return; }
   if(key==='estate'){
+    _envLayers.forEach(function(p){try{map.removeLayer(p);}catch(e){}});_envLayers=[];_envOn=false;S.envMode=false;
+    var eb2=document.getElementById('env-btn');if(eb2)eb2.classList.remove('on');
+    updateEnvLegend();
     document.getElementById('est-sel').value=val;
     render(); fitEst(); return;
   }
@@ -479,7 +485,7 @@ function renderCropList(geo){
   var crops={};
   geo.forEach(function(f){var c=(f.crops&&f.crops[S.year])||'';if(c)crops[c]=true;});
   document.getElementById('cl').innerHTML=Object.keys(crops).sort().map(function(c){
-    var on=S.highlight===c;
+    var on=S.highlights.indexOf(c)>=0;
     return'<label class="cc'+(on?' on':'')+'" data-crop="'+c+'">'
       +'<input type="checkbox"'+(on?' checked':'')
       +' onchange="hlCrop(\''+c+'\',this.checked)">'
@@ -495,10 +501,8 @@ function filterCrops(q){
 }
 
 function hlCrop(crop,checked){
-  S.highlight=checked?crop:null;
-  document.querySelectorAll('.cc').forEach(function(c){
-    if(c.dataset.crop!==crop){c.classList.remove('on');c.querySelector('input').checked=false;}
-  });
+  if(checked){if(S.highlights.indexOf(crop)<0)S.highlights.push(crop);}
+  else{S.highlights=S.highlights.filter(function(c){return c!==crop;});}
   render();
 }
 
