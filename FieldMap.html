@@ -145,11 +145,13 @@ html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:#0d1f14
   #mctrl { top: 6px; right: 6px; }
 }
 @media print{
-  @page{margin:0}
+  @page{margin:0;size:A3 landscape}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  #sb,#mctrl,#sbt,#fpop,#pbar{display:none!important}
+  #sb,#mctrl,#sbt,#fpop,#pbar,#print-preview,#env-legend{display:none!important}
   #app{display:block}
-  #mw,#map{width:100vw!important;height:100vh!important}
+  #mw{position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:calc(100vh - 52px)!important}
+  #map{width:100%!important;height:100%!important}
+  #print-legend{display:flex!important;position:fixed!important;bottom:0!important;left:0!important;right:0!important;height:52px!important}
 }
 </style>
 </head>
