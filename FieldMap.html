@@ -316,13 +316,17 @@ var polys=[], labels=[], map;
 window.onload=function(){
   window.addEventListener('beforeprint',function(){
     var sb=document.getElementById('sb');
-    if(sb&&!sb.classList.contains('hide'))sb.classList.add('hide');
-    setTimeout(function(){map.invalidateSize();},50);
+    if(sb)sb.classList.add('hide');
+    var _ctr=map.getCenter(),_z=map.getZoom();
+    setTimeout(function(){
+      map.invalidateSize({animate:false});
+      map.setView(_ctr,_z,{animate:false});
+    },100);
   });
   window.addEventListener('afterprint',function(){
     var sb=document.getElementById('sb');
     if(sb)sb.classList.remove('hide');
-    setTimeout(function(){map.invalidateSize();},50);
+    setTimeout(function(){map.invalidateSize({animate:false});},100);
   });
 
   map=L.map('map',{zoomControl:false,zoomSnap:0.1,zoomDelta:0.25,wheelPxPerZoomLevel:80})
