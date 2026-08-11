@@ -1,3 +1,10 @@
+function doPrint(sz){
+  _previewSz=sz;
+  // Ensure preview box is showing so user knows what will print
+  if(!_previewOn){togglePreview();}
+  updatePreview();
+  window.print();
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -307,6 +314,17 @@ var polys=[], labels=[], map;
 
 // ── Boot ──
 window.onload=function(){
+  window.addEventListener('beforeprint',function(){
+    var sb=document.getElementById('sb');
+    if(sb&&!sb.classList.contains('hide'))sb.classList.add('hide');
+    setTimeout(function(){map.invalidateSize();},50);
+  });
+  window.addEventListener('afterprint',function(){
+    var sb=document.getElementById('sb');
+    if(sb)sb.classList.remove('hide');
+    setTimeout(function(){map.invalidateSize();},50);
+  });
+
   map=L.map('map',{zoomControl:false,zoomSnap:0.1,zoomDelta:0.25,wheelPxPerZoomLevel:80})
     .setView([52.45,0.75],9);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
