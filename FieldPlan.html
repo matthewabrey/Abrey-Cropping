@@ -4958,18 +4958,13 @@ function buildFileContent(){
 function acceptChanges(){closeChangesModal();
 
   if(!window.BASELINE_F) return;
-  var nowYr=new Date().getFullYear();
-  var visYrs=[String(nowYr),String(nowYr+1)];
   var allKeys=Object.keys(window.BASELINE_F);
-  var visibleKeys=allKeys.filter(function(key){return visYrs.indexOf(key.split(':')[1])>=0;});
-  if(visibleKeys.length===0) return;
-  var hiddenCount=allKeys.length-visibleKeys.length;
-  var msg='Mark the '+visibleKeys.length+' change'+(visibleKeys.length===1?'':'s')+' shown ('+visYrs.join(' & ')+') as accepted? This will clear the highlights for everyone.'
-    +(hiddenCount>0?'\n\n('+hiddenCount+' change'+(hiddenCount===1?'':'s')+' in other years will stay pending.)':'');
+  if(allKeys.length===0) return;
+  var msg='Accept all '+allKeys.length+' pending change'+(allKeys.length===1?'':'s')+' across all years? This will clear the highlights for everyone.';
   if(!confirm(msg)) return;
-  visibleKeys.forEach(function(key){delete window.BASELINE_F[key];});
-  if(Object.keys(window.BASELINE_F).length===0) window.BASELINE_F=null;
-  addAcceptedKeys(visibleKeys);
+  // Clear ALL pending keys across all years (not just current+next year)
+  window.BASELINE_F=null;
+  localStorage.removeItem('fp_baseline');
   localStorage.setItem('fp_accepted_baseline','true');
   // Update snapshot to current F[] so next push has no changes to diff
   localStorage.setItem('fp_last_push_snap', JSON.stringify(F));
@@ -4977,8 +4972,7 @@ function acceptChanges(){closeChangesModal();
   if(typeof rPl==='function') rPl();
   // Push cleared baseline to GitHub so it clears for ALL users on refresh
   if(GH && GH.token){
-    // Directly bake updated baseline into file and push
-    saveToGitHub('Accepted changes — baseline updated');
+    saveToGitHub('Accepted changes — baseline cleared');
   } else {
     alert('Changes accepted in your browser.\n\nTo clear the banner for everyone, ask Matt to click Accept (he has the GitHub token to push the change live).');
   }
