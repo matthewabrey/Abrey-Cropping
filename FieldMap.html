@@ -452,7 +452,7 @@ function getStyle(f,crop){
   var ours=isOursMap(S.estate,crop,S.year);
   var fill, border, opacity, weight, dash;
 
-  if(S.envMode)return{fill:'#ffffff',border:'#999',opacity:0,fillOpacity:0,weight:0.8,dash:null};
+  if(S.envMode)return{fill:'#ffffff',border:'#aaa',opacity:0.05,fillOpacity:0.05,weight:0.8,dash:null};
   if(S.view==='greening'){
     if(S.estate!=='Euston'){
       return{fill:'#888',border:'#666',opacity:0.15,weight:0.5};
