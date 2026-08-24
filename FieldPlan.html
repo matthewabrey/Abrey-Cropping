@@ -2192,10 +2192,11 @@ var UK_GAL = 22611;
 function zoneFields(zCfg, yr){
   return F.filter(function(f){
     if(zCfg.estate==='__BW') return f.estate==='Blakeney'||f.estate==='Wretham';
-    // Chandler water also supplies Lodge Farm Gasthorpe (Rackham) fields
-    if(zCfg.estate==='Chandler') return f.estate==='Chandler'||(f.estate==='Rackham Farms'&&f.zone==='Lodge Farm Gasthorpe');
-    // Lodge Farm Gasthorpe fields draw from Chandler, not their own zone
-    if(zCfg.zone==='Lodge Farm Gasthorpe') return false;
+    // Chandler water also supplies Lodge Farm Gasthorpe POTATO fields (Rackham)
+    var _lfgPot=function(f){var c=gc(f,yr);return f.estate==='Rackham Farms'&&f.zone==='Lodge Farm Gasthorpe'&&['Potatoes','Salad Potatoes','Seed Potatoes'].indexOf(c)>=0;};
+    if(zCfg.estate==='Chandler') return f.estate==='Chandler'||_lfgPot(f);
+    // Lodge Farm Gasthorpe potato fields draw from Chandler; other crops stay on Lodge Farm budget
+    if(zCfg.zone==='Lodge Farm Gasthorpe') return f.estate==='Rackham Farms'&&f.zone==='Lodge Farm Gasthorpe'&&!_lfgPot(f);
     if(!zCfg.zone||zCfg.zone==='__ALL') return f.estate===zCfg.estate;
     if(zCfg.zone==='__BORWEST') return f.estate===zCfg.estate&&(f.zone==='Bore'||f.zone==='West');
     if(zCfg.zone==='__MAIN') return f.estate===zCfg.estate&&f.zone!=='Bore'&&f.zone!=='West';
@@ -2299,7 +2300,7 @@ function rWt(){
     var vegHa=zf.reduce(function(a,f){return WC[gc(f,wtYr)]?a+f.ha:a;},0);
     var label=z.name.replace(/^Rackham — /,'Rackham<br>').replace(/^Euston — /,'Euston<br>').replace(/^Gooderham — /,'Gooderham<br>').replace(/^Pickenham — /,'Pickenham<br>');
     if(label.indexOf('<br>')<0) label=label+'<br>&nbsp;';
-    if(z.estate==='Chandler') label='Chandler<br><span style="font-size:9px;font-weight:400;color:#777">incl. Lodge Farm Gasthorpe</span>';
+    if(z.estate==='Chandler') label='Chandler<br><span style="font-size:9px;font-weight:400;color:#777">incl. Lodge Farm Gasthorpe potatoes</span>';
     return fuelGauge(pct,label,used,budgetAcIn,cost,vegHa,z.machines);
   }).join('');
 
