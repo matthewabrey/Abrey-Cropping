@@ -97,6 +97,17 @@ tr:hover td{background:var(--c1)}
     color: #fff !important;
   }
   #main > div { height: calc(100vh - 44px) !important; }
+  /* Compact cropping plan table on mobile so year columns fit */
+  #pl { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+  #pl table { font-size: 9px !important; }
+  #pl th, #pl td { padding: 3px 3px !important; font-size: 9px !important; }
+  #pl td[style*="position:sticky"] {
+    min-width: 64px !important; max-width: 84px !important;
+    white-space: normal !important; word-break: break-word;
+    font-size: 8.5px !important; line-height: 1.15 !important;
+  }
+  #pl .cb { font-size: 8px !important; padding: 1px 2px !important; min-width: 0 !important; letter-spacing: 0 !important; }
+  #pl select, #pl input { font-size: 11px !important; }
 }
 @media print {
   @page { margin: 0; size: A3 landscape; }
