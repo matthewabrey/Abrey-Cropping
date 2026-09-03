@@ -201,6 +201,17 @@ html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:#0d1f14
       <button class="vb" id="pipe-btn" onclick="togglePipes()" style="border-style:dashed">
         <span class="vdot" style="background:#1E88E5"></span>Water Pipes
       </button>
+      <div id="pipe-legend" style="display:none;padding:6px 8px 2px;font-size:10px;line-height:1.7;color:var(--tx2,#555)">
+        <span style="display:inline-block;width:18px;height:4px;background:#7B1FA2;vertical-align:middle;margin-right:5px"></span>12&quot; main<br>
+        <span style="display:inline-block;width:18px;height:4px;background:#E65100;vertical-align:middle;margin-right:5px"></span>10&quot; main<br>
+        <span style="display:inline-block;width:18px;height:3px;background:repeating-linear-gradient(90deg,#FF8F00 0 6px,transparent 6px 10px);vertical-align:middle;margin-right:5px"></span>10&quot; low pressure<br>
+        <span style="display:inline-block;width:18px;height:3px;background:#2E7D32;vertical-align:middle;margin-right:5px"></span>6&quot; main<br>
+        <span style="display:inline-block;width:18px;height:3px;background:#1E88E5;vertical-align:middle;margin-right:5px"></span>Underground main (unsized)<br>
+        <span style="display:inline-block;width:18px;height:3px;background:repeating-linear-gradient(90deg,#616161 0 4px,transparent 4px 8px);vertical-align:middle;margin-right:5px"></span>Filling line<br>
+        <span style="display:inline-block;width:18px;height:3px;background:repeating-linear-gradient(90deg,#b71c1c 0 2px,transparent 2px 7px);vertical-align:middle;margin-right:5px"></span>Dead end<br>
+        <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#e60000;border:1.5px solid #fff;box-shadow:0 0 0 1px #ccc;vertical-align:middle;margin-right:5px"></span>Hydrant
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#FF8F00;border:1.5px solid #fff;box-shadow:0 0 0 1px #ccc;vertical-align:middle;margin:0 5px 0 12px"></span>Gatevalve
+      </div>
     </div>
   </div>
 
@@ -653,6 +664,8 @@ function togglePipes(){
     _pipesOn=true;
     if(btn)btn.classList.add('on');
   }
+  var lg=document.getElementById('pipe-legend');
+  if(lg)lg.style.display=_pipesOn?'block':'none';
 }
 function toggleHydrants(){
   var btn=document.getElementById('hyd-btn');
