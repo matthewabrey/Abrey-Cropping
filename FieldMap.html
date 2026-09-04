@@ -121,7 +121,7 @@ html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:#0d1f14
 
 /* Print */
 /* ── Mobile: controls above map ── */
-@media (max-width: 768px) and (orientation: portrait) {
+@media (max-width: 768px) {
   #mob-toggle { display: flex !important; }
   #app { flex-direction: column; }
   #sb {
@@ -679,7 +679,7 @@ function toggleGatevalves(){
     if(btn)btn.classList.remove('on');
   } else {
     HYDRANTS.forEach(function(h){
-      if((h.label||'').toLowerCase().indexOf('gatevalve')<0)return;
+      if((h.label||'').toLowerCase().replace(/ /g,'').indexOf('gatevalve')<0)return;
       var mk=L.circleMarker([h.lat,h.lng],{
         radius:6,color:'#ffffff',weight:1.5,fillColor:'#FF8F00',fillOpacity:0.95
       }).addTo(map);
@@ -698,7 +698,7 @@ function toggleHydrants(){
     if(btn)btn.classList.remove('on');
   } else {
     HYDRANTS.forEach(function(h){
-      if((h.label||'').toLowerCase().indexOf('gatevalve')>=0)return;
+      if((h.label||'').toLowerCase().replace(/ /g,'').indexOf('gatevalve')>=0)return;
       var mk=L.circleMarker([h.lat,h.lng],{
         radius:5,color:'#ffffff',weight:1.5,fillColor:'#e60000',fillOpacity:0.95
       }).addTo(map);
@@ -750,19 +750,6 @@ function updatePreview(){
   if(lbl)lbl.textContent=_previewSz+' Landscape — click Print '+_previewSz+' to print this area';
 }
 
-// ── Keep the map sized correctly when the phone rotates or the window resizes ──
-var _rotT;
-function _fixMapSize(){
-  try{ map.invalidateSize({animate:false}); }catch(e){}
-}
-window.addEventListener('resize',function(){
-  clearTimeout(_rotT);
-  _rotT=setTimeout(_fixMapSize,250);
-});
-window.addEventListener('orientationchange',function(){
-  setTimeout(_fixMapSize,350);
-  setTimeout(_fixMapSize,900);
-});
 </script>
 <div id="print-legend" style="display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(15,35,20,.92);color:#eee;padding:8px 16px;z-index:9999;font-size:12px;align-items:center;gap:16px;border-top:2px solid #27ae60"><span style="font-weight:700;font-size:13px;color:#a8d5b5;white-space:nowrap;padding-right:14px;border-right:1px solid rgba(255,255,255,.2)">CROPS</span><div style="display:flex;flex-wrap:wrap;gap:6px 16px" id="pl-rows"></div></div>
 </body>
