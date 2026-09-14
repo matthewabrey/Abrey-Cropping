@@ -4803,7 +4803,7 @@ function rGr() {
           +'<th style="text-align:left;padding:4px 8px">2026 crop</th>'
           +'<th style="text-align:left;padding:4px 8px">2027 plan</th>'
           +'</tr></thead><tbody>'
-          +stFields.sort(function(a,b){return b.ha-a.ha;}).map(function(f){
+          +stFields.sort(function(a,b){return a.field.localeCompare(b.field);}).map(function(f){
             return '<tr><td style="padding:3px 8px;font-weight:bold">'+f.field+'</td>'
               +'<td style="text-align:right;padding:3px 8px">'+f.ha.toFixed(1)+'</td>'
               +'<td style="padding:3px 8px">'+(gc(f,'2026')||'—')+'</td>'
@@ -4817,7 +4817,7 @@ function rGr() {
     // All estates: simple list of greening fields for end of 2026
     var grFields=ef.filter(function(f){
       return getCoverType(f,'2026','2027')!==null;
-    }).sort(function(a,b){return b.ha-a.ha;});
+    }).sort(function(a,b){return a.field.localeCompare(b.field);});
     if(!grFields.length) return '';
     var grTotal=grFields.reduce(function(a,f){return a+f.ha;},0);
     return '<div class="gr-estate-block" style="margin-bottom:24px">'
