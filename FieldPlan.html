@@ -4729,7 +4729,7 @@ function rGr() {
     function makeRows(fmap,col,label){
       if(Object.keys(fmap).length===0) return '';
       var hdrRow='<tr><td colspan="'+(2+LABELS.length)+'" style="padding:3px 8px;background:'+col+';color:#fff;font-size:10px;font-weight:bold;letter-spacing:.3px">'+label+'</td></tr>';
-      var fieldRows=Object.values(fmap).sort(function(a,b){return b.f.ha-a.f.ha;}).map(function(item){
+      var fieldRows=Object.values(fmap).sort(function(a,b){return a.f.field.localeCompare(b.f.field);}).map(function(item){
         var cells=LABELS.map(function(_,ti){
           var ha=item.ha[ti]||0;
           return '<td style="text-align:right;font-size:11px;padding:3px 8px">'+(ha>0?'<strong>'+Math.round(ha)+'ha</strong>':'<span style="color:#ccc">—</span>')+'</td>';
