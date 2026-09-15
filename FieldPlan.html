@@ -5172,6 +5172,35 @@ async function ghCheckNewer(){
   }catch(e){}
   return false;
 }
+
+// ═══ RELAY (Cloudflare Worker) — set RELAY_URL to activate tokenless saving ═══
+var RELAY_URL='';
+async function relayPush(message){
+  var u=fpUser();
+  if(!u){alert('Please sign in first.');return false;}
+  updateSaveBtn('saving');
+  try{
+    var newer=await ghCheckNewer();
+    if(newer && !confirm('Heads up: the live FieldPlan was updated AFTER you opened this page.\n\nPushing now will overwrite those newer updates.\n\nOK = push anyway\nCancel = don\'t push')){
+      updateSaveBtn('disconnected');
+      return false;
+    }
+    var content=buildFileContent();
+    var b64=btoa(unescape(encodeURIComponent(content)));
+    var res=await fetch(RELAY_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({emp:u.emp,message:message||'',content:b64})});
+    var out=await res.json();
+    if(!res.ok||!out.ok){throw new Error(out.error||('Relay error '+res.status));}
+    localStorage.setItem('fp_last_push_snap', JSON.stringify(F));
+    updateSaveBtn('saved');
+    return true;
+  }catch(e){
+    updateSaveBtn('disconnected');
+    alert('Save failed: '+e.message+'\n\nYour changes are still on screen - try Save again.');
+    return false;
+  }
+}
+
 async function ghPush(message){
   if(!GH.token){ showGhTokenModal(); return false; }
   updateSaveBtn('saving');
@@ -5290,6 +5319,7 @@ function showGhTokenModal(pendingMsg){
 
 // Expose as the primary save action
 async function saveToGitHub(commitMsg){
+  if(RELAY_URL){return relayPush(arguments[0]);}
   if(!GH.token){ showGhTokenModal(commitMsg); return; }
   var ok = await ghPush(commitMsg);
   if(ok===false && !GH.token){ showGhTokenModal(commitMsg); }
