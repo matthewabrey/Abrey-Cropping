@@ -5174,7 +5174,7 @@ async function ghCheckNewer(){
 }
 
 // ═══ RELAY (Cloudflare Worker) — set RELAY_URL to activate tokenless saving ═══
-var RELAY_URL='';
+var RELAY_URL='https://fieldplan-relay.matt-6c6.workers.dev/';
 async function relayPush(message){
   var u=fpUser();
   if(!u){alert('Please sign in first.');return false;}
