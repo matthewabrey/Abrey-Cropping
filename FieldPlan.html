@@ -942,11 +942,7 @@ function addAcceptedKeys(keys){
 
 
 // ═══ USER LOGIN (same pattern as Abreys Day to Day Work App) ═══
-var USERS=[
-  {name:'Matt Abrey',emp:'001',role:'admin'},
-  {name:'Giles Abrey',emp:'002',role:'admin'}
-  // Send Claude the full namelist to populate this
-];
+var USERS=[{"name":"Adam Judd","emp":"1465","role":"view"},{"name":"Adelin-Gabriel Iovu","emp":"1488","role":"view"},{"name":"Adrian-Stefan Iovu","emp":"1113","role":"view"},{"name":"Aidan Crosby","emp":"8088","role":"view"},{"name":"Alan Day","emp":"1453","role":"view"},{"name":"Andrew Rose","emp":"1205","role":"view"},{"name":"Angele Ganitauskiene","emp":"924","role":"view"},{"name":"Angele Samuliene","emp":"1027","role":"view"},{"name":"Archie Alexander","emp":"8008","role":"view"},{"name":"Argyll Paterson","emp":"8059","role":"view"},{"name":"Armen Saakov","emp":"1343","role":"view"},{"name":"Audrius Ambramavicius","emp":"886","role":"view"},{"name":"Beytula Halil","emp":"1478","role":"view"},{"name":"Biser Aleksiev","emp":"1342","role":"view"},{"name":"Bruce Bowman","emp":"1269","role":"view"},{"name":"Caitlin Barnes","emp":"1314","role":"view"},{"name":"Charlie Thompson","emp":"8036","role":"view"},{"name":"Chris Stevenson","emp":"8079","role":"view"},{"name":"Christopher Marsh","emp":"191","role":"edit"},{"name":"Clive Bowman","emp":"1271","role":"view"},{"name":"Conor Maguire","emp":"8073","role":"view"},{"name":"Conor McShane","emp":"8074","role":"view"},{"name":"Cormac Carrigan","emp":"8066","role":"view"},{"name":"Cristinel Susma","emp":"1109","role":"view"},{"name":"Daniel Foakes","emp":"1493","role":"view"},{"name":"Darragh Nixon","emp":"8082","role":"view"},{"name":"Dimitar Boev","emp":"1362","role":"edit"},{"name":"Donna Ashmore","emp":"1490","role":"view"},{"name":"Edis Daud","emp":"1240","role":"edit"},{"name":"Florin Iovu","emp":"1122","role":"view"},{"name":"Fred Garrod","emp":"8086","role":"view"},{"name":"Gary Harrowing","emp":"1321","role":"view"},{"name":"George Magee","emp":"8063","role":"view"},{"name":"Gheorghe Caraman","emp":"983","role":"view"},{"name":"Gillian Gordon","emp":"940","role":"view"},{"name":"Gina Caraman","emp":"1028","role":"view"},{"name":"Ginka Koleva","emp":"1258","role":"view"},{"name":"Hayden Bennett","emp":"1184","role":"view"},{"name":"Hazel Cassinelli","emp":"937","role":"view"},{"name":"Henry Rogerson","emp":"1491","role":"view"},{"name":"Henry Waddingham","emp":"8047","role":"view"},{"name":"Hristo Samardzhiev","emp":"1357","role":"view"},{"name":"Ion Dascal","emp":"1351","role":"edit"},{"name":"Iurii Cujba","emp":"1249","role":"view"},{"name":"Jack Beard","emp":"8043","role":"view"},{"name":"Jack Campbell","emp":"8078","role":"view"},{"name":"Jake Murfitt","emp":"1322","role":"view"},{"name":"Jake Phoenix","emp":"1480","role":"view"},{"name":"Jason Winters","emp":"8076","role":"view"},{"name":"Jennifer Tortice","emp":"64","role":"view"},{"name":"Jerry Langridge","emp":"1251","role":"view"},{"name":"Jon Pearson","emp":"1463","role":"view"},{"name":"Joseph Holmes","emp":"8049","role":"view"},{"name":"Kasim Yusein","emp":"1373","role":"view"},{"name":"Kevin Gibb","emp":"1474","role":"view"},{"name":"Kieran Rushbrook","emp":"1461","role":"view"},{"name":"Kostadin Stoyanov","emp":"1227","role":"view"},{"name":"Lilyana Babakova","emp":"1220","role":"view"},{"name":"Lina Barkauskyte","emp":"1188","role":"view"},{"name":"Macdonald Mugova","emp":"1484","role":"view"},{"name":"Maclafan Mugova","emp":"1452","role":"view"},{"name":"Mark Belton","emp":"974","role":"view"},{"name":"Mark Carter","emp":"8048","role":"view"},{"name":"Matthew Boyd","emp":"8084","role":"view"},{"name":"Matt Pettitt","emp":"8007","role":"view"},{"name":"Max Beard","emp":"8072","role":"view"},{"name":"Michael Philips","emp":"8004","role":"view"},{"name":"Milka Nankova","emp":"1257","role":"view"},{"name":"Morgan Clarke","emp":"1482","role":"view"},{"name":"Niall Farnan","emp":"8075","role":"view"},{"name":"Nick Snelling","emp":"8999","role":"view"},{"name":"Nilyay Yovu-Saami","emp":"1384","role":"view"},{"name":"Nurten Yusein","emp":"1311","role":"view"},{"name":"Odhran Devlin","emp":"8085","role":"view"},{"name":"Padriag McCullagh","emp":"8087","role":"view"},{"name":"Paul Churchyard","emp":"850","role":"edit"},{"name":"Paul Dye","emp":"1100","role":"view"},{"name":"Rahime Halil","emp":"1477","role":"view"},{"name":"Razvan Laszlo","emp":"986","role":"view"},{"name":"Richard Stennett","emp":"663","role":"view"},{"name":"Riley King-Parsons","emp":"1494","role":"view"},{"name":"Robert Northwood","emp":"1374","role":"view"},{"name":"Samuel Watkins","emp":"1380","role":"view"},{"name":"Shevked Halibryam","emp":"1213","role":"view"},{"name":"Simon Denton","emp":"1389","role":"view"},{"name":"Stephen Tortice","emp":"2","role":"edit"},{"name":"Stuart Hatch","emp":"1436","role":"view"},{"name":"Stuart Sinclair","emp":"8080","role":"view"},{"name":"Tamas Kishajdu","emp":"662","role":"view"},{"name":"Tanta Laszlo","emp":"1336","role":"view"},{"name":"Tayler Beard","emp":"8052","role":"view"},{"name":"Terry Davidson","emp":"1040","role":"view"},{"name":"Tomas Urbutis","emp":"993","role":"view"},{"name":"Victoria Dascal","emp":"1402","role":"view"},{"name":"Violeta Stoyanova","emp":"1228","role":"view"},{"name":"Nick Snelling","emp":"5555","role":"edit"},{"name":"James Rogerson","emp":"1464","role":"admin"},{"name":"Matthew Abrey","emp":"1234","role":"admin"},{"name":"Neil Sturgeon","emp":"1132","role":"admin"},{"name":"Scarlett Carr","emp":"1098","role":"admin"},{"name":"Susan Horner","emp":"815","role":"admin"},{"name":"Tony Buttle","emp":"1487","role":"admin"}];
 function fpUser(){
   try{return JSON.parse(localStorage.getItem('fp_user')||'null');}catch(e){return null;}
 }
@@ -957,12 +953,9 @@ function showLoginGate(){
   var ov=document.createElement('div');
   ov.id='login-gate';
   ov.style.cssText='position:fixed;inset:0;background:#14351f;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:sans-serif';
-  var opts=USERS.map(function(u){return '<option value="'+u.emp+'">'+u.name+'</option>';}).join('');
   ov.innerHTML='<div style="background:#fff;border-radius:14px;padding:30px 34px;width:320px;max-width:90vw;box-shadow:0 8px 40px rgba(0,0,0,.4)">'
     +'<div style="font-size:20px;font-weight:700;color:#1a5c2e;margin-bottom:2px">&#127807; Abreys FieldPlan</div>'
-    +'<div style="font-size:12px;color:#888;margin-bottom:20px">Sign in to continue</div>'
-    +'<label style="font-size:11px;font-weight:600;color:#555">NAME</label>'
-    +'<select id="lg-name" style="width:100%;padding:9px;margin:4px 0 14px;border:1px solid #ccc;border-radius:7px;font-size:14px">'+opts+'</select>'
+    +'<div style="font-size:12px;color:#888;margin-bottom:20px">Sign in with your employee number</div>'
     +'<label style="font-size:11px;font-weight:600;color:#555">EMPLOYEE NUMBER</label>'
     +'<input id="lg-emp" type="password" inputmode="numeric" placeholder="&bull;&bull;&bull;" style="width:100%;padding:9px;margin:4px 0 6px;border:1px solid #ccc;border-radius:7px;font-size:14px;box-sizing:border-box">'
     +'<div id="lg-err" style="font-size:11px;color:#c0392b;min-height:15px;margin-bottom:8px"></div>'
@@ -973,11 +966,10 @@ function showLoginGate(){
   inp.addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
 }
 function doLogin(){
-  var sel=document.getElementById('lg-name');
   var emp=(document.getElementById('lg-emp').value||'').trim();
-  var u=USERS.filter(function(x){return x.emp===sel.value;})[0];
-  if(!u||emp!==u.emp){
-    document.getElementById('lg-err').textContent='Employee number does not match.';
+  var u=USERS.filter(function(x){return x.emp===emp;})[0];
+  if(!u){
+    document.getElementById('lg-err').textContent='Employee number not recognised.';
     return;
   }
   localStorage.setItem('fp_user',JSON.stringify({name:u.name,emp:u.emp,role:u.role,ts:Date.now()}));
@@ -985,6 +977,61 @@ function doLogin(){
   if(g)g.remove();
   updateUserBadge();
 }
+
+function renderUserAdmin(){
+  if(typeof fpIsAdmin!=='function'||!fpIsAdmin())return '';
+  return '<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;padding:16px 18px;margin-top:14px">'
+    +'<div style="font-weight:700;font-size:13px;color:#1a5c2e;margin-bottom:6px">&#128100; User List ('+USERS.length+' users)</div>'
+    +'<div style="font-size:11px;color:#777;margin-bottom:10px">Upload the Name List spreadsheet (Employee Number, Name, Admin Control, Manager, Irrigation Supervisor columns). Roles: Admin Control=admin, Manager/Irr Supervisor=edit, others=view.</div>'
+    +'<input type="file" id="userlist-file" accept=".xlsx,.xls" style="font-size:12px">'
+    +'<div id="userlist-status" style="font-size:11px;margin-top:8px;color:#555"></div>'
+    +'</div>';
+}
+function initUserUpload(){
+  var inp=document.getElementById('userlist-file');
+  if(!inp||inp._wired)return;
+  inp._wired=true;
+  inp.addEventListener('change',function(){
+    var file=inp.files[0];
+    if(!file)return;
+    var st=document.getElementById('userlist-status');
+    st.textContent='Loading parser...';
+    var go=function(){
+      var reader=new FileReader();
+      reader.onload=function(e){
+        try{
+          var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+          var ws=wb.Sheets[wb.SheetNames[0]];
+          var rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+          var nu=[];
+          rows.forEach(function(r){
+            var emp=String(r['Employee Number']||'').trim();
+            var nm=String(r['Name']||'').trim();
+            if(!emp||!nm)return;
+            nm=nm.replace(/([a-z])([A-Z])/,'$1 $2');
+            var yes=function(v){return String(v||'').trim().toUpperCase()==='YES';};
+            var role=yes(r['Admin Control'])?'admin':((yes(r['Manager'])||yes(r['Irrigation Supervisor']))?'edit':'view');
+            nu.push({name:nm,emp:emp,role:role});
+          });
+          if(nu.length<2){st.textContent='No valid users found - check the columns.';return;}
+          if(!confirm('Replace the user list with '+nu.length+' users from this file and publish for everyone?'))return;
+          USERS=nu;
+          st.textContent=nu.length+' users loaded - publishing...';
+          saveToGitHub('User list updated ('+nu.length+' users)');
+        }catch(err){st.textContent='Could not read file: '+err.message;}
+      };
+      reader.readAsArrayBuffer(file);
+    };
+    if(typeof XLSX==='undefined'){
+      var s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload=go;
+      s.onerror=function(){st.textContent='Could not load the spreadsheet parser (offline?).';};
+      document.head.appendChild(s);
+    } else go();
+  });
+}
+
 function updateUserBadge(){
   var u=fpUser();
   var el=document.getElementById('user-badge');
@@ -3328,6 +3375,10 @@ function rCf(){
 
     
     +'</div>';
+
+  var _cfEl=document.getElementById('cf');
+  if(_cfEl && typeof renderUserAdmin==='function'){_cfEl.insertAdjacentHTML('beforeend',renderUserAdmin());}
+  setTimeout(initUserUpload,50);
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -5033,6 +5084,7 @@ function buildFileContent(){
   // Always clear the local accepted flag so the banner re-appears after a push
   localStorage.removeItem('fp_accepted_baseline');
 
+  src=src.replace(/var USERS=\[[\s\S]*?\];/, 'var USERS='+JSON.stringify(USERS)+';');
   src=src.replace(/var BASELINE_F\s*=\s*(null|\{[\s\S]*?\}|\[[\s\S]*?\]);/, 'var BASELINE_F='+JSON.stringify(baselineToSave)+';');
   return src;
 }
