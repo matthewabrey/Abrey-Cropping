@@ -941,10 +941,9 @@ function addAcceptedKeys(keys){
 
 function getChangedCells(){
   if(!window.BASELINE_F||typeof window.BASELINE_F!=='object'||Array.isArray(window.BASELINE_F)) return {};
-  var accepted=getAcceptedKeys();
+  // Count comes ONLY from the published baseline — identical for every user on this version
   var changed={};
   Object.keys(window.BASELINE_F).forEach(function(key){
-    if(accepted.indexOf(key)>=0) return;
     var parts=key.split(':');
     var fi=parseInt(parts[0]), yr=parts[1];
     var f=F[fi];
@@ -4981,24 +4980,21 @@ function buildFileContent(){
 function acceptChanges(){closeChangesModal();
 
   if(!window.BASELINE_F) return;
+  if(!GH.token){
+    alert('Only the GitHub token holder (Matt) can accept changes.\n\nAccepting publishes the cleared list for everyone, so it needs the token. The changes stay visible until then.');
+    return;
+  }
   var allKeys=Object.keys(window.BASELINE_F);
   if(allKeys.length===0) return;
-  var msg='Accept all '+allKeys.length+' pending change'+(allKeys.length===1?'':'s')+' across all years? This will clear the highlights for everyone.';
+  var msg='Accept all '+allKeys.length+' pending change'+(allKeys.length===1?'':'s')+' across all years? This clears the highlights for every user.';
   if(!confirm(msg)) return;
-  // Clear ALL pending keys across all years (not just current+next year)
   window.BASELINE_F=null;
   localStorage.removeItem('fp_baseline');
-  localStorage.setItem('fp_accepted_baseline','true');
-  // Update snapshot to current F[] so next push has no changes to diff
+  localStorage.removeItem('fp_accepted_keys');
   localStorage.setItem('fp_last_push_snap', JSON.stringify(F));
   updateChangeBanner();
   if(typeof rPl==='function') rPl();
-  // Push cleared baseline to GitHub so it clears for ALL users on refresh
-  if(GH && GH.token){
-    saveToGitHub('Accepted changes — baseline cleared');
-  } else {
-    alert('Changes accepted in your browser.\n\nTo clear the banner for everyone, ask Matt to click Accept (he has the GitHub token to push the change live).');
-  }
+  saveToGitHub('Accepted changes — baseline cleared');
 }
 
 
