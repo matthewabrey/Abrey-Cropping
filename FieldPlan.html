@@ -5195,9 +5195,20 @@ async function relayPush(message){
     }
     var content=buildFileContent();
     var b64=btoa(unescape(encodeURIComponent(content)));
+    var pin=localStorage.getItem('fp_pin')||'';
+    if(!pin){pin=prompt('Enter your 4-digit save PIN (ask Matt if you don\'t have one):')||'';if(pin)localStorage.setItem('fp_pin',pin);}
     var res=await fetch(RELAY_URL,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({emp:u.emp,message:message||'',content:b64})});
+      body:JSON.stringify({emp:u.emp,pin:pin,message:message||'',content:b64})});
     var out=await res.json();
+    if(res.status===401&&out&&out.pin_required){
+      localStorage.removeItem('fp_pin');
+      var p2=prompt('PIN not recognised. Enter your 4-digit save PIN:')||'';
+      if(!p2){updateSaveBtn('disconnected');return false;}
+      localStorage.setItem('fp_pin',p2);
+      res=await fetch(RELAY_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({emp:u.emp,pin:p2,message:message||'',content:b64})});
+      out=await res.json();
+    }
     if(!res.ok||!out.ok){throw new Error(out.error||('Relay error '+res.status));}
     localStorage.setItem('fp_last_push_snap', JSON.stringify(F));
     updateSaveBtn('saved');
