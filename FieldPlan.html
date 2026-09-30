@@ -130,7 +130,7 @@ tr:hover td{background:var(--c1)}
     height: 100vh !important;
   }
   #mp-legend { display: block !important; }
-  .hatch-canvas { display: block !important; }
+  .hatch-canvas { display: none !important; }
   .leaflet-control-zoom { display: none !important; }
 }
 </style>
@@ -209,6 +209,7 @@ Object.keys(SUBPARCELS).forEach(function(est){
   });
 });
 
+var BASELINE_NOTES=[{"d":"30/09/2026","t":"The Clint A split at drawn line \u2014 new field 'The Clint A East' (1.3ha, Wheat 2027); The Clint A keeps Onions, now 4.8ha"},{"d":"30/09/2026","t":"80 Acres.A 2027 \u2192 Euston Maize (2028 Euston Rye moved to Wheat); Barnham West/Breck East 2027 \u2192 Wheat"},{"d":"30/09/2026","t":"Leys North + Leys South 2026 corrected to Sugarbeet; Boreley Close South 2026 corrected to Carrots"}];
 var BASELINE_F={"271:2026":"Pigs","272:2026":"Pigs","353:2026":"Parsnips","285:2027":"Wheat","323:2027":"Euston Maize","680:2027":"Onions"};
 
 
@@ -543,7 +544,8 @@ function updateChangeBanner(){
   var _nowYr=new Date().getFullYear();
   var _visYrs=[String(_nowYr),String(_nowYr+1)];
   var allKeys=Object.keys(ch).filter(function(k){return _visYrs.indexOf(k.split(':')[1])>=0;});
-  if(allKeys.length===0){banner.style.display='none';return;}
+  var _nts=(window.BASELINE_NOTES&&window.BASELINE_NOTES.length)||0;
+  if(allKeys.length===0&&_nts===0){banner.style.display='none';return;}
 
   var byField={};
   allKeys.forEach(function(key){
@@ -1065,11 +1067,15 @@ function getChangedCells(){
 function changeTrackingBanner(){
   var ch=getChangedCells();
   var n=Object.keys(ch).length;
-  if(!window.BASELINE_F||n===0) return '';
+  var _nn=window.BASELINE_NOTES||[];
+  if((!window.BASELINE_F||n===0)&&_nn.length===0) return '';
   return '<div style="background:#fef3e2;border:1px solid #e67e22;border-radius:6px;padding:8px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
     +'<span class="change-legend"><span class="change-legend-dot"></span><strong>'+n+' cell'+(n===1?'':'s')+' changed</strong> since last shared version</span>'
     +'<button onclick="acceptChanges()" style="font-size:11px;padding:3px 12px;background:#e67e22;color:#fff;border-color:#e67e22;border-radius:4px;cursor:pointer">&#10003; Accept &amp; clear</button>'
     +'<span style="font-size:10px;color:#a06010">Changes stay highlighted until accepted</span>'
+    +(_nn.length?'<div style="flex-basis:100%;margin-top:4px;border-top:1px dashed #e0c090;padding-top:5px">'
+      +_nn.map(function(x){return '<div style="font-size:10.5px;color:#7a5a10;padding:1px 0">&#9998; <span style="color:#b09050;margin-right:4px">'+(x.d||'')+'</span>'+x.t+'</div>';}).join('')
+      +'</div>':'')
     +'</div>';
 }
 
@@ -5084,6 +5090,7 @@ function buildFileContent(){
   // Always clear the local accepted flag so the banner re-appears after a push
   localStorage.removeItem('fp_accepted_baseline');
 
+  src=src.replace(/var BASELINE_NOTES=\[[\s\S]*?\];/, 'var BASELINE_NOTES='+JSON.stringify(window.BASELINE_NOTES||[])+';');
   src=src.replace(/var USERS=\[[\s\S]*?\];/, 'var USERS='+JSON.stringify(USERS)+';');
   src=src.replace(/var BASELINE_F\s*=\s*(null|\{[\s\S]*?\}|\[[\s\S]*?\]);/, 'var BASELINE_F='+JSON.stringify(baselineToSave)+';');
   return src;
@@ -5102,6 +5109,7 @@ function acceptChanges(){closeChangesModal();
   var msg='Accept all '+allKeys.length+' pending change'+(allKeys.length===1?'':'s')+' across all years? This clears the highlights for every user.';
   if(!confirm(msg)) return;
   window.BASELINE_F=null;
+  window.BASELINE_NOTES=[];
   localStorage.removeItem('fp_baseline');
   localStorage.removeItem('fp_accepted_keys');
   localStorage.setItem('fp_last_push_snap', JSON.stringify(F));
@@ -5658,12 +5666,19 @@ function _mapRebuild(){
       poly.on('mouseover',function(){poly.setStyle({weight:3,fillOpacity:.92});});
       poly.on('mouseout',function(){poly.setStyle({weight:1.5,fillOpacity:.72});});
       _mapPolygons.push(poly);
+      if(!ours&&!_mapOursOnly){
+        var hp=L.polygon(lls,{fillColor:'url(#mp-hatch-pat)',color:'transparent',fillOpacity:1,weight:0,interactive:false}).addTo(_mapObj);
+        _mapPolygons.push(hp);
+      }
       lls.forEach(function(ll){allBounds.push(ll);});
     } else {
       var grp=L.featureGroup().addTo(_mapObj);
       f.rings.forEach(function(ring){
         var lls=ring.map(function(p){return[p[1],p[0]];});
         L.polygon(lls,style).addTo(grp);
+        if(!ours&&!_mapOursOnly){
+          L.polygon(lls,{fillColor:'url(#mp-hatch-pat)',color:'transparent',fillOpacity:1,weight:0,interactive:false}).addTo(grp);
+        }
         lls.forEach(function(ll){allBounds.push(ll);});
       });
       grp._mpField=f;
@@ -5674,8 +5689,7 @@ function _mapRebuild(){
     }
   });
   if(allBounds.length) _mapObj.fitBounds(allBounds,{padding:[20,20]});
-  // Hatch partner fields using canvas overlay
-  if(!_mapGreeningMode) _drawHatchCanvas(geo);
+  // Partner hatch drawn as SVG pattern polygons (prints cleanly); canvas retired
 
   // Labels
   var z=_mapObj?_mapObj.getZoom():0;
