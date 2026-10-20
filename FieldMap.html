@@ -201,6 +201,9 @@ html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:#0d1f14
       <button class="vb" id="gv-btn" onclick="toggleGatevalves()" style="border-style:dashed">
         <span class="vdot" style="background:#FF8F00"></span>Gatevalves
       </button>
+      <button class="vb" id="loc-btn" onclick="toggleMyLocation()" style="border-style:dashed">
+        <span class="vdot" style="background:#1E88E5"></span>My Location
+      </button>
       <button class="vb" id="pipe-btn" onclick="togglePipes()" style="border-style:dashed">
         <span class="vdot" style="background:#1E88E5"></span>Water Pipes
       </button>
@@ -671,6 +674,36 @@ function togglePipes(){
   if(lg)lg.style.display=_pipesOn?'block':'none';
 }
 var _gvLayers=[],_gvOn=false;
+var _locWatch=null,_locMarker=null,_locCircle=null,_locFirst=true;
+function toggleMyLocation(){
+  var btn=document.getElementById('loc-btn');
+  if(_locWatch!==null){
+    navigator.geolocation.clearWatch(_locWatch);_locWatch=null;
+    if(_locMarker){try{map.removeLayer(_locMarker);}catch(e){}_locMarker=null;}
+    if(_locCircle){try{map.removeLayer(_locCircle);}catch(e){}_locCircle=null;}
+    if(btn)btn.classList.remove('on');
+    return;
+  }
+  if(!navigator.geolocation){alert('This device does not support location.');return;}
+  _locFirst=true;
+  _locWatch=navigator.geolocation.watchPosition(function(pos){
+    var ll=[pos.coords.latitude,pos.coords.longitude];
+    if(!_locMarker){
+      _locMarker=L.circleMarker(ll,{radius:8,color:'#fff',weight:2.5,fillColor:'#1E88E5',fillOpacity:1}).addTo(map);
+      _locMarker.bindTooltip('You are here',{direction:'top',offset:[0,-8]});
+      _locCircle=L.circle(ll,{radius:pos.coords.accuracy||20,color:'#1E88E5',weight:1,fillColor:'#1E88E5',fillOpacity:0.12,interactive:false}).addTo(map);
+    } else {
+      _locMarker.setLatLng(ll);
+      _locCircle.setLatLng(ll);_locCircle.setRadius(pos.coords.accuracy||20);
+    }
+    if(_locFirst){_locFirst=false;map.setView(ll,Math.max(map.getZoom(),15));}
+  },function(err){
+    alert('Could not get your location: '+(err&&err.message?err.message:'permission denied')+'\n\nCheck location is allowed for this site in your browser settings.');
+    if(_locWatch!==null){navigator.geolocation.clearWatch(_locWatch);_locWatch=null;}
+    if(btn)btn.classList.remove('on');
+  },{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+  if(btn)btn.classList.add('on');
+}
 function toggleGatevalves(){
   var btn=document.getElementById('gv-btn');
   if(_gvOn){
