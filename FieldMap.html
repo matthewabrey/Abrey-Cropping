@@ -204,6 +204,9 @@ html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:#0d1f14
       <button class="vb" id="loc-btn" onclick="toggleMyLocation()" style="border-style:dashed">
         <span class="vdot" style="background:#1E88E5"></span>My Location
       </button>
+      <button class="vb" id="dig-btn" onclick="toggleDigestate()" style="border-style:dashed">
+        <span class="vdot" style="background:#b03a00"></span>Digestate 2028
+      </button>
       <button class="vb" id="pipe-btn" onclick="togglePipes()" style="border-style:dashed">
         <span class="vdot" style="background:#1E88E5"></span>Water Pipes
       </button>
@@ -674,6 +677,51 @@ function togglePipes(){
   if(lg)lg.style.display=_pipesOn?'block':'none';
 }
 var _gvLayers=[],_gvOn=false;
+var DIGESTATE_2028=[{"name":"Buckles","area":"Euston","ha":3.45,"rate":"20.62","t":71.1,"crop":"Winter Wheat"},{"name":"First Barrow","area":"Euston","ha":5.81,"rate":"15","t":87.2,"crop":"Winter Wheat"},{"name":"House Close","area":"Euston","ha":5.06,"rate":"20.62","t":104.3,"crop":"Winter Wheat"},{"name":"Little Cranwell Hill (West Farm)","area":"West Farm","ha":4.26,"rate":"15","t":63.9,"crop":"Winter Wheat"},{"name":"Little Wordwell Corner (West Farm)","area":"West Farm","ha":11.76,"rate":"15","t":176.4,"crop":"Winter Wheat"},{"name":"Lock Field (West Farm)","area":"West Farm","ha":12.14,"rate":"15","t":182.2,"crop":"Winter Wheat"},{"name":"Oak Ride","area":"Euston","ha":13.65,"rate":"20.62","t":281.4,"crop":"Winter Wheat"},{"name":"Orchard Field","area":"Euston","ha":4.18,"rate":"17.51","t":73.2,"crop":"Winter Wheat"},{"name":"Park Ten Hectares (West Farm)","area":"West Farm","ha":10.5,"rate":"15","t":152.1,"crop":"Winter Wheat"},{"name":"Polly Borehams B","area":"Euston","ha":12.39,"rate":"16.23","t":201.1,"crop":"Winter Wheat"},{"name":"Sap Allotments","area":"Euston","ha":5.98,"rate":"15.79","t":94.4,"crop":"Winter Wheat"},{"name":"Second Barrow","area":"Euston","ha":4.75,"rate":"15","t":71.3,"crop":"Winter Wheat"},{"name":"Taylors Grove","area":"Euston","ha":9.34,"rate":"15","t":140.1,"crop":"Winter Wheat"},{"name":"Hon Top Meadow","area":"Euston","ha":2.9,"rate":"15","t":43.5,"crop":"Winter Wheat"},{"name":"Willow Hall","area":"Euston","ha":11.54,"rate":"15","t":173.1,"crop":"Winter Wheat"},{"name":"Wills Close","area":"Euston","ha":6.58,"rate":"15.46","t":101.7,"crop":"Winter Wheat"},{"name":"Beeches (Euston)","area":"Euston","ha":12.68,"rate":"17.97","t":227.8,"crop":"Winter Wheat"},{"name":"Lime Kiln (Eus) (B)","area":"Euston","ha":9.24,"rate":"15","t":132.6,"crop":"Winter Wheat"},{"name":"Lucerne Land","area":"Euston","ha":8.51,"rate":"15","t":137.0,"crop":"Winter Wheat"},{"name":"New Layer","area":"Euston","ha":4.68,"rate":"15","t":70.2,"crop":"Winter Wheat"},{"name":"Old Layer","area":"Euston","ha":6.42,"rate":"34.36","t":220.6,"crop":"Winter Wheat"},{"name":"Slanterings","area":"Euston","ha":8.5,"rate":"24.06","t":204.5,"crop":"Winter Wheat"},{"name":"Broatchs Walk","area":"Euston","ha":7.07,"rate":"15","t":106.0,"crop":"Winter Wheat"},{"name":"Duffers Gore S (Headings)","area":"Headings","ha":10.34,"rate":"15","t":155.1,"crop":"Winter Wheat"},{"name":"Dukes Leys.A","area":"Euston","ha":12.31,"rate":"20.62","t":253.8,"crop":"Winter Wheat"},{"name":"Elm Hill","area":"Euston","ha":9.92,"rate":"15","t":148.7,"crop":"Winter Wheat"},{"name":"Heath Piece","area":"Euston","ha":9.4,"rate":"15.46","t":145.3,"crop":"Winter Wheat"},{"name":"Middle Breck S (Headings)","area":"Headings","ha":16.2,"rate":"15","t":130.1,"crop":"Winter Wheat"},{"name":"Paddocks (West Farm)","area":"West Farm","ha":5.26,"rate":"15","t":87.2,"crop":"Winter Wheat"},{"name":"Pig Paddock.A","area":"Euston","ha":3.5,"rate":"15","t":70.1,"crop":"Winter Wheat"},{"name":"Road Breck South(Headings)","area":"Headings","ha":11.84,"rate":"15","t":189.7,"crop":"Winter Wheat"},{"name":"L Shape","area":"Euston","ha":14.85,"rate":"24.06","t":357.2,"crop":"Winter Rye"},{"name":"New Zeland Breck (West Farm)","area":"West Farm","ha":17.75,"rate":"15","t":268.6,"crop":"Winter Rye"},{"name":"Park 40 Acres A","area":"Euston","ha":15.09,"rate":"15","t":333.0,"crop":"Winter Rye"},{"name":"Parsons Field","area":"Euston","ha":11.45,"rate":"24.06","t":275.4,"crop":"Winter Rye"},{"name":"6 & 20 Acres North (Headings)","area":"Headings","ha":11.98,"rate":"15","t":179.6,"crop":"Winter Rye"},{"name":"Charlie Beans A","area":"Euston","ha":15.0,"rate":"17.98","t":269.8,"crop":"Winter Wheat"}];
+var _digLayers=[],_digOn=false;
+function toggleDigestate(){
+  var btn=document.getElementById('dig-btn');
+  if(_digOn){
+    _digLayers.forEach(function(p){try{map.removeLayer(p);}catch(e){}});
+    _digLayers=[];_digOn=false;
+    if(btn)btn.classList.remove('on');
+    var lg=document.getElementById('dig-legend'); if(lg)lg.remove();
+    return;
+  }
+  var COLS={'Euston':'#1E88E5','Headings':'#E67E22','West Farm':'#8E44AD'};
+  var geo=ALL_ESTATES_GEO['Euston']||[];
+  var byName={};
+  geo.forEach(function(g){byName[g.name]=g;});
+  var sums={};
+  DIGESTATE_2028.forEach(function(d){
+    var g=byName[d.name];
+    if(!g||!g.rings) return;
+    var lls=g.rings.map(function(r){return r.map(function(p){return [p[1],p[0]];});});
+    var poly=L.polygon(lls,{fillColor:COLS[d.area],color:'#333',weight:1.4,fillOpacity:0.6}).addTo(map);
+    poly.bindPopup('<b>'+d.name+'</b><br>'+d.crop+' \u00b7 '+d.ha+' ha<br>'+d.rate+' t/ha \u2192 <b>'+d.t+' t</b>');
+    _digLayers.push(poly);
+    var c=poly.getBounds().getCenter();
+    var mk=L.marker(c,{icon:L.divIcon({className:'',html:'<div style="background:rgba(255,255,255,.92);border:1px solid #666;border-radius:4px;padding:1px 4px;font-size:10px;font-weight:bold;color:#222;white-space:nowrap;text-align:center;line-height:1.25">'+d.name.replace(/ \(.*$/,'')+'<br><span style="color:#b03a00;font-size:11px">'+Math.round(d.t)+' t</span></div>',iconSize:null}),interactive:false}).addTo(map);
+    _digLayers.push(mk);
+    sums[d.area]=sums[d.area]||{n:0,ha:0,t:0};
+    sums[d.area].n++; sums[d.area].ha+=d.ha; sums[d.area].t+=d.t;
+  });
+  var rows2=Object.keys(sums).map(function(a){
+    return '<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:'+COLS[a]+';margin-right:4px"></span>'+a+'</td><td style="text-align:right">'+sums[a].n+'</td><td style="text-align:right">'+sums[a].ha.toFixed(1)+'</td><td style="text-align:right">'+Math.round(sums[a].t)+'</td></tr>';
+  }).join('');
+  var tn=0,th=0,tt=0;
+  Object.keys(sums).forEach(function(a){tn+=sums[a].n;th+=sums[a].ha;tt+=sums[a].t;});
+  var lg=document.createElement('div');
+  lg.id='dig-legend';
+  lg.style.cssText='position:absolute;bottom:18px;right:10px;z-index:1000;background:#fff;border:1px solid #ccc;border-radius:8px;padding:8px 12px;font-size:11px;box-shadow:0 2px 8px rgba(0,0,0,.25)';
+  lg.innerHTML='<div style="font-weight:bold;color:#1a5c2e;margin-bottom:3px">Digestate 2028 \u2014 2nd cereals</div>'
+    +'<table style="border-collapse:collapse"><tr style="font-weight:bold"><td>Area</td><td style="padding-left:8px">Fields</td><td style="padding-left:8px">ha</td><td style="padding-left:8px">t</td></tr>'
+    +rows2
+    +'<tr style="font-weight:bold;border-top:1px solid #999"><td>Total</td><td style="text-align:right">'+tn+'</td><td style="text-align:right">'+th.toFixed(1)+'</td><td style="text-align:right">'+Math.round(tt)+'</td></tr></table>';
+  document.getElementById('map').appendChild(lg);
+  _digOn=true;
+  if(btn)btn.classList.add('on');
+}
 var _locWatch=null,_locMarker=null,_locCircle=null,_locFirst=true;
 function toggleMyLocation(){
   var btn=document.getElementById('loc-btn');
