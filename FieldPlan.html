@@ -545,6 +545,15 @@ function updateChangeBanner(){
   var _nts=(window.BASELINE_NOTES&&window.BASELINE_NOTES.length)||0;
   if(allKeys.length===0&&_nts===0){banner.style.display='none';return;}
 
+  // Update pill label
+  document.getElementById('change-count-label').textContent=
+    allKeys.length+' change'+(allKeys.length===1?'':'s')+' pending';
+  banner.style.display='flex';
+  buildChangesModal();
+}
+function buildChangesModal(){
+  var ch=getChangedCells();
+  var allKeys=Object.keys(ch);
   var byField={};
   allKeys.forEach(function(key){
     var parts=key.split(':'); var fi=parseInt(parts[0]),chYr=parts[1];
@@ -554,14 +563,10 @@ function updateChangeBanner(){
     byField[fn].changes.push({yr:chYr,old:ch[key].old,curr:ch[key].curr});
   });
   var fieldNames=Object.keys(byField).sort();
-  var totalChanges=allKeys.length;
-
-  // Update pill label
-  document.getElementById('change-count-label').textContent=
-    totalChanges+' change'+(totalChanges===1?'':'s')+' pending';
-  banner.style.display='flex';
-
-  // Build modal body HTML
+  var _nn=window.BASELINE_NOTES||[];
+  var notesHtml=_nn.length?'<div style="margin-bottom:10px;background:#fdf6e8;border:1px dashed #e0c090;border-radius:5px;padding:7px 10px">'
+    +_nn.map(function(x){return '<div style="font-size:10.5px;color:#7a5a10;padding:1px 0">&#9998; <span style="color:#b09050;margin-right:4px">'+(x.d||'')+'</span>'+x.t+'</div>';}).join('')
+    +'</div>':'';
   var html=fieldNames.map(function(fn){
     var info=byField[fn];
     var cells=info.changes.sort(function(a,b){return a.yr>b.yr?1:-1;}).map(function(c){
@@ -577,10 +582,11 @@ function updateChangeBanner(){
       +cells+'</div>';
   }).join('');
   var body=document.getElementById('changes-modal-body');
-  if(body) body.innerHTML='<div style="margin-bottom:8px;color:#7a4400;font-weight:600">'
+  if(body) body.innerHTML=notesHtml+'<div style="margin-bottom:8px;color:#7a4400;font-weight:600">'
     +fieldNames.length+' field'+(fieldNames.length===1?'':'s')+' changed</div>'+html;
 }
 function openChangesModal(){
+  buildChangesModal();
   var m=document.getElementById('changes-modal');
   if(m) m.style.display='flex';
 }
@@ -1067,13 +1073,9 @@ function changeTrackingBanner(){
   var n=Object.keys(ch).length;
   var _nn=window.BASELINE_NOTES||[];
   if((!window.BASELINE_F||n===0)&&_nn.length===0) return '';
-  return '<div style="background:#fef3e2;border:1px solid #e67e22;border-radius:6px;padding:8px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
-    +'<span class="change-legend"><span class="change-legend-dot"></span><strong>'+n+' cell'+(n===1?'':'s')+' changed</strong> since last shared version</span>'
-    +'<button onclick="acceptChanges()" style="font-size:11px;padding:3px 12px;background:#e67e22;color:#fff;border-color:#e67e22;border-radius:4px;cursor:pointer">&#10003; Accept &amp; clear</button>'
-    +'<span style="font-size:10px;color:#a06010">Changes stay highlighted until accepted</span>'
-    +(_nn.length?'<div style="flex-basis:100%;margin-top:4px;border-top:1px dashed #e0c090;padding-top:5px">'
-      +_nn.map(function(x){return '<div style="font-size:10.5px;color:#7a5a10;padding:1px 0">&#9998; <span style="color:#b09050;margin-right:4px">'+(x.d||'')+'</span>'+x.t+'</div>';}).join('')
-      +'</div>':'')
+  return '<div onclick="openChangesModal()" style="background:#fef3e2;border:1px solid #e67e22;border-radius:6px;padding:6px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer">'
+    +'<span style="display:inline-flex;align-items:center;gap:6px;font-weight:bold;color:#7a4400;font-size:13px"><span style="width:8px;height:8px;border-radius:50%;background:#e67e22;flex-shrink:0"></span>'+n+' change'+(n===1?'':'s')+' pending</span>'
+    +'<span style="font-size:11px;color:#a06010">— click to view details</span>'
     +'</div>';
 }
 
