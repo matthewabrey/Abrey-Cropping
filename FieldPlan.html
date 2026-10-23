@@ -541,9 +541,7 @@ function updateChangeBanner(){
   if(typeof tab!=='undefined'&&tab!=='ov'){banner.style.display='none';return;}
   if(!window.BASELINE_F){banner.style.display='none';return;}
   var ch=getChangedCells();
-  var _nowYr=new Date().getFullYear();
-  var _visYrs=[String(_nowYr),String(_nowYr+1),String(_nowYr+2)];
-  var allKeys=Object.keys(ch).filter(function(k){return _visYrs.indexOf(k.split(':')[1])>=0;});
+  var allKeys=Object.keys(ch);
   var _nts=(window.BASELINE_NOTES&&window.BASELINE_NOTES.length)||0;
   if(allKeys.length===0&&_nts===0){banner.style.display='none';return;}
 
