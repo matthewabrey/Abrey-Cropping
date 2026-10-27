@@ -1475,7 +1475,7 @@ function aF(){
   var curYr=(document.getElementById('fy')||{value:'2027'}).value||'2027';
   filtF=F.filter(function(f){
     if(selE.length&&!selE.includes(f.estate))return false;
-    if(selF.length&&!selF.includes(f.zone||f.farm)&&!selF.includes(f.farm))return false;
+    if(selF.length&&!selF.includes(f.zone||f.farm))return false;
     if(s&&!f.field.toLowerCase().includes(s))return false;
     if(selC.length){var _cy=gc(f,curYr);if(!selC.some(function(c){return c===_cy;}))return false;}
     if(selOurs==='ours'&&!isOurs(f,curYr))return false;
