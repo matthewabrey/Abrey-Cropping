@@ -5569,7 +5569,7 @@ function rOmStock(){
       if(r.CroppingStatus==='Done'||r.CroppingStatus==='PartiallyDone')(done[r.PlanKey]=done[r.PlanKey]||{})[r.FieldId]=1;
     });
     // need per product from open / outstanding plan rows
-    var need={},needName={},needUnit={},skipped=0;
+    var need={},needName={},needUnit={},needBy={},skipped=0;
     prows.forEach(function(p){
       if(p.HoldingId!=='15859'||p.Year<'2026')return;
       if(['Published','Draft','Started'].indexOf(p.Status)<0)return;
@@ -5585,6 +5585,9 @@ function rOmStock(){
       var k=p.ProductKey||p.ProductName;
       need[k]=(need[k]||0)+q;
       needName[k]=p.ProductName;needUnit[k]=unit;
+      var nb=needBy[k]||(needBy[k]={});
+      var pid='#'+p.PlanNumber+' '+p.PlanName+' ('+p.Year+')';
+      nb[pid]=(nb[pid]||0)+q;
     });
     // allocate need across locations holding the product (proportional to stock, else first)
     var byLoc={},matched={};
@@ -5597,8 +5600,13 @@ function rOmStock(){
       if(!holders.length)return;
       matched[pk]=1;
       var tot=holders.reduce(function(a,s){return a+Math.max(s.qty,0);},0);
+      var tip=Object.keys(needBy[pk]||{}).sort().map(function(pid){
+        var v=needBy[pk][pid];
+        return pid+': '+(Math.abs(v)>=100?Math.round(v).toLocaleString():Math.round(v*10)/10)+' '+(needUnit[pk]==='Litre'?'L':'kg');
+      }).join('\n');
       holders.forEach(function(s){
         s.need=(s.need||0)+(tot>0?need[pk]*Math.max(s.qty,0)/tot:need[pk]/holders.length);
+        s.tip=tip;
       });
     });
     function fmt(v,u){
@@ -5607,7 +5615,11 @@ function rOmStock(){
     }
     var locHtml=Object.keys(byLoc).sort().map(function(loc){
       var items=byLoc[loc].filter(function(s){return s.qty>0.01||(s.need||0)>0.01;})
-        .sort(function(a,b){return (a.type+a.name).localeCompare(b.type+b.name);});
+        .sort(function(a,b){
+          var an=(a.qty-(a.need||0))<-0.01?0:1, bn=(b.qty-(b.need||0))<-0.01?0:1;
+          if(an!==bn)return an-bn;
+          return (a.type+a.name).localeCompare(b.type+b.name);
+        });
       if(!items.length)return '';
       var rows=items.map(function(s){
         var after=s.qty-(s.need||0);
@@ -5615,8 +5627,8 @@ function rOmStock(){
           +'<td style="padding:4px 10px;font-size:11.5px;font-weight:600">'+s.name+'</td>'
           +'<td style="padding:4px 10px;font-size:10.5px;color:var(--tx3)">'+(s.type||'')+'</td>'
           +'<td style="padding:4px 10px;font-size:11.5px;text-align:right;white-space:nowrap">'+fmt(s.qty,s.unit)+'</td>'
-          +'<td style="padding:4px 10px;font-size:11.5px;text-align:right;white-space:nowrap;color:#8a4500">'+(s.need?'−'+fmt(s.need,s.unit):'—')+'</td>'
-          +'<td style="padding:4px 10px;font-size:11.5px;text-align:right;white-space:nowrap;font-weight:700;color:'+(after<-0.01?'#c0392b':'#1a5c2e')+'">'+fmt(after,s.unit)+(after<-0.01?' ⚠':'')+'</td>'
+          +'<td title="'+(s.tip?('Needed for:\n'+s.tip).replace(/"/g,'&quot;'):'')+'" style="padding:4px 10px;font-size:11.5px;text-align:right;white-space:nowrap;color:#8a4500;'+(s.tip?'cursor:help;':'')+'">'+(s.need?'−'+fmt(s.need,s.unit):'—')+'</td>'
+          +'<td title="'+(s.tip?('Needed for:\n'+s.tip).replace(/"/g,'&quot;'):'')+'" style="padding:4px 10px;font-size:11.5px;text-align:right;white-space:nowrap;font-weight:700;'+(s.tip?'cursor:help;':'')+'color:'+(after<-0.01?'#c0392b':'#1a5c2e')+'">'+fmt(after,s.unit)+(after<-0.01?' ⚠':'')+'</td>'
           +'</tr>';
       }).join('');
       return '<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px">'
@@ -5634,7 +5646,10 @@ function rOmStock(){
     var missHtml=missing.length
       ?'<div style="background:#fff;border:1px solid #e67e22;border-radius:10px;overflow:hidden;margin-bottom:16px">'
        +'<div style="padding:8px 14px;background:#e67e22;color:#fff;font-weight:700;font-size:13px">Needed for open recs — not in any stock list ('+missing.length+')</div>'
-       +missing.map(function(pk){return '<div style="padding:5px 14px;border-bottom:1px solid var(--bd);font-size:11.5px"><strong>'+(needName[pk]||pk)+'</strong> — '+fmt(need[pk],needUnit[pk])+'</div>';}).join('')
+       +missing.map(function(pk){
+          var tip=Object.keys(needBy[pk]||{}).sort().join('\n');
+          return '<div title="'+('Needed for:\n'+tip).replace(/"/g,'&quot;')+'" style="padding:5px 14px;border-bottom:1px solid var(--bd);font-size:11.5px;cursor:help"><strong>'+(needName[pk]||pk)+'</strong> — '+fmt(need[pk],needUnit[pk])+'</div>';
+        }).join('')
        +'</div>'
       :'';
     el.innerHTML='<div style="max-width:1000px">'
