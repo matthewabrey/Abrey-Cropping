@@ -5460,13 +5460,10 @@ function rOmMatch(){
 }
 var _suQ='',_suFrom='',_suTo='',_suTimer=null;
 function suInput(){
-  clearTimeout(_suTimer);
-  _suTimer=setTimeout(function(){
-    _suQ=(document.getElementById('su-q')||{}).value||'';
-    _suFrom=(document.getElementById('su-from')||{}).value||'';
-    _suTo=(document.getElementById('su-to')||{}).value||'';
-    rOmUsed();
-  },350);
+  _suQ=(document.getElementById('su-q')||{}).value||'';
+  _suFrom=(document.getElementById('su-from')||{}).value||'';
+  _suTo=(document.getElementById('su-to')||{}).value||'';
+  rOmUsed();
 }
 function rOmUsed(){
   var el=document.getElementById('om-body'); if(!el)return;
@@ -5474,7 +5471,7 @@ function rOmUsed(){
   omniaCsv('Records.csv',function(rrows){
     if(!rrows){el.innerHTML='<div style="padding:20px;color:#c0392b">Could not load Omnia data — check internet / relay.</div>';return;}
     var fname={};(frows||[]).forEach(function(r){if(r.HoldingId==='15859')fname[r.FieldId]=r.FieldName;});
-    var q=_suQ.toLowerCase();
+    var allProds={};
     var rows=[];
     rrows.forEach(function(r){
       if(r.HoldingId!=='15859'||!r.ProductName)return;
@@ -5482,7 +5479,8 @@ function rOmUsed(){
       if(amt<=0)return;
       var d=(r.EndTime||r.StartTime||'').slice(0,10);
       if(!d)return;
-      if(q&&r.ProductName.toLowerCase().indexOf(q)<0)return;
+      allProds[r.ProductName]=1;
+      if(_suQ&&r.ProductName!==_suQ)return;
       if(_suFrom&&d<_suFrom)return;
       if(_suTo&&d>_suTo)return;
       rows.push({d:d,p:r.ProductName,f:fname[r.FieldId]||('#'+r.FieldId),a:parseFloat(r.CroppingRecordArea||'')||0,
@@ -5534,7 +5532,12 @@ function rOmUsed(){
       +'<div style="font-size:11px;color:var(--tx3);margin-bottom:10px">Recorded applications from Omnia — where each product has gone, field by field.</div>'
       +'<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px">'
       +'<div><label style="font-size:10px;color:var(--tx3);display:block">CHEMICAL / PRODUCT</label>'
-      +'<input id="su-q" value="'+_suQ.replace(/"/g,'&quot;')+'" oninput="suInput()" placeholder="e.g. Lambdastar" style="font-size:12px;padding:6px 10px;border:1px solid var(--bd);border-radius:6px;width:220px"></div>'
+      +'<select id="su-q" onchange="suInput()" style="font-size:12px;padding:6px 10px;border:1px solid var(--bd);border-radius:6px;max-width:260px">'
+      +'<option value="">All products</option>'
+      +Object.keys(allProds).sort(function(a,b){return a.toLowerCase().localeCompare(b.toLowerCase());}).map(function(p){
+        return '<option value="'+p.replace(/"/g,'&quot;')+'"'+(p===_suQ?' selected':'')+'>'+p.replace(/</g,'&lt;')+'</option>';
+      }).join('')
+      +'</select></div>'
       +'<div><label style="font-size:10px;color:var(--tx3);display:block">FROM</label>'
       +'<input id="su-from" type="date" value="'+_suFrom+'" onchange="suInput()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd);border-radius:6px"></div>'
       +'<div><label style="font-size:10px;color:var(--tx3);display:block">TO</label>'
@@ -5543,8 +5546,7 @@ function rOmUsed(){
       +'</div>'
       +(prodHtml||'<div style="padding:16px;color:var(--tx3);background:#fff;border:1px solid var(--bd);border-radius:10px">Nothing matches that filter.</div>')
       +'</div>';
-    var qel=document.getElementById('su-q');
-    if(qel&&_suQ){qel.focus();var v=qel.value;qel.value='';qel.value=v;}
+
   });});
 }
 function rOmStock(){
