@@ -5389,9 +5389,9 @@ function rOm(){
   var el=document.getElementById('om'); if(!el)return;
   var sub=window._omSub||'rec';
   function tb(v,lbl){return '<button onclick="window._omSub=\''+v+'\';rOm()" style="font-size:12.5px;padding:6px 18px;border-radius:7px 7px 0 0;border:1px solid var(--bd);border-bottom:'+(sub===v?'2px solid #1a5c2e':'1px solid var(--bd)')+';background:'+(sub===v?'#fff':'var(--c2)')+';font-weight:'+(sub===v?'700':'400')+';color:'+(sub===v?'#1a5c2e':'#555')+';cursor:pointer">'+lbl+'</button>';}
-  el.innerHTML='<div style="display:flex;gap:4px;margin-bottom:0">'+tb('rec','Rec Situation')+tb('spray','Sprayer Utilization')+tb('stock','Stock')+tb('used','Stock Used')+tb('match','Field Matching')+'</div>'
+  el.innerHTML='<div style="display:flex;gap:4px;margin-bottom:0">'+tb('rec','Rec Situation')+tb('spray','Sprayer Utilization')+tb('stock','Stock')+tb('in','Stock In')+tb('used','Stock Used')+tb('match','Field Matching')+'</div>'
     +'<div id="om-body" style="border-top:2px solid #1a5c2e;padding-top:12px"><div style="padding:20px;color:var(--tx3)">Loading Omnia data…</div></div>';
-  if(sub==='spray')rOmSpray(); else if(sub==='match')rOmMatch(); else if(sub==='stock')rOmStock(); else if(sub==='used')rOmUsed(); else rOmRecs();
+  if(sub==='spray')rOmSpray(); else if(sub==='match')rOmMatch(); else if(sub==='stock')rOmStock(); else if(sub==='used')rOmUsed(); else if(sub==='in')rOmIn(); else rOmRecs();
 }
 var OMNIA_SUGGEST={"Rackham Farms|26 Acres":{"oid":"759779","on":"28 Acres","oha":11.4,"om27":"Uncropped"},"Rackham Farms|Barn Field (LFG)":{"oid":"759721","on":"Barn Field (Manor Farm)","oha":5.36,"om27":"Potatoes"},"Wretham|Airfield 3, 4, 9":{"oid":"759861","on":"Air Field 14","oha":5.42,"om27":"Maize"},"Euston|3  Acres  (in with Euston Allotments)":{"oid":"759172","on":"Euston Allotments","oha":10.7,"om27":"Sugar Beet"},"Euston|Euston Allotments (East)":{"oid":"759156","on":"Sapiston Allotments","oha":5.52,"om27":"Winter Wheat"},"Euston|Front Meadow (eus tress)":{"oid":"759144","on":"Front Meadow (Eus)","oha":12.9,"om27":"Winter Wheat"},"Euston|6 Acres":{"oid":"759249","on":"36 Acre","oha":12.9,"om27":"Maize"},"Euston|Magna Field.A":{"oid":"759190","on":"Magna Field","oha":23.9,"om27":"Solar Panels"},"Euston|Keepers Paddock":{"oid":"759331","on":"Pig Paddock","oha":3.76,"om27":"Winter Rye"},"Euston|4 Acres":{"oid":"759254","on":"Park 40 Acres","oha":15.09,"om27":"Winter Wheat"},"Euston|Hon Allotments":{"oid":"759172","on":"Euston Allotments","oha":10.7,"om27":"Sugar Beet"},"Euston|Village Hall":{"oid":"759181","on":"Village Hall (Headings)","oha":4.08,"om27":"Winter Wheat"},"Euston|Duffers Gore S (Headings)":{"oid":"759185","on":"Duffers Gore North (H)","oha":7.45,"om27":"Outdoor Pigs"},"Euston|Park Piece A":{"oid":"759210","on":"Park Piece","oha":15.4,"om27":"Bulb Onions - Dry"},"Euston|60 Acres":{"oid":"759249","on":"36 Acre","oha":12.9,"om27":"Maize"},"Euston|Leys North (Headings)":{"oid":"759263","on":"Flats North (Headings)","oha":13.05,"om27":"Stubble Turnips"},"Euston|Middle Breck N (Headings)":{"oid":"759329","on":"Mill Hill (Headings)","oha":6.77,"om27":"Stubble Turnips"},"Euston|Road Breck North (Headings)":{"oid":"759219","on":"Borley Close North (Headings)","oha":8.0,"om27":"Potatoes"},"Euston|Pit Field.A":{"oid":"791559","on":"Pin Field","oha":3.81,"om27":"Pheasants"},"Euston|25 Acres":{"oid":"759202","on":"19 Acres","oha":6.14,"om27":"Solar Panels"},"Euston|Hon Top Meadow":{"oid":"759160","on":"Sapiston Top Meadow","oha":2.43,"om27":"Amenity Tree"},"Euston|Allotment (Headings)":{"oid":"759219","on":"Borley Close North (Headings)","oha":8.0,"om27":"Potatoes"},"Euston|Chalk Pit (Headings)":{"oid":"759250","on":"40 Acre (Headings)","oha":11.7,"om27":"Maize"},"Beard|Back Field":{"oid":"759050","on":"Back Field - Not GPSd","oha":4.4,"om27":"Uncropped"},"Beard|Canada":{"oid":"759048","on":"Canada - Not GPSd","oha":5.0,"om27":"Uncropped"},"Beard|Observer Post_B":{"oid":"759058","on":"Observer Post","oha":5.4,"om27":"Uncropped"},"Beard|Pikel Right":{"oid":"759055","on":"Pickel L&R","oha":11.35,"om27":"Uncropped"},"Beard|Two Five Acres":{"oid":"759047","on":"Two Five Acres - Not GPSd","oha":3.8,"om27":"Uncropped"},"Chandler|30 Brek":{"oid":"759139","on":"37 Brek RPA","oha":13.4,"om27":"Parsnips"},"Pickenham|Gravel Pits":{"oid":"759519","on":"Gravel Pit ex Organic","oha":9.33,"om27":"Uncropped"},"Pickenham|Barrels":{"oid":"759482","on":"Barrells","oha":0,"om27":"Mid Tier Stewardship"},"Pickenham|Garden Field - RPA":{"oid":"759373","on":"Rearing Field A","oha":4.42,"om27":"Winter Wheat"},"Pickenham|Larwood Sheds 8.26":{"oid":"759597","on":"Larwood Sheds","oha":0,"om27":"Uncropped"},"Pickenham|Pickenham 1":{"oid":"759615","on":"North Pickenham 1","oha":12.46,"om27":"Uncropped"},"Pickenham|Pickenham 2":{"oid":"759679","on":"North Pickenham 2","oha":5.05,"om27":"Uncropped"},"Pickenham|Barn Breck_2":{"oid":"759555","on":"Barn Breck 1","oha":13.53,"om27":"Vining Peas"},"Pickenham|Caudle wood":{"oid":"759711","on":"Caudle","oha":16.47,"om27":"Uncropped"},"Pickenham|Sixteen Acres":{"oid":"759549","on":"Twelve Acres","oha":4.96,"om27":"Winter Wheat"},"Pickenham|Underbridge":{"oid":"759562","on":"Under Bridge Field","oha":7.62,"om27":"Winter Oilseed Rape"},"Pickenham|39 acre":{"oid":"759531","on":"13 Acres","oha":0,"om27":"Mid Tier Stewardship"},"Pickenham|Gravel Pit":{"oid":"759519","on":"Gravel Pit ex Organic","oha":9.33,"om27":"Uncropped"},"Pickenham|Claypits (SPEC)":{"oid":"759530","on":"Claypits","oha":0,"om27":"Carbon Trees"},"Warren|Barn Field (W)":{"oid":"759850","on":"Bridge Field","oha":15.02,"om27":"Game Cover"},"Euston|Lime Kiln (Eus) (B)":{"oid":"759294","on":"Lime Kiln (Euston)","oha":31.1,"om27":"Bulb Onions - Dry"},"Edwardstone/Borehouse|Grass":{"oid":"759033","on":"Great","oha":9.35,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Big Thistle.A":{"oid":"759039","on":"Big Thistle","oha":9.45,"om27":"Winter Oilseed Rape"},"Edwardstone/Borehouse|Big Thistle.B":{"oid":"759039","on":"Big Thistle","oha":9.45,"om27":"Winter Oilseed Rape"},"Edwardstone/Borehouse|Borehouse Mead":{"oid":"758995","on":"Borehouse","oha":11.48,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Coopers Wood.B":{"oid":"759016","on":"Coopers Wood","oha":8.16,"om27":"Winter Oilseed Rape"},"Edwardstone/Borehouse|Downhall.D":{"oid":"759015","on":"Downhall","oha":17.96,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Great.B":{"oid":"759033","on":"Great","oha":9.35,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Long West.B":{"oid":"759001","on":"Long West","oha":6.93,"om27":"Winter Oilseed Rape"},"Edwardstone/Borehouse|Mallens Meadow":{"oid":"759029","on":"Mallens","oha":17.4,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Panks.D":{"oid":"759034","on":"Panks","oha":13.72,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Pond.C":{"oid":"759002","on":"Pond","oha":30.4,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Tyney Wyent.D":{"oid":"759018","on":"Tyney Wyent","oha":16.71,"om27":"Winter Oilseed Rape"},"Euston|Eighty Five Acres (Pigs)":{"oid":"759173","on":"Eighty Five Acres (Rymer)","oha":36.56,"om27":"Maize"},"Euston|Duffers Gore N (Headings)":{"oid":"759185","on":"Duffers Gore North (H)","oha":7.45,"om27":"Outdoor Pigs"},"Euston|The Clint A East":{"oid":"759246","on":"The Clint","oha":6.1,"om27":"Bulb Onions - Dry"}};
 var OMNIA_GROUPS={"Euston":["Euston","Rymer"],"Wretham":["Wretham"],"Chandler":["Chandler"],"Pickenham":["Pickenham"],"Edwardstone/Borehouse":["Edwardstone"],"Rackham Farms":["Rackham","Manor Farm","Moorland Stud","Dolphin Farm","Manor Farm - Roudham"],"Blakeney":["Blakeney Park Farms","Blakeney park Farms"],"Beard":["Beard"],"Gooderham":["Gooderham"],"Warren":["WFP","Field Barn Farm"],"David Hill":["WFP","Field Barn Farm"]};
@@ -5549,12 +5549,101 @@ function rOmUsed(){
 
   });});
 }
+var _siQ='',_siType='',_siFrom='',_siTo='';
+function siInput(){
+  _siQ=(document.getElementById('si-q')||{}).value||'';
+  _siType=(document.getElementById('si-ty')||{}).value||'';
+  _siFrom=(document.getElementById('si-from')||{}).value||'';
+  _siTo=(document.getElementById('si-to')||{}).value||'';
+  rOmIn();
+}
+function rOmIn(){
+  var el=document.getElementById('om-body'); if(!el)return;
+  omniaCsv('StockTransactions.csv',function(txs){
+    if(!txs){el.innerHTML='<div style="padding:20px;color:#c0392b">Could not load Omnia data — check internet / relay.</div>';return;}
+    var allProds={},rows=[];
+    var IN=['Delivery','StockIn'],OUT=['Application','StockOut'];
+    txs.forEach(function(t){
+      if(t.HoldingId!=='15859')return;
+      var q=parseFloat(t.TransactionBulkQuantity||'')||0;
+      if(!q)return;
+      var d=(t.TransactionDate||'').slice(0,10); if(!d)return;
+      var p=t.ProductName||t.StockName; if(!p)return;
+      allProds[p]=1;
+      var ty=t.TransactionType||'';
+      if(_siQ&&p!==_siQ)return;
+      if(_siType==='in'&&IN.indexOf(ty)<0)return;
+      if(_siType==='out'&&OUT.indexOf(ty)<0)return;
+      if(_siType==='adj'&&(IN.indexOf(ty)>=0||OUT.indexOf(ty)>=0))return;
+      if(_siFrom&&d<_siFrom)return;
+      if(_siTo&&d>_siTo)return;
+      var dest='';
+      if(ty==='Application')dest=(t.TransactionDescription||'').replace(/^Spray plan '/,'').replace(/' \(.*$/,'')||'used on crop';
+      else if(IN.indexOf(ty)>=0)dest=[t.TransactionSupplierName||'',t.InvoiceNumber?('inv '+t.InvoiceNumber):''].filter(Boolean).join(' · ');
+      else dest=t.TransactionDescription||'';
+      rows.push({d:d,ty:ty,p:p,q:q,u:(t.BulkUnit||'').toLowerCase(),loc:t.LocationName||'',dest:dest,cost:parseFloat(t.TransactionCost||'')||0});
+    });
+    rows.sort(function(a,b){return b.d.localeCompare(a.d)||a.p.localeCompare(b.p);});
+    var MAXR=300,shown=rows.slice(0,MAXR);
+    function fmtD(d){return d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(2,4);}
+    function tyBadge(ty){
+      var col=IN.indexOf(ty)>=0?'#1a5c2e':(OUT.indexOf(ty)>=0?'#e67e22':'#888');
+      var lbl=ty==='Application'?'Used':(ty==='StockIn'?'Stock in':(ty==='EndOfYearTransfer'?'Yr transfer':(ty==='PreviousYearBalance'?'Opening bal':(ty==='QuantityUpdate'?'Adjustment':ty))));
+      return '<span style="font-size:9.5px;background:'+col+';color:#fff;border-radius:3px;padding:1px 6px;white-space:nowrap">'+lbl+'</span>';
+    }
+    var trs=shown.map(function(r){
+      var sign=OUT.indexOf(r.ty)>=0?'−':'+';
+      return '<tr>'
+        +'<td style="padding:3px 10px;font-size:11px;white-space:nowrap">'+fmtD(r.d)+'</td>'
+        +'<td style="padding:3px 10px">'+tyBadge(r.ty)+'</td>'
+        +'<td style="padding:3px 10px;font-size:11.5px;font-weight:600">'+r.p+'</td>'
+        +'<td style="padding:3px 10px;font-size:11.5px;text-align:right;white-space:nowrap;color:'+(sign==='+'?'#1a5c2e':'#8a4500')+'">'+sign+(Math.abs(r.q)>=100?Math.round(r.q).toLocaleString():Math.round(r.q*100)/100)+' '+(r.u==='litre'?'L':r.u)+'</td>'
+        +'<td style="padding:3px 10px;font-size:11px;white-space:nowrap">'+r.loc+'</td>'
+        +'<td style="padding:3px 10px;font-size:11px;max-width:300px">'+r.dest+'</td>'
+        +'<td style="padding:3px 10px;font-size:11px;text-align:right;color:var(--tx3);white-space:nowrap">'+(r.cost?'£'+r.cost.toFixed(0):'')+'</td>'
+        +'</tr>';
+    }).join('');
+    function opt(v,lbl,cur){return '<option value="'+v+'"'+(cur===v?' selected':'')+'>'+lbl+'</option>';}
+    el.innerHTML='<div style="max-width:1100px">'
+      +'<h2 style="font-size:16px;font-weight:normal;color:var(--g1);margin-bottom:2px">Stock In / Out</h2>'
+      +'<div style="font-size:11px;color:var(--tx3);margin-bottom:10px">Every stock movement from Omnia — deliveries in (with supplier and invoice) and where stock went (the rec it was used on).</div>'
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px">'
+      +'<div><label style="font-size:10px;color:var(--tx3);display:block">PRODUCT</label>'
+      +'<select id="si-q" onchange="siInput()" style="font-size:12px;padding:6px 10px;border:1px solid var(--bd);border-radius:6px;max-width:240px"><option value="">All products</option>'
+      +Object.keys(allProds).sort(function(a,b){return a.toLowerCase().localeCompare(b.toLowerCase());}).map(function(p){return opt(p.replace(/"/g,'&quot;'),p.replace(/</g,'&lt;'),_siQ);}).join('')
+      +'</select></div>'
+      +'<div><label style="font-size:10px;color:var(--tx3);display:block">TYPE</label>'
+      +'<select id="si-ty" onchange="siInput()" style="font-size:12px;padding:6px 10px;border:1px solid var(--bd);border-radius:6px">'
+      +opt('','All movements',_siType)+opt('in','Deliveries / stock in',_siType)+opt('out','Used on crop',_siType)+opt('adj','Adjustments / balances',_siType)
+      +'</select></div>'
+      +'<div><label style="font-size:10px;color:var(--tx3);display:block">FROM</label>'
+      +'<input id="si-from" type="date" value="'+_siFrom+'" onchange="siInput()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd);border-radius:6px"></div>'
+      +'<div><label style="font-size:10px;color:var(--tx3);display:block">TO</label>'
+      +'<input id="si-to" type="date" value="'+_siTo+'" onchange="siInput()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd);border-radius:6px"></div>'
+      +'<div style="font-size:11px;color:var(--tx3);padding-bottom:7px">'+rows.length+' movement'+(rows.length===1?'':'s')+'</div>'
+      +'</div>'
+      +'<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden">'
+      +'<table style="border-collapse:collapse;width:100%"><thead><tr style="background:var(--c2)">'
+      +'<th style="padding:3px 10px;font-size:10px;text-align:left">Date</th>'
+      +'<th style="padding:3px 10px;font-size:10px;text-align:left">Type</th>'
+      +'<th style="padding:3px 10px;font-size:10px;text-align:left">Product</th>'
+      +'<th style="padding:3px 10px;font-size:10px;text-align:right">Qty</th>'
+      +'<th style="padding:3px 10px;font-size:10px;text-align:left">Store</th>'
+      +'<th style="padding:3px 10px;font-size:10px;text-align:left">Supplier / went to</th>'
+      +'<th style="padding:3px 10px;font-size:10px;text-align:right">Cost</th>'
+      +'</tr></thead><tbody>'+(trs||'<tr><td colspan="7" style="padding:14px;color:var(--tx3);font-size:11.5px">Nothing matches that filter.</td></tr>')+'</tbody></table>'
+      +(rows.length>MAXR?'<div style="padding:5px 14px;font-size:10.5px;color:var(--tx3)">Showing newest '+MAXR+' of '+rows.length+' — narrow the filters to see the rest.</div>':'')
+      +'</div></div>';
+  });
+}
 function rOmStock(){
   var el=document.getElementById('om-body'); if(!el)return;
+  omniaCsv('Fields.csv',function(frows){
   omniaCsv('Stocks.csv',function(srows){
   omniaCsv('Plans.csv',function(prows){
   omniaCsv('Records.csv',function(rrows){
     if(!srows||!prows){el.innerHTML='<div style="padding:20px;color:#c0392b">Could not load Omnia data — check internet / relay.</div>';return;}
+    var fgrp={};(frows||[]).forEach(function(r){if(r.HoldingId==='15859')fgrp[r.FieldId]=r.FieldGroup||'Other';});
     // current stock: latest-year row per location+product
     var stock={}; // key loc|prodkey
     srows.filter(function(s){return s.HoldingId==='15859'&&s.Year>='2026';})
@@ -5569,7 +5658,7 @@ function rOmStock(){
       if(r.CroppingStatus==='Done'||r.CroppingStatus==='PartiallyDone')(done[r.PlanKey]=done[r.PlanKey]||{})[r.FieldId]=1;
     });
     // need per product from open / outstanding plan rows
-    var need={},needName={},needUnit={},needBy={},skipped=0;
+    var need={},needName={},needUnit={},needBy={},needArea={},skipped=0;
     prows.forEach(function(p){
       if(p.HoldingId!=='15859'||p.Year<'2026')return;
       if(['Published','Draft','Started'].indexOf(p.Status)<0)return;
@@ -5588,6 +5677,9 @@ function rOmStock(){
       var nb=needBy[k]||(needBy[k]={});
       var pid='#'+p.PlanNumber+' '+p.PlanName+' ('+p.Year+')';
       nb[pid]=(nb[pid]||0)+q;
+      var fg=fgrp[p.FieldId]||'Other';
+      var na=needArea[fg]||(needArea[fg]={});
+      na[k]=(na[k]||0)+q;
     });
     // allocate need across locations holding the product (proportional to stock, else first)
     var byLoc={},matched={};
@@ -5652,12 +5744,41 @@ function rOmStock(){
         }).join('')
        +'</div>'
       :'';
+    var areaHtml='';
+    var areaKeys=Object.keys(needArea).sort();
+    if(areaKeys.length){
+      areaHtml='<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px">'
+        +'<div style="padding:8px 14px;background:#0d47a1;color:#fff;font-weight:700;font-size:13px">Needed for open recs — by area (ordering guide)</div>'
+        +areaKeys.map(function(ar){
+          var pks=Object.keys(needArea[ar]).sort(function(a,b){return (needName[a]||'').localeCompare(needName[b]||'');});
+          var trs=pks.map(function(pk){
+            var needQ=needArea[ar][pk];
+            var st=stock[ar+'|'+pk];
+            var have=st?Math.max(st.qty,0):null;
+            var order=have===null?needQ:Math.max(needQ-have,0);
+            return '<tr>'
+              +'<td style="padding:3px 10px;font-size:11.5px;font-weight:600">'+(needName[pk]||pk)+'</td>'
+              +'<td style="padding:3px 10px;font-size:11.5px;text-align:right;white-space:nowrap">'+fmt(needQ,needUnit[pk])+'</td>'
+              +'<td style="padding:3px 10px;font-size:11px;text-align:right;white-space:nowrap;color:var(--tx3)">'+(have===null?'no store here':fmt(have,needUnit[pk])+' in store')+'</td>'
+              +'<td style="padding:3px 10px;font-size:11.5px;text-align:right;white-space:nowrap;font-weight:700;color:'+(order>0.01?'#c0392b':'#1a5c2e')+'">'+(order>0.01?fmt(order,needUnit[pk]):'✓ covered')+'</td>'
+              +'</tr>';
+          }).join('');
+          return '<div style="padding:7px 14px 3px;font-weight:700;font-size:12.5px;color:#0d47a1;border-top:1px solid var(--bd)">'+ar+'</div>'
+            +'<table style="border-collapse:collapse;width:100%"><thead><tr style="background:var(--c2)">'
+            +'<th style="padding:3px 10px;font-size:10px;text-align:left">Product</th>'
+            +'<th style="padding:3px 10px;font-size:10px;text-align:right">Needed</th>'
+            +'<th style="padding:3px 10px;font-size:10px;text-align:right">In that store</th>'
+            +'<th style="padding:3px 10px;font-size:10px;text-align:right">To order</th>'
+            +'</tr></thead><tbody>'+trs+'</tbody></table>';
+        }).join('')
+        +'</div>';
+    }
     el.innerHTML='<div style="max-width:1000px">'
       +'<h2 style="font-size:16px;font-weight:normal;color:var(--g1);margin-bottom:2px">Stock</h2>'
       +'<div style="font-size:11px;color:var(--tx3);margin-bottom:12px">Levels from Omnia’s stock records per store. “Open recs need” = product required to finish every open and part-done rec (l/ha × outstanding area). '+(skipped?skipped+' plan lines without a usable rate/area not counted.':'')+'</div>'
-      +missHtml+locHtml
+      +areaHtml+missHtml+locHtml
       +'</div>';
-  });});});
+  });});});});
 }
 function rOmSpray(){
   var el=document.getElementById('om-body'); if(!el)return;
