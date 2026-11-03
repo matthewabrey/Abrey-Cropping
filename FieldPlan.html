@@ -5311,8 +5311,8 @@ function omniaSyncFields(){
     try{if(tab==='pl'&&typeof aF==='function')aF();}catch(e){}
   });
 }
-function rOm(){
-  var el=document.getElementById('om'); if(!el)return;
+function rOmRecs(){
+  var el=document.getElementById('om-body'); if(!el)return;
   el.innerHTML='<div style="padding:20px;color:var(--tx3)">Loading Omnia recommendations…</div>';
   omniaCsv('Fields.csv',function(frows){
   omniaCsv('Plans.csv',function(prows){
@@ -5370,7 +5370,7 @@ function rOm(){
     var o2=fil(open),s2=fil(started),f2=fil(finished);
     var yrBtn=function(v,lbl){return '<button onclick="window._omYr=\''+v+'\';rOm()" style="font-size:11.5px;padding:4px 14px;border-radius:5px;border:1px solid '+(yrSel===v?'#1a5c2e':'var(--bd)')+';background:'+(yrSel===v?'#1a5c2e':'#fff')+';color:'+(yrSel===v?'#fff':'#333')+';cursor:pointer">'+lbl+'</button>';};
     el.innerHTML='<div style="max-width:1100px">'
-      +'<h2 style="font-size:16px;font-weight:normal;color:var(--g1);margin-bottom:2px">Omnia — Recommendations</h2>'
+      +'<h2 style="font-size:16px;font-weight:normal;color:var(--g1);margin-bottom:2px">Rec Situation</h2>'
       +'<div style="font-size:11px;color:var(--tx3);margin-bottom:10px">Live from the Omnia daily export (refreshes ~4am). Status comes from Omnia; “done” counts from recorded operations.</div>'
       +'<div style="display:flex;gap:6px;margin-bottom:14px">'+yrBtn('all','All years')+yrBtn('2026','2026')+yrBtn('2027','2027')+yrBtn('2028','2028')+'</div>'
       +section('● Open — not started','#c0392b',o2,false,'Nothing open — all caught up.')
@@ -5378,6 +5378,90 @@ function rOm(){
       +section('✓ Finished','#1a5c2e',f2,false,'None finished yet.')
       +'<div style="font-size:10.5px;color:var(--tx3)">'+untracked+' older plan'+(untracked===1?'':'s')+' without a status and '+abandoned+' abandoned not shown. Recommendations cover crop protection, fertiliser, manure and seed plans from 2026 onwards.</div>'
       +'</div>';
+  });});});
+}
+function rOm(){
+  var el=document.getElementById('om'); if(!el)return;
+  var sub=window._omSub||'rec';
+  function tb(v,lbl){return '<button onclick="window._omSub=\''+v+'\';rOm()" style="font-size:12.5px;padding:6px 18px;border-radius:7px 7px 0 0;border:1px solid var(--bd);border-bottom:'+(sub===v?'2px solid #1a5c2e':'1px solid var(--bd)')+';background:'+(sub===v?'#fff':'var(--c2)')+';font-weight:'+(sub===v?'700':'400')+';color:'+(sub===v?'#1a5c2e':'#555')+';cursor:pointer">'+lbl+'</button>';}
+  el.innerHTML='<div style="display:flex;gap:4px;margin-bottom:0">'+tb('rec','Rec Situation')+tb('spray','Sprayer Utilization')+'</div>'
+    +'<div id="om-body" style="border-top:2px solid #1a5c2e;padding-top:12px"><div style="padding:20px;color:var(--tx3)">Loading Omnia data…</div></div>';
+  if(sub==='spray')rOmSpray(); else rOmRecs();
+}
+function rOmSpray(){
+  var el=document.getElementById('om-body'); if(!el)return;
+  omniaCsv('Users.csv',function(urows){
+  omniaCsv('Fields.csv',function(frows){
+  omniaCsv('Records.csv',function(rrows){
+    if(!rrows){el.innerHTML='<div style="padding:20px;color:#c0392b">Could not load Omnia data — check internet / relay.</div>';return;}
+    var uname={};(urows||[]).forEach(function(u){uname[u.UserId]=((u.FirstName||'')+' '+(u.LastName||'')).trim();});
+    var fname={};(frows||[]).forEach(function(r){if(r.HoldingId==='15859')fname[r.FieldId]=r.FieldName;});
+    var days=[];
+    for(var d=1;d<=7;d++){days.push(new Date(Date.now()-d*86400000).toISOString().slice(0,10));}
+    var jobs={};
+    rrows.forEach(function(r){
+      if(r.HoldingId!=='15859'||r.Type!=='Spraying')return;
+      var t=(r.EndTime||r.StartTime||'').slice(0,10);
+      if(days.indexOf(t)<0)return;
+      var j=jobs[r.RecordKey]||(jobs[r.RecordKey]={day:t,time:(r.EndTime||'').slice(11,16),
+        by:uname[r.CreatedBy]||('User '+r.CreatedBy),
+        rig:(r.OperationName||'').replace('Spraying','').replace(/[()]/g,'').trim()||'—',
+        plan:r.PlanName||r.TaskName||'',prods:[],fields:{}});
+      if(r.ProductName&&j.prods.indexOf(r.ProductName)<0)j.prods.push(r.ProductName);
+      if(r.FieldId&&!(r.FieldId in j.fields))j.fields[r.FieldId]=parseFloat(r.CroppingRecordArea||'')||0;
+    });
+    var byday={},opTot={},totHa=0;
+    Object.keys(jobs).forEach(function(k){
+      var j=jobs[k],ha=0;
+      for(var f in j.fields)ha+=j.fields[f];
+      j.ha=ha;j.nf=Object.keys(j.fields).length;totHa+=ha;
+      j.fldNames=Object.keys(j.fields).map(function(x){return fname[x]||('#'+x);}).sort();
+      (byday[j.day]=byday[j.day]||[]).push(j);
+      var kk=j.by+'|'+j.rig;
+      opTot[kk]=(opTot[kk]||0)+ha;
+    });
+    var cards=Object.keys(opTot).sort().map(function(k){
+      var p=k.split('|');
+      return '<div style="background:#fff;border:1px solid var(--bd);border-radius:9px;padding:10px 16px;min-width:150px">'
+        +'<div style="font-weight:700;font-size:13px;color:#1a5c2e">'+p[0]+'</div>'
+        +'<div style="font-size:10.5px;color:var(--tx3)">'+p[1]+'</div>'
+        +'<div style="font-size:17px;font-weight:700;margin-top:3px">'+opTot[k].toFixed(1)+' ha</div>'
+        +'<div style="font-size:10px;color:var(--tx3)">last 7 days</div></div>';
+    }).join('');
+    var dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var html=Object.keys(byday).length===0
+      ?'<div style="padding:16px;color:var(--tx3)">No spraying recorded in the last 7 days.</div>'
+      :days.filter(function(d2){return byday[d2];}).map(function(d2,ix){
+        var dt=new Date(d2+'T12:00:00');
+        var lbl=dayNames[dt.getDay()]+' '+dt.getDate()+'/'+(dt.getMonth()+1);
+        var rows=byday[d2].sort(function(a,b){return (b.time||'').localeCompare(a.time||'');}).map(function(j){
+          return '<tr>'
+            +'<td style="padding:4px 8px;font-size:11px;white-space:nowrap">'+(j.time||'')+'</td>'
+            +'<td style="padding:4px 8px;font-size:11.5px;font-weight:600;white-space:nowrap">'+j.by+'</td>'
+            +'<td style="padding:4px 8px;font-size:11px;white-space:nowrap">'+j.rig+'</td>'
+            +'<td style="padding:4px 8px;font-size:11px">'+j.plan+'<div style="font-size:10px;color:var(--tx3)">'+j.prods.join(' + ')+'</div></td>'
+            +'<td style="padding:4px 8px;font-size:10.5px;max-width:320px">'+j.fldNames.join(', ')+'</td>'
+            +'<td style="padding:4px 8px;font-size:11.5px;text-align:right;font-weight:600;white-space:nowrap">'+j.ha.toFixed(1)+' ha</td>'
+            +'</tr>';
+        }).join('');
+        var dayHa=byday[d2].reduce(function(a,j){return a+j.ha;},0);
+        return '<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:14px">'
+          +'<div style="padding:7px 14px;background:'+(d2===days[0]?'#e67e22':'#1a5c2e')+';color:#fff;font-weight:700;font-size:12.5px">'
+          +lbl+(d2===days[0]?' — yesterday':'')+' · '+dayHa.toFixed(1)+' ha</div>'
+          +'<table style="border-collapse:collapse;width:100%"><thead><tr style="background:var(--c2)">'
+          +'<th style="padding:4px 8px;font-size:10px;text-align:left">Time</th>'
+          +'<th style="padding:4px 8px;font-size:10px;text-align:left">Operator</th>'
+          +'<th style="padding:4px 8px;font-size:10px;text-align:left">Sprayer</th>'
+          +'<th style="padding:4px 8px;font-size:10px;text-align:left">Rec / products</th>'
+          +'<th style="padding:4px 8px;font-size:10px;text-align:left">Fields</th>'
+          +'<th style="padding:4px 8px;font-size:10px;text-align:right">Area</th>'
+          +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+      }).join('');
+    el.innerHTML='<div style="max-width:1100px">'
+      +'<h2 style="font-size:16px;font-weight:normal;color:var(--g1);margin-bottom:2px">Sprayer Utilization — last 7 days</h2>'
+      +'<div style="font-size:11px;color:var(--tx3);margin-bottom:10px">From Omnia recorded spray operations (daily export, ~4am). Total: '+totHa.toFixed(1)+' ha.</div>'
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'+cards+'</div>'
+      +html+'</div>';
   });});});
 }
 async function ghPush(message){
