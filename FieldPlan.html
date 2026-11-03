@@ -5384,9 +5384,74 @@ function rOm(){
   var el=document.getElementById('om'); if(!el)return;
   var sub=window._omSub||'rec';
   function tb(v,lbl){return '<button onclick="window._omSub=\''+v+'\';rOm()" style="font-size:12.5px;padding:6px 18px;border-radius:7px 7px 0 0;border:1px solid var(--bd);border-bottom:'+(sub===v?'2px solid #1a5c2e':'1px solid var(--bd)')+';background:'+(sub===v?'#fff':'var(--c2)')+';font-weight:'+(sub===v?'700':'400')+';color:'+(sub===v?'#1a5c2e':'#555')+';cursor:pointer">'+lbl+'</button>';}
-  el.innerHTML='<div style="display:flex;gap:4px;margin-bottom:0">'+tb('rec','Rec Situation')+tb('spray','Sprayer Utilization')+'</div>'
+  el.innerHTML='<div style="display:flex;gap:4px;margin-bottom:0">'+tb('rec','Rec Situation')+tb('spray','Sprayer Utilization')+tb('match','Field Matching')+'</div>'
     +'<div id="om-body" style="border-top:2px solid #1a5c2e;padding-top:12px"><div style="padding:20px;color:var(--tx3)">Loading Omnia data…</div></div>';
-  if(sub==='spray')rOmSpray(); else rOmRecs();
+  if(sub==='spray')rOmSpray(); else if(sub==='match')rOmMatch(); else rOmRecs();
+}
+var OMNIA_SUGGEST={"Rackham Farms|26 Acres":{"oid":"759779","on":"28 Acres","oha":11.4,"om27":"Uncropped"},"Rackham Farms|Barn Field (LFG)":{"oid":"759721","on":"Barn Field (Manor Farm)","oha":5.36,"om27":"Potatoes"},"Wretham|Airfield 3, 4, 9":{"oid":"759861","on":"Air Field 14","oha":5.42,"om27":"Maize"},"Euston|3  Acres  (in with Euston Allotments)":{"oid":"759172","on":"Euston Allotments","oha":10.7,"om27":"Sugar Beet"},"Euston|Euston Allotments (East)":{"oid":"759156","on":"Sapiston Allotments","oha":5.52,"om27":"Winter Wheat"},"Euston|Front Meadow (eus tress)":{"oid":"759144","on":"Front Meadow (Eus)","oha":12.9,"om27":"Winter Wheat"},"Euston|6 Acres":{"oid":"759249","on":"36 Acre","oha":12.9,"om27":"Maize"},"Euston|Magna Field.A":{"oid":"759190","on":"Magna Field","oha":23.9,"om27":"Solar Panels"},"Euston|Keepers Paddock":{"oid":"759331","on":"Pig Paddock","oha":3.76,"om27":"Winter Rye"},"Euston|4 Acres":{"oid":"759254","on":"Park 40 Acres","oha":15.09,"om27":"Winter Wheat"},"Euston|Hon Allotments":{"oid":"759172","on":"Euston Allotments","oha":10.7,"om27":"Sugar Beet"},"Euston|Village Hall":{"oid":"759181","on":"Village Hall (Headings)","oha":4.08,"om27":"Winter Wheat"},"Euston|Duffers Gore S (Headings)":{"oid":"759185","on":"Duffers Gore North (H)","oha":7.45,"om27":"Outdoor Pigs"},"Euston|Park Piece A":{"oid":"759210","on":"Park Piece","oha":15.4,"om27":"Bulb Onions - Dry"},"Euston|60 Acres":{"oid":"759249","on":"36 Acre","oha":12.9,"om27":"Maize"},"Euston|Leys North (Headings)":{"oid":"759263","on":"Flats North (Headings)","oha":13.05,"om27":"Stubble Turnips"},"Euston|Middle Breck N (Headings)":{"oid":"759329","on":"Mill Hill (Headings)","oha":6.77,"om27":"Stubble Turnips"},"Euston|Road Breck North (Headings)":{"oid":"759219","on":"Borley Close North (Headings)","oha":8.0,"om27":"Potatoes"},"Euston|Pit Field.A":{"oid":"791559","on":"Pin Field","oha":3.81,"om27":"Pheasants"},"Euston|25 Acres":{"oid":"759202","on":"19 Acres","oha":6.14,"om27":"Solar Panels"},"Euston|Hon Top Meadow":{"oid":"759160","on":"Sapiston Top Meadow","oha":2.43,"om27":"Amenity Tree"},"Euston|Allotment (Headings)":{"oid":"759219","on":"Borley Close North (Headings)","oha":8.0,"om27":"Potatoes"},"Euston|Chalk Pit (Headings)":{"oid":"759250","on":"40 Acre (Headings)","oha":11.7,"om27":"Maize"},"Beard|Back Field":{"oid":"759050","on":"Back Field - Not GPSd","oha":4.4,"om27":"Uncropped"},"Beard|Canada":{"oid":"759048","on":"Canada - Not GPSd","oha":5.0,"om27":"Uncropped"},"Beard|Observer Post_B":{"oid":"759058","on":"Observer Post","oha":5.4,"om27":"Uncropped"},"Beard|Pikel Right":{"oid":"759055","on":"Pickel L&R","oha":11.35,"om27":"Uncropped"},"Beard|Two Five Acres":{"oid":"759047","on":"Two Five Acres - Not GPSd","oha":3.8,"om27":"Uncropped"},"Chandler|30 Brek":{"oid":"759139","on":"37 Brek RPA","oha":13.4,"om27":"Parsnips"},"Pickenham|Gravel Pits":{"oid":"759519","on":"Gravel Pit ex Organic","oha":9.33,"om27":"Uncropped"},"Pickenham|Barrels":{"oid":"759482","on":"Barrells","oha":0,"om27":"Mid Tier Stewardship"},"Pickenham|Garden Field - RPA":{"oid":"759373","on":"Rearing Field A","oha":4.42,"om27":"Winter Wheat"},"Pickenham|Larwood Sheds 8.26":{"oid":"759597","on":"Larwood Sheds","oha":0,"om27":"Uncropped"},"Pickenham|Pickenham 1":{"oid":"759615","on":"North Pickenham 1","oha":12.46,"om27":"Uncropped"},"Pickenham|Pickenham 2":{"oid":"759679","on":"North Pickenham 2","oha":5.05,"om27":"Uncropped"},"Pickenham|Barn Breck_2":{"oid":"759555","on":"Barn Breck 1","oha":13.53,"om27":"Vining Peas"},"Pickenham|Caudle wood":{"oid":"759711","on":"Caudle","oha":16.47,"om27":"Uncropped"},"Pickenham|Sixteen Acres":{"oid":"759549","on":"Twelve Acres","oha":4.96,"om27":"Winter Wheat"},"Pickenham|Underbridge":{"oid":"759562","on":"Under Bridge Field","oha":7.62,"om27":"Winter Oilseed Rape"},"Pickenham|39 acre":{"oid":"759531","on":"13 Acres","oha":0,"om27":"Mid Tier Stewardship"},"Pickenham|Gravel Pit":{"oid":"759519","on":"Gravel Pit ex Organic","oha":9.33,"om27":"Uncropped"},"Pickenham|Claypits (SPEC)":{"oid":"759530","on":"Claypits","oha":0,"om27":"Carbon Trees"},"Warren|Barn Field (W)":{"oid":"759850","on":"Bridge Field","oha":15.02,"om27":"Game Cover"},"Euston|Lime Kiln (Eus) (B)":{"oid":"759294","on":"Lime Kiln (Euston)","oha":31.1,"om27":"Bulb Onions - Dry"},"Edwardstone/Borehouse|Grass":{"oid":"759033","on":"Great","oha":9.35,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Big Thistle.A":{"oid":"759039","on":"Big Thistle","oha":9.45,"om27":"Winter Oilseed Rape"},"Edwardstone/Borehouse|Big Thistle.B":{"oid":"759039","on":"Big Thistle","oha":9.45,"om27":"Winter Oilseed Rape"},"Edwardstone/Borehouse|Borehouse Mead":{"oid":"758995","on":"Borehouse","oha":11.48,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Coopers Wood.B":{"oid":"759016","on":"Coopers Wood","oha":8.16,"om27":"Winter Oilseed Rape"},"Edwardstone/Borehouse|Downhall.D":{"oid":"759015","on":"Downhall","oha":17.96,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Great.B":{"oid":"759033","on":"Great","oha":9.35,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Long West.B":{"oid":"759001","on":"Long West","oha":6.93,"om27":"Winter Oilseed Rape"},"Edwardstone/Borehouse|Mallens Meadow":{"oid":"759029","on":"Mallens","oha":17.4,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Panks.D":{"oid":"759034","on":"Panks","oha":13.72,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Pond.C":{"oid":"759002","on":"Pond","oha":30.4,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Tyney Wyent.D":{"oid":"759018","on":"Tyney Wyent","oha":16.71,"om27":"Winter Oilseed Rape"},"Euston|Eighty Five Acres (Pigs)":{"oid":"759173","on":"Eighty Five Acres (Rymer)","oha":36.56,"om27":"Maize"},"Euston|Duffers Gore N (Headings)":{"oid":"759185","on":"Duffers Gore North (H)","oha":7.45,"om27":"Outdoor Pigs"},"Euston|The Clint A East":{"oid":"759246","on":"The Clint","oha":6.1,"om27":"Bulb Onions - Dry"}};
+var OMNIA_GROUPS={"Euston":["Euston","Rymer"],"Wretham":["Wretham"],"Chandler":["Chandler"],"Pickenham":["Pickenham"],"Edwardstone/Borehouse":["Edwardstone"],"Rackham Farms":["Rackham","Manor Farm","Moorland Stud","Dolphin Farm","Manor Farm - Roudham"],"Blakeney":["Blakeney Park Farms","Blakeney park Farms"],"Beard":["Beard"],"Gooderham":["Gooderham"],"Warren":["WFP","Field Barn Farm"],"David Hill":["WFP","Field Barn Farm"]};
+function omMatchSet(fi,oid){
+  if(oid)F[fi].oid=oid;
+  rOmMatch();
+}
+function omMatchPickChange(fi,sel){
+  var v=sel.value;
+  if(v)omMatchSet(fi,v);
+}
+function rOmMatch(){
+  var el=document.getElementById('om-body'); if(!el)return;
+  if(!_omFieldsCache){
+    el.innerHTML='<div style="padding:20px;color:var(--tx3)">Loading Omnia field list…</div>';
+    omniaCsv('Fields.csv',function(){rOmMatch();});
+    return;
+  }
+  var used={};
+  F.forEach(function(f){if(f.oid&&f.oid!=='none')used[f.oid]=f.field;});
+  var omByGroup={};
+  _omFieldsCache.forEach(function(r){
+    if(r.HoldingId!=='15859')return;
+    (omByGroup[r.FieldGroup]=omByGroup[r.FieldGroup]||[]).push(r);
+  });
+  var todo=[];
+  F.forEach(function(f,fi){ if(!f.oid)todo.push([fi,f]); });
+  var decided=F.filter(function(f){return f.oid;}).length;
+  var rows=todo.map(function(t){
+    var fi=t[0],f=t[1];
+    var s=OMNIA_SUGGEST[f.estate+'|'+f.field];
+    var fp27=(f.history&&f.history['2027'])||(f.plan&&f.plan['2027'])||'';
+    var grps=OMNIA_GROUPS[f.estate]||[];
+    var opts=[];
+    grps.forEach(function(g){(omByGroup[g]||[]).forEach(function(r){opts.push(r);});});
+    opts.sort(function(a,b){return a.FieldName.localeCompare(b.FieldName);});
+    var optHtml='<option value="">— pick the right Omnia field —</option>'+opts.map(function(r){
+      var ha=parseFloat(r.WorkingArea||'')||0;
+      var tag=used[r.FieldId]?' ✓ linked':'';
+      return '<option value="'+r.FieldId+'">'+r.FieldName.replace(/</g,'&lt;')+' ('+ha.toFixed(1)+'ha · '+r.FieldGroup+tag+')</option>';
+    }).join('');
+    var sugHtml=s
+      ?'<div style="font-size:11.5px;margin:3px 0">Suggest: <strong>'+s.on+'</strong> <span style="color:var(--tx3)">('+s.oha+'ha'+(s.om27?' · 2027: '+s.om27:'')+')</span></div>'
+       +'<button onclick="omMatchSet('+fi+',\''+s.oid+'\')" style="font-size:11.5px;padding:4px 16px;background:#1a5c2e;color:#fff;border:none;border-radius:5px;cursor:pointer;margin-right:6px">✓ Yes, that’s it</button>'
+      :'<div style="font-size:11.5px;margin:3px 0;color:var(--tx3)">No suggestion — pick below or mark no match.</div>';
+    return '<div style="padding:10px 14px;border-bottom:1px solid var(--bd)">'
+      +'<div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">'
+      +'<span style="font-weight:700;font-size:13px">'+f.field+'</span>'
+      +'<span style="font-size:11px;color:var(--tx3)">'+f.estate+' · '+f.ha.toFixed(1)+'ha'+(fp27?' · 2027: '+fp27:'')+'</span>'
+      +'</div>'
+      +sugHtml
+      +'<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
+      +'<select onchange="omMatchPickChange('+fi+',this)" style="font-size:11px;padding:4px;max-width:340px;border:1px solid var(--bd);border-radius:5px">'+optHtml+'</select>'
+      +'<button onclick="omMatchSet('+fi+',\'none\')" style="font-size:11px;padding:4px 12px;background:#fff;border:1px solid var(--bd);border-radius:5px;cursor:pointer;color:#777">No match in Omnia</button>'
+      +'</div></div>';
+  }).join('');
+  el.innerHTML='<div style="max-width:900px">'
+    +'<h2 style="font-size:16px;font-weight:normal;color:var(--g1);margin-bottom:2px">Field Matching</h2>'
+    +'<div style="font-size:11.5px;color:var(--tx3);margin-bottom:10px">'+todo.length+' field'+(todo.length===1?'':'s')+' not yet linked to Omnia ('+decided+' linked). Decisions apply straight away — press <strong>Save</strong> when done so everyone gets them.</div>'
+    +(todo.length?'<div style="margin-bottom:10px"><button onclick="saveToGitHub(\'Omnia field matching decisions\')" style="font-size:12px;padding:6px 20px;background:#e67e22;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">💾 Save decisions</button></div>':'')
+    +'<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden">'
+    +(rows||'<div style="padding:16px;color:#1a5c2e;font-weight:600">All fields are linked — nothing to do 🎉</div>')
+    +'</div>'
+    +(todo.length?'<div style="margin-top:10px"><button onclick="saveToGitHub(\'Omnia field matching decisions\')" style="font-size:12px;padding:6px 20px;background:#e67e22;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">💾 Save decisions</button></div>':'')
+    +'</div>';
 }
 function rOmSpray(){
   var el=document.getElementById('om-body'); if(!el)return;
