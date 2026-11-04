@@ -2317,6 +2317,8 @@ function addMsg(cls,html){
 var WATER_CFG={"zones":[{"name":"Rackham — Dolphin Farm","machines":3,"estate":"Rackham Farms","zone":"Dolphin Farm","gal":40000000,"rate":30},{"name":"Rackham — Moorland Stud","machines":2,"estate":"Rackham Farms","zone":"Moorland Stud","gal":23000000,"rate":30},{"name":"Rackham — Lodge Farm","machines":4,"estate":"Rackham Farms","zone":"Lodge Farm Gasthorpe","gal":47000000,"rate":30},{"name":"Rackham — Manor Farm","machines":4,"estate":"Rackham Farms","zone":"Manor Farm Bridgham","gal":55000000,"rate":30},{"name":"Blakeney + Wretham","machines":16,"estate":"__BW","zone":"__BW","gal":125000000,"rate":25},{"name":"Euston — Bore/West Pump","machines":5,"estate":"Euston","zone":"__BORWEST","gal":52000000,"rate":38},{"name":"Euston — Main Pump","machines":12,"estate":"Euston","zone":"__MAIN","gal":160000000,"rate":38},{"name":"Pickenham — SPEC","machines":10,"estate":"Pickenham","zone":"SPEC","gal":117000000,"rate":48},{"name":"Pickenham — PFC","machines":10,"estate":"Pickenham","zone":"PFC","gal":170000000,"rate":48},{"name":"Chandler","machines":5,"estate":"Chandler","zone":"__ALL","gal":60000000,"rate":42},{"name":"Gooderham — Home Farm","machines":3,"estate":"Gooderham","zone":"Home Farm","gal":25000000,"rate":65},{"name":"Gooderham — Snare Hill","machines":3,"estate":"Gooderham","zone":"Snare Hill","gal":25000000,"rate":65}]};
 var WC = {Potatoes:11.12,'Salad Potatoes':9.37,Carrots:6.54,Onions:4.91,Parsnips:9.44};
 var WC_VAR={};
+var WC_NOTE={};
+function zRateAcIn(z){return z.basis==='app'?(z.rate/0.7874):z.rate;}
 function wcRate(f,yr){
   var c=gc(f,yr);
   var base=WC[c];
@@ -2332,7 +2334,9 @@ function waterRatesHtml(){
     return '<div style="display:flex;align-items:center;gap:6px">'
       +'<span style="font-size:12px;min-width:110px">'+p[0]+'</span>'
       +'<input type="number" value="'+p[1]+'" step="0.01" onchange="WC[\''+p[0]+'\']=parseFloat(this.value)||0;if(tab===\'wt\')rWt()" style="width:70px;font-size:12px">'
-      +'<span style="font-size:11px;color:var(--tx3)">ac-in/ac</span></div>';
+      +'<span style="font-size:11px;color:var(--tx3)">ac-in/ac</span>'
+      +'<input value="'+((WC_NOTE[p[0]]||'').replace(/"/g,'&quot;'))+'" placeholder="note / source\u2026" onchange="WC_NOTE[\''+p[0]+'\']=this.value" style="width:170px;font-size:11px;padding:3px 6px;border:1px solid var(--bd);border-radius:4px;color:var(--tx2)">'
+      +'</div>';
   }).join('');
   var varRows=Object.keys(WC_VAR).sort().map(function(k){
     var ix=k.indexOf('|');
@@ -2342,6 +2346,7 @@ function waterRatesHtml(){
       +'<span style="font-size:11.5px;min-width:140px;color:#0d47a1;font-weight:600">'+k.slice(ix+1)+'</span>'
       +'<input type="number" value="'+WC_VAR[k]+'" step="0.01" onchange="WC_VAR[\''+esc+'\']=parseFloat(this.value)||0;if(tab===\'wt\')rWt()" style="width:70px;font-size:12px">'
       +'<span style="font-size:11px;color:var(--tx3)">ac-in/ac</span>'
+      +'<input value="'+((WC_NOTE[k]||'').replace(/"/g,'&quot;'))+'" placeholder="note / source\u2026" onchange="WC_NOTE[\''+esc+'\']=this.value" style="width:170px;font-size:11px;padding:3px 6px;border:1px solid var(--bd);border-radius:4px;color:var(--tx2)">'
       +'<button onclick="delete WC_VAR[\''+esc+'\'];if(tab===\'wt\')rWt();if(tab===\'cf\'&&typeof rCf===\'function\')rCf()" style="font-size:12px;border:none;background:none;color:#c0392b;cursor:pointer" title="Remove">&#10005;</button>'
       +'</div>';
   }).join('');
@@ -2492,7 +2497,7 @@ function rWt(){
     var budgetAcIn=z.gal/UK_GAL;
     var used=zoneWater(z,wtYr);
     var pct=budgetAcIn>0?(used/budgetAcIn*100):0;
-    var cost=used*z.rate;
+    var cost=used*zRateAcIn(z);
         var zf=zoneFields(z,wtYr);
     var vegHa=zf.reduce(function(a,f){return WC[gc(f,wtYr)]?a+f.ha:a;},0);
     var label=z.name.replace(/^Rackham — /,'Rackham<br>').replace(/^Euston — /,'Euston<br>').replace(/^Gooderham — /,'Gooderham<br>').replace(/^Pickenham — /,'Pickenham<br>');
@@ -2508,7 +2513,7 @@ function rWt(){
     var used=zoneWater(z,wtYr);
     var surplus=budgetAcIn-used;
     var pct=budgetAcIn>0?(used/budgetAcIn*100):0;
-    var cost=used*z.rate;
+    var cost=used*zRateAcIn(z);
     var barCol=pct>97?'#c0392b':pct>80?'#e67e22':pct>50?'#27ae60':'#2980b9';
     var surplusCol=surplus<0?'#c0392b':surplus<budgetAcIn*0.1?'#e67e22':'var(--tx2)';
         var zf=zoneFields(z,wtYr);
@@ -2538,7 +2543,18 @@ function rWt(){
       +'style="width:55px;text-align:right;font-size:12px;border:1px solid transparent;background:transparent;padding:2px 4px;border-radius:3px" '
       +'onfocus="this.style.border=\'1px solid var(--am)\';this.style.background=\'#fff\'" '
       +'onblur="this.style.border=\'1px solid transparent\';this.style.background=\'transparent\'"> '
-      +'<span style="font-size:10px;color:var(--tx3)">&pound;/ai</span></td>'
+      +'<span style="font-size:10px;color:var(--tx3)">'+(z.basis==='app'?'&pound;/app':'&pound;/ai')+'</span></td>'
+      +'<td style="text-align:center">'
+      +'<select onchange="WATER_CFG.zones['+i+'].basis=this.value;rWt()" style="font-size:11px;padding:2px 4px;border:1px solid var(--bd);border-radius:4px">'
+      +'<option value="acin"'+(z.basis!=='app'?' selected':'')+'>per ac-in</option>'
+      +'<option value="app"'+(z.basis==='app'?' selected':'')+'>per application</option>'
+      +'</select>'
+      +(z.basis==='app'&&vegHa>0?'<div style="font-size:10px;color:var(--tx3);margin-top:2px">\u2248'+(used/(vegHa*2.471*0.7874)).toFixed(1)+' apps avg (20mm)</div>':'')
+      +'</td>'
+      +'<td><input value="'+((z.note||'').replace(/"/g,'&quot;'))+'" placeholder="note / source\u2026" onchange="WATER_CFG.zones['+i+'].note=this.value" '
+      +'style="width:150px;font-size:11px;padding:3px 6px;border:1px solid transparent;background:transparent;border-radius:4px;color:var(--tx2)" '
+      +'onfocus="this.style.border=\'1px solid var(--bd)\';this.style.background=\'#fff\'" '
+      +'onblur="this.style.border=\'1px solid transparent\';this.style.background=\'transparent\'"></td>'
       +'<td style="text-align:right;font-weight:bold">&pound;'+Math.round(cost).toLocaleString()+'</td>'
       +'<td><button onclick="delWaterZone('+i+')" title="Remove zone" style="font-size:11px;padding:1px 6px;color:#c0392b;border-color:#c0392b;background:none">&times;</button></td>'
       +'</tr>';
@@ -2548,7 +2564,7 @@ function rWt(){
   var totalUsed=filteredZones.reduce(function(a,z){return a+zoneWater(z,wtYr);},0);
   var totalBudget=filteredZones.reduce(function(a,z){return a+z.gal/UK_GAL;},0);
   var totalGal=filteredZones.reduce(function(a,z){return a+z.gal;},0);
-  var totalCost=filteredZones.reduce(function(a,z){return a+zoneWater(z,wtYr)*z.rate;},0);
+  var totalCost=filteredZones.reduce(function(a,z){return a+zoneWater(z,wtYr)*zRateAcIn(z);},0);
   var overallPct=totalBudget>0?(totalUsed/totalBudget*100):0;
   var surpCol=totalBudget-totalUsed<0?'#c0392b':'var(--g1)';
 
@@ -2595,7 +2611,9 @@ function rWt(){
     +'<th style="text-align:right">Used<br><span style="font-size:10px;font-weight:normal">ac-in / M UK gal</span></th>'
     +'<th style="text-align:right">Surplus<br><span style="font-size:10px;font-weight:normal">ac-in / M UK gal</span></th>'
     +'<th>% Used</th>'
-    +'<th style="text-align:right">&pound;/ac-in <span style="font-weight:normal;opacity:.7">(editable)</span></th>'
+    +'<th style="text-align:right">&pound; rate <span style="font-weight:normal;opacity:.7">(editable)</span></th>'
+    +'<th>Pricing</th>'
+    +'<th>Notes</th>'
     +'<th style="text-align:right">Est. Cost</th>'
     +'<th></th>'
     +'</tr></thead>'
@@ -2605,7 +2623,7 @@ function rWt(){
     +'<td style="text-align:right">'+Math.round(totalBudget).toLocaleString()+'</td>'
     +'<td style="text-align:right">'+Math.round(totalUsed).toLocaleString()+'</td>'
     +'<td style="text-align:right;color:'+(totalBudget-totalUsed<0?'#c0392b':'#27ae60')+'">'+Math.round(totalBudget-totalUsed).toLocaleString()+'</td>'
-    +'<td></td><td></td>'
+    +'<td></td><td></td><td></td><td></td>'
     +'<td style="text-align:right">&pound;'+Math.round(totalCost).toLocaleString()+'</td>'
     +'<td></td></tr></tfoot>'
     +'</table></div></details>'
@@ -2716,7 +2734,7 @@ function rWtBudget(){
         var c=gc(f,year);
         var wrate=wcRate(f,year)||0;
         if(!wrate) return;
-        total += f.ha * 2.47105 * wrate * z.rate;
+        total += f.ha * 2.47105 * wrate * zRateAcIn(z);
       });
     });
     return total;
@@ -2994,7 +3012,7 @@ function rWtCost(){
   function getRate(f){
     for(var i=0;i<WATER_CFG.zones.length;i++){
       if(zoneFields(WATER_CFG.zones[i],CY[0]).some(function(zf){return zf===f;}))
-        return WATER_CFG.zones[i].rate;
+        return zRateAcIn(WATER_CFG.zones[i]);
     }
     return 25;
   }
@@ -5134,6 +5152,7 @@ function buildFileContent(){
   src=src.replace(/var WATER_CFG\s*=\s*\{[\s\S]*?\};/, 'var WATER_CFG='+JSON.stringify(WATER_CFG)+';');
   src=src.replace(/var WC = \{[\s\S]*?\};/, 'var WC = '+JSON.stringify(WC)+';');
   src=src.replace(/var WC_VAR=\{[\s\S]*?\};/, 'var WC_VAR='+JSON.stringify(WC_VAR)+';');
+  src=src.replace(/var WC_NOTE=\{[\s\S]*?\};/, 'var WC_NOTE='+JSON.stringify(WC_NOTE)+';');
 
   // ── Auto-generate baseline diff ─────────────────────────────────────────
   // window.BASELINE_F is the live authoritative source — setCrop() keeps it
