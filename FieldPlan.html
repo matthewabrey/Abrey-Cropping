@@ -3278,6 +3278,60 @@ function getOnionHa(yr){
   },0);
 }
 
+function onTypeCheckHtml(){
+  if(onYr!=='2027')return '';
+  var live=window._onionLive;
+  if(!live)return '';
+  var norm=function(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');};
+  var app=[],seen={};
+  F.forEach(function(f){
+    if(!f.oid||f.oid==='none')return;
+    var o=_omVar[f.oid]&&_omVar[f.oid][onYr];
+    if(!o||!o.c)return;
+    if(o.c.indexOf('Onion')<0&&o.c!=='Shallots')return;
+    if(seen[f.oid])return; seen[f.oid]=1;
+    app.push({name:f.field,estate:f.estate,type:(o.d||'')});
+  });
+  if(!app.length)return '';
+  if(!live.fields||!live.fields.length){
+    return '<div style="background:#fff;border:1px solid var(--bd);border-radius:6px;padding:12px;margin-top:14px;font-size:12px;color:var(--tx3)">&#9432; Onion type check vs the C1 Sales Planner needs field-level data \u2014 the planner sync script needs updating, then re-run the flow.</div>';
+  }
+  var pl={};
+  live.fields.forEach(function(r){
+    var k=norm(r[0]); if(!k)return;
+    var p=pl[k]||(pl[k]={name:r[0],types:{},used:false});
+    p.types[String(r[1]||'').replace(/^\s+|\s+$/g,'')]=1;
+  });
+  var plKeys=Object.keys(pl);
+  function findPl(n){
+    if(pl[n])return pl[n];
+    for(var i=0;i<plKeys.length;i++){var k=plKeys[i];
+      if(k.length>3&&n.length>3&&(k.indexOf(n)===0||n.indexOf(k)===0))return pl[k];}
+    return null;
+  }
+  var bad=[],noPl=[];
+  app.forEach(function(a){
+    var p=findPl(norm(a.name));
+    if(!p){noPl.push(a);return;}
+    p.used=true;
+    var ts=Object.keys(p.types);
+    var ok=a.type&&ts.some(function(t){return norm(t)===norm(a.type);});
+    if(!ok)bad.push({f:a,p:ts.join(' / ')});
+  });
+  var extra=plKeys.filter(function(k){return !pl[k].used;}).map(function(k){return pl[k];});
+  var h='<div style="background:#fff;border:1px solid var(--bd);border-radius:6px;padding:14px;margin-top:14px">'
+    +'<div style="font-weight:bold;color:var(--g1);font-size:14px;margin-bottom:4px">&#129477; Onion type check \u2014 Omnia vs C1 Sales Planner</div>'
+    +'<div style="font-size:11px;color:var(--tx3);margin-bottom:8px">Omnia type = the Crop Description on each onion field. Planner type = the Type column of the 2027 Field List.</div>';
+  if(!bad.length&&!noPl.length&&!extra.length)h+='<div style="color:#27ae60;font-size:12px;font-weight:bold">&#10003; All '+app.length+' onion fields agree.</div>';
+  if(bad.length){
+    h+='<table style="margin-bottom:8px"><thead><tr><th>Field</th><th>Estate</th><th>Omnia type</th><th>Planner type</th></tr></thead><tbody>'
+      +bad.map(function(b){return '<tr><td style="font-weight:bold">'+b.f.name+'</td><td>'+b.f.estate+'</td><td style="color:#c0392b;font-weight:bold">'+(b.f.type||'<i>none set</i>')+'</td><td>'+b.p+'</td></tr>';}).join('')
+      +'</tbody></table>';
+  }
+  if(noPl.length)h+='<div style="font-size:11.5px;margin-bottom:4px"><b style="color:#b26a00">In Omnia but not in the planner:</b> '+noPl.map(function(a){return a.name+(a.type?' ('+a.type+')':'');}).join(', ')+'</div>';
+  if(extra.length)h+='<div style="font-size:11.5px"><b style="color:#b26a00">In the planner but no matching Omnia onion field:</b> '+extra.map(function(p){return p.name+' ('+Object.keys(p.types).join('/')+')';}).join(', ')+'</div>';
+  return h+'</div>';
+}
 function rOn(){
   if(window._onionLive===undefined){
     window._onionLive=null;
@@ -3426,7 +3480,8 @@ function rOn(){
     +'<strong style="color:'+diffCol+'">'+(diff>=0?'&#10003; '+Math.round(diff).toLocaleString()+' tonnes spare':'&#9888; '+Math.round(Math.abs(diff)).toLocaleString()+' tonnes SHORT')+'</strong>'
     +'<div style="font-size:11px;color:var(--tx3);margin-top:2px">Production: '+Math.round(totalTonnes).toLocaleString()+'t &nbsp;|&nbsp; Capacity: '+Math.round(totalStore).toLocaleString()+'t'+(totalReload>0?' + '+Math.round(totalReload).toLocaleString()+'t reload = '+Math.round(effectiveCapacity).toLocaleString()+'t effective':'')+'</div>'
     +'</div></div>'
-    +'</div>';
+    +'</div>'
+    +onTypeCheckHtml();
 }
 
 function addStore(){
@@ -5344,7 +5399,11 @@ var _omFieldsCache=null;
 function omVarHtml(f,y){
   var o=f.oid&&_omVar[f.oid]&&_omVar[f.oid][y];
   if(!o)return '';
-  return '<div style="font-size:8.5px;color:var(--tx3);line-height:1.1;max-width:78px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+o.v.replace(/"/g,'&quot;')+' (Omnia)">'+o.v+'</div>';
+  var isOn=o.c&&(o.c.indexOf('Onion')>=0||o.c==='Shallots');
+  var txt=(isOn&&o.d)?o.d:o.v;
+  if(!txt)return '';
+  var tip=(isOn&&o.d)?(o.d+(o.v?' \u2014 '+o.v:'')+' (Omnia type)'):(o.v+' (Omnia)');
+  return '<div style="font-size:8.5px;color:var(--tx3);line-height:1.1;max-width:78px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+tip.replace(/"/g,'&quot;')+'">'+txt+'</div>';
 }
 function parseOmniaCsv(t){
   if(t.charCodeAt(0)===0xFEFF)t=t.slice(1);
@@ -5410,7 +5469,7 @@ function omniaSyncFields(){
       (cv[r.CropName]=cv[r.CropName]||{})[r.VarietyName]=1;
       var o=_omVar[r.FieldId]||(_omVar[r.FieldId]={});
       var prev=o[r.Year];
-      if(!prev||a>prev.a)o[r.Year]={v:r.VarietyName,a:a};
+      if(!prev||a>prev.a)o[r.Year]={v:r.VarietyName,a:a,c:r.CropName,d:(r.CropDescr||'').replace(/^\s+|\s+$/g,'')};
     });
     try{if(tab==='pl'&&typeof aF==='function')aF();}catch(e){}
   });
