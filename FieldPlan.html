@@ -147,6 +147,7 @@ tr:hover td{background:var(--c1)}
   <button class="nb" onclick="go('su')">Suitability</button>
   <button class="nb" onclick="go('ai')">AI Assistant</button>
   <button class="nb" onclick="go('wt')">Water</button>
+  <button class="nb" onclick="go('ir')">Irrigation</button>
   <button class="nb" onclick="go('on')">Onion Storage</button>
   <button class="nb" onclick="go('ad')">AD Crops</button>
   <button id="lock-btn" onclick="toggleLock()" style="margin-left: auto; padding: 4px 14px; font-size: 13px; background: rgb(39, 174, 96); color: rgb(255, 255, 255); border-width: medium; border-style: none; border-color: currentcolor; border-image: none; border-radius: 4px; cursor: pointer;">🔓 Editing</button>
@@ -176,6 +177,7 @@ tr:hover td{background:var(--c1)}
   <div id="su" style="overflow:auto;flex:1;min-height:0;display:none"></div>
   <div id="ai" style="overflow:auto;flex:1;min-height:0;display:none"></div>
   <div id="wt" style="overflow:auto;flex:1;min-height:0;display:none"></div>
+  <div id="ir" style="overflow:auto;flex:1;min-height:0;display:none"></div>
   <div id="on" style="overflow:auto;flex:1;min-height:0;display:none"></div>
   <div id="ad" style="overflow:auto;flex:1;min-height:0;display:none"></div>
   <div id="cf" style="overflow:auto;flex:1;min-height:0;display:none"></div>
@@ -616,16 +618,17 @@ function go(t){
   if(b&&t!=='ov') b.style.display='none';
 
   tab=t;
-  ['ov','pl','to','su','ai','wt','on','ad','cf','cr','gr','om','fm'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=id===t?((id==='mp'||id==='fm')?'flex':'block'):'none';});
+  ['ov','pl','to','su','ai','wt','ir','on','ad','cf','cr','gr','om','fm'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=id===t?((id==='mp'||id==='fm')?'flex':'block'):'none';});
   // Lazy-load FieldMap iframe
   if(t==='fm'){var ifr=document.getElementById('fm-iframe');if(ifr)ifr.style.display='block';}
-  document.querySelectorAll('.nb').forEach(function(b,i){b.classList.toggle('act',['ov','pl','to','su','ai','wt','on','ad','cf','cr','ri','gr','om','fm'][i]===t);});
+  document.querySelectorAll('.nb').forEach(function(b,i){b.classList.toggle('act',['ov','pl','to','su','ai','wt','ir','on','ad','cf','cr','ri','gr','om','fm'][i]===t);});
   if(t==='ov')rOv();
   else if(t==='pl')rPl();
   else if(t==='to')rTo();
   else if(t==='su')rSu();
   else if(t==='ai')rAI();
   else if(t==='wt')rWt();
+  else if(t==='ir')rIr();
   else if(t==='ri')rRi();
   else if(t==='on')rOn();
   else if(t==='cf')rCf();
@@ -2318,6 +2321,10 @@ var WATER_CFG={"zones":[{"name":"Rackham — Dolphin Farm","machines":3,"estate"
 var WC = {"Potatoes":11.12,"Salad Potatoes":9.37,"Carrots":6.54,"Onions":4.91,"Parsnips":9.44};
 var WC_VAR={"Onions|Brown Seed":4.77,"Onions|Red Seed":4.97,"Onions|Red Sets":8.8,"Onions|Speciality":4.53,"Onions|Spring Sets":8.07,"Onions|Winter Sets":6.1,"Potatoes|MARFONA":11.71,"Potatoes|MARIS PIPER ":12.53,"Potatoes|ROYAL":14.59,"Potatoes|SENSATION":12.02,"Salad Potatoes|ALEXANDRA":10.08,"Salad Potatoes|BABY LOU":12.69,"Salad Potatoes|GWENNE":12.4,"Salad Potatoes|MARFONA":14.45,"Salad Potatoes|MARIS PEER":10.5,"Salad Potatoes|TALENTINE":9.96,"Salad Potatoes|VIVALDI":9.45};
 var WC_NOTE={"Onions|Brown Seed":"2026 actual \u2014 16 fields, 558 ac","Onions|Red Seed":"2026 actual \u2014 10 fields, 330 ac","Onions|Red Sets":"2026 actual \u2014 2 fields, 45 ac","Onions|Speciality":"2026 actual \u2014 1 field, 42 ac","Onions|Spring Sets":"2026 actual \u2014 1 field, 20 ac","Onions|Winter Sets":"2026 actual \u2014 5 fields, 140 ac","Potatoes|MARFONA":"2026 actual \u2014 6 fields, 107 ac","Potatoes|MARIS PIPER ":"2026 actual \u2014 12 fields, 424 ac","Potatoes|ROYAL":"2026 actual \u2014 2 fields, 59 ac","Potatoes|SENSATION":"2026 actual \u2014 2 fields, 84 ac","Salad Potatoes|ALEXANDRA":"2026 actual \u2014 1 field, 42 ac","Salad Potatoes|BABY LOU":"2026 actual \u2014 3 fields, 117 ac","Salad Potatoes|GWENNE":"2026 actual \u2014 4 fields, 88 ac","Salad Potatoes|MARFONA":"2026 actual \u2014 1 field, 6 ac","Salad Potatoes|MARIS PEER":"2026 actual \u2014 11 fields, 219 ac","Salad Potatoes|TALENTINE":"2026 actual \u2014 5 fields, 157 ac","Salad Potatoes|VIVALDI":"2026 actual \u2014 1 field, 10 ac"};
+var IRR_CFG={gap:{}}; // warning days: crop or crop|variety-type -> days after last pass before flag 1
+var IRR_LOG={};        // field key (oid, or estate|field) -> {st:0|2|3, p:[[date,told_mm,applied_mm],...]}
+(function(){try{var s=JSON.parse(localStorage.getItem('fp_irr_shadow')||'null');if(s&&s.cfg&&s.log){IRR_CFG=s.cfg;IRR_LOG=s.log;}}catch(e){}})();
+function irrTouch(){try{localStorage.setItem('fp_irr_shadow',JSON.stringify({cfg:IRR_CFG,log:IRR_LOG,t:Date.now()}));}catch(e){}}
 function zRateAcIn(z){return z.basis==='app'?(z.rate/0.7874):z.rate;}
 function wcRate(f,yr){
   var c=gc(f,yr);
@@ -3279,6 +3286,183 @@ function getOnionHa(yr){
   },0);
 }
 
+// ═══ IRRIGATION SCHEDULER — 1/2/3 workflow from the paper/Excel system ═══
+var irYr='2027';
+var _irOpen={};
+var _irEst='',_irCrop='',_irSt='';
+var IRR_ONION_TYPES=['Brown Seed','Red Seed','Winter Sets','Spring Sets','Red Sets','Speciality'];
+function irrKey(f){return (f.oid&&f.oid!=='none')?String(f.oid):(f.estate+'|'+f.field);}
+function irrSub(f){var o=f.oid&&_omVar[f.oid]&&_omVar[f.oid][irYr];if(!o)return '';var c=gc(f,irYr);return (c==='Onions'&&o.d)?o.d:(o.v||'');}
+function irrGap(c,sub){var g=IRR_CFG.gap||{};
+  if(sub&&g[c+'|'+sub]!=null&&g[c+'|'+sub]!=='')return +g[c+'|'+sub];
+  if(g[c]!=null&&g[c]!=='')return +g[c];
+  return null;}
+function irrDM(iso){return iso?iso.slice(8,10)+'/'+iso.slice(5,7):'';}
+function irrStat(f){
+  var c=gc(f,irYr),key=irrKey(f),L=IRR_LOG[key]||{};
+  var p=(L.p||[]).slice().sort(function(a,b){return a[0]<b[0]?-1:1;});
+  var last=null,mm=0;
+  p.forEach(function(x){var ap=+x[2]||0;mm+=ap;if(ap>5&&(!last||x[0]>last))last=x[0];});
+  var perAc=mm/25.4;
+  var gap=irrGap(c,irrSub(f));
+  var days=last?Math.floor((Date.now()-new Date(last+'T12:00:00').getTime())/864e5):null;
+  var st=L.st||0;
+  var code,badge;
+  if(st===2){code=2;badge='<span style="background:#e67e22;color:#fff;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:700">2 · Definitely start</span>';}
+  else if(st===3){code=3;badge='<span style="background:#1565c0;color:#fff;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:700">3 · On programme</span>';}
+  else if(last==null){code=6;badge='<span style="color:var(--tx3);font-size:10.5px">no passes yet</span>';}
+  else if(gap==null){code=5;badge='<span style="background:#eee;color:#666;padding:2px 8px;border-radius:10px;font-size:10.5px">set warning days</span>';}
+  else if(days>=gap){code=1;badge='<span style="background:#c0392b;color:#fff;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:700">1 · Due — '+days+'d since last ('+gap+'d set)</span>';}
+  else{code=4;badge='<span style="background:#e8f5e9;color:#1a5c2e;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:600">ok · due in '+(gap-days)+'d</span>';}
+  return {c:c,key:key,p:p,last:last,days:days,gap:gap,perAc:perAc,st:st,code:code,badge:badge};
+}
+function irrFields(){
+  return F.filter(function(f){var c=gc(f,irYr);return WC[c]!==undefined&&f.ha>0;});
+}
+function irrSetSt(i,v){var f=window._irList[i];var k=irrKey(f);var L=IRR_LOG[k]||(IRR_LOG[k]={});L.st=+v||0;irrTouch();rIr();}
+function irrToggle(i){var f=window._irList[i];var k=irrKey(f);_irOpen[k]=!_irOpen[k];rIr();}
+function irrAddPass(i){
+  var f=window._irList[i];var k=irrKey(f);
+  var d=(document.getElementById('ir-d-'+i)||{}).value||'';
+  var told=parseFloat((document.getElementById('ir-t-'+i)||{}).value)||0;
+  var ap=parseFloat((document.getElementById('ir-a-'+i)||{}).value);
+  if(!d){alert('Pick a date');return;}
+  if(isNaN(ap)){alert('Enter the applied mm');return;}
+  var L=IRR_LOG[k]||(IRR_LOG[k]={});
+  (L.p=L.p||[]).push([d,told,ap]);
+  L.st=0; // a pass resets 2/3 back to auto
+  irrTouch();rIr();
+}
+function irrDelPass(i,pi){var f=window._irList[i];var k=irrKey(f);var L=IRR_LOG[k];if(!L||!L.p)return;L.p.sort(function(a,b){return a[0]<b[0]?-1:1;});L.p.splice(pi,1);irrTouch();rIr();}
+function irrGapSet(k,v){IRR_CFG.gap[k]=(v===''?'':(+v||0));if(v==='')delete IRR_CFG.gap[k];irrTouch();rIr();}
+function irrGapDel(k){delete IRR_CFG.gap[k];irrTouch();rIr();}
+function irrFillSubs(){
+  var c=(document.getElementById('ir-g-crop')||{}).value||'';
+  var sel=document.getElementById('ir-g-sub'); if(!sel)return;
+  var names=[];
+  if(c==='Onions')names=IRR_ONION_TYPES.slice();
+  var M={'Potatoes':['Potatoes'],'Salad Potatoes':['Potatoes'],'Carrots':['Carrots'],'Parsnips':['Parsnips'],'Onions':['Bulb Onions - Dry','Shallots']};
+  var cv=window._omCropVars||{};
+  (M[c]||[c]).forEach(function(oc){Object.keys(cv[oc]||{}).forEach(function(v){if(names.indexOf(v)<0)names.push(v);});});
+  sel.innerHTML='<option value="">variety / type…</option>'+names.map(function(v){return '<option>'+v.replace(/</g,'&lt;')+'</option>';}).join('');
+}
+function irrGapAdd(){
+  var c=(document.getElementById('ir-g-crop')||{}).value||'';
+  var s=(document.getElementById('ir-g-sub')||{}).value||'';
+  var d=parseFloat((document.getElementById('ir-g-days')||{}).value);
+  if(!c||!s||isNaN(d)){alert('Pick crop, variety/type and days');return;}
+  IRR_CFG.gap[c+'|'+s]=d;irrTouch();rIr();
+}
+function rIr(){
+  var el=document.getElementById('ir'); if(!el)return;
+  var all=irrFields();
+  var ests=[]; all.forEach(function(f){if(ests.indexOf(f.estate)<0)ests.push(f.estate);}); ests.sort();
+  var crops=Object.keys(WC);
+  var list=all.filter(function(f){
+    if(_irEst&&f.estate!==_irEst)return false;
+    if(_irCrop&&gc(f,irYr)!==_irCrop)return false;
+    return true;});
+  var stats=list.map(function(f){return irrStat(f);});
+  if(_irSt){var want=+_irSt;var L2=[],S2=[];list.forEach(function(f,i){if(stats[i].code===want){L2.push(f);S2.push(stats[i]);}});list=L2;stats=S2;}
+  var ord={1:0,2:1,3:2,5:3,4:4,6:5};
+  var idxs=list.map(function(f,i){return i;}).sort(function(a,b){
+    var d=ord[stats[a].code]-ord[stats[b].code]; if(d)return d;
+    if(stats[a].code===1)return (stats[b].days-stats[b].gap)-(stats[a].days-stats[a].gap);
+    if(stats[a].code===4)return (stats[a].gap-stats[a].days)-(stats[b].gap-stats[b].days);
+    return list[a].field<list[b].field?-1:1;});
+  window._irList=idxs.map(function(i){return list[i];});
+  var sOrd=idxs.map(function(i){return stats[i];});
+  var counts={1:0,2:0,3:0,4:0,5:0,6:0}; var totAcIn=0;
+  var allStats=all.map(function(f){return irrStat(f);});
+  allStats.forEach(function(s,i){counts[s.code]++;totAcIn+=s.perAc*all[i].ha*2.471;});
+  var chip=function(n,lab,col){return '<span style="background:'+col+';color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700">'+n+' '+lab+'</span>';};
+  var rows=window._irList.map(function(f,i){
+    var s=sOrd[i];
+    var sub=irrSub(f);
+    var rate=wcRate(f,irYr); var leftAvg=(rate!==undefined)?(rate-s.perAc):null;
+    var det='';
+    if(_irOpen[s.key]){
+      var pl=s.p.map(function(x,pi){
+        return '<div style="display:flex;gap:10px;align-items:center;font-size:11.5px;padding:2px 0">'
+          +'<span style="min-width:44px;font-weight:600">'+irrDM(x[0])+'</span>'
+          +'<span style="color:var(--tx3)">told '+(x[1]||0)+'mm</span>'
+          +'<span style="font-weight:600;color:'+((+x[2]||0)>5?'#1a5c2e':'#999')+'">applied '+(x[2]||0)+'mm</span>'
+          +'<button onclick="irrDelPass('+i+','+pi+')" style="border:none;background:none;color:#c0392b;cursor:pointer;font-size:12px">&#10005;</button></div>';
+      }).join('')||'<div style="font-size:11px;color:var(--tx3)">No passes logged.</div>';
+      det='<tr><td colspan="9" style="background:#fafcf9;padding:8px 14px 10px">'
+        +pl
+        +'<div style="display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap">'
+        +'<input type="date" id="ir-d-'+i+'" value="'+new Date().toISOString().slice(0,10)+'" style="font-size:11.5px;padding:3px">'
+        +'<input type="number" id="ir-t-'+i+'" placeholder="told mm" style="width:72px;font-size:11.5px;padding:3px">'
+        +'<input type="number" id="ir-a-'+i+'" placeholder="applied mm" style="width:84px;font-size:11.5px;padding:3px">'
+        +'<button onclick="irrAddPass('+i+')" style="font-size:11.5px;padding:4px 14px;background:var(--g1);color:#fff;border:1px solid var(--g1);border-radius:5px;cursor:pointer">+ Add pass</button>'
+        +'<span style="font-size:10px;color:var(--tx3)">a pass over 5mm resets the countdown and clears 2/3</span>'
+        +'</div></td></tr>';
+    }
+    return '<tr style="cursor:pointer" >'
+      +'<td onclick="irrToggle('+i+')" style="font-weight:600">'+f.field+' <span style="color:var(--tx3);font-size:9.5px">'+(_irOpen[s.key]?'▴':'▾')+'</span></td>'
+      +'<td style="font-size:11px">'+f.estate+'</td>'
+      +'<td style="font-size:11px">'+s.c+(sub?'<div style="font-size:9px;color:var(--tx3)">'+sub+'</div>':'')+'</td>'
+      +'<td style="text-align:right;font-size:11px">'+(f.ha*2.471).toFixed(1)+'</td>'
+      +'<td style="text-align:right;font-size:11px">'+(s.last?irrDM(s.last)+' <span style="color:var(--tx3)">('+s.days+'d)</span>':'—')+'</td>'
+      +'<td style="text-align:right;font-size:11px">'+(s.perAc>0?s.perAc.toFixed(1)+'″':'—')+'</td>'
+      +'<td style="text-align:right;font-size:11px;color:'+(leftAvg!=null&&leftAvg<0?'#c0392b':'var(--tx2)')+'">'+(leftAvg!=null?leftAvg.toFixed(1)+'″':'—')+'</td>'
+      +'<td>'+s.badge+'</td>'
+      +'<td><select onchange="irrSetSt('+i+',this.value)" style="font-size:10.5px;padding:2px">'
+        +'<option value="0"'+(s.st!==2&&s.st!==3?' selected':'')+'>auto</option>'
+        +'<option value="2"'+(s.st===2?' selected':'')+'>2 — definitely start</option>'
+        +'<option value="3"'+(s.st===3?' selected':'')+'>3 — on programme</option>'
+      +'</select></td></tr>'+det;
+  }).join('');
+  var baseGap=crops.map(function(c){
+    var v=IRR_CFG.gap[c]!=null?IRR_CFG.gap[c]:'';
+    return '<div style="display:flex;align-items:center;gap:6px">'
+      +'<span style="font-size:12px;min-width:110px">'+c+'</span>'
+      +'<input type="number" value="'+v+'" placeholder="days" onchange="irrGapSet(decodeURIComponent(\''+encodeURIComponent(c)+'\'),this.value)" style="width:64px;font-size:12px">'
+      +'<span style="font-size:11px;color:var(--tx3)">days</span></div>';
+  }).join('');
+  var varGap=Object.keys(IRR_CFG.gap).filter(function(k){return k.indexOf('|')>=0;}).sort().map(function(k){
+    var ix=k.indexOf('|');
+    return '<div style="display:flex;align-items:center;gap:6px">'
+      +'<span style="font-size:11.5px;min-width:110px">'+k.slice(0,ix)+'</span>'
+      +'<span style="font-size:11.5px;min-width:140px;color:#0d47a1;font-weight:600">'+k.slice(ix+1)+'</span>'
+      +'<input type="number" value="'+IRR_CFG.gap[k]+'" onchange="irrGapSet(decodeURIComponent(\''+encodeURIComponent(k)+'\'),this.value)" style="width:64px;font-size:12px">'
+      +'<span style="font-size:11px;color:var(--tx3)">days</span>'
+      +'<button onclick="irrGapDel(decodeURIComponent(\''+encodeURIComponent(k)+'\'))" style="font-size:12px;border:none;background:none;color:#c0392b;cursor:pointer" title="Remove">&#10005;</button></div>';
+  }).join('');
+  var selOpt=function(cur,arr,blank){return '<option value="">'+blank+'</option>'+arr.map(function(x){return '<option'+(cur===x?' selected':'')+'>'+x+'</option>';}).join('');};
+  el.innerHTML='<div style="padding:14px;max-width:1200px">'
+    +'<h2 style="font-size:16px;font-weight:normal;color:var(--g1);margin-bottom:2px">Irrigation — '+irYr+'</h2>'
+    +'<div style="font-size:11px;color:var(--tx3);margin-bottom:10px">1 appears automatically your set number of days after the last pass of over 5mm · 2 = definitely start · 3 = on the programme · log each pass as told / applied mm. Data saves with the normal Save button.</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'
+    +chip(counts[1],'due','#c0392b')+chip(counts[2],'definitely start','#e67e22')+chip(counts[3],'on programme','#1565c0')
+    +'<span style="background:#e8f5e9;color:#1a5c2e;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700">'+counts[4]+' ok</span>'
+    +'<span style="background:#eee;color:#666;padding:3px 10px;border-radius:12px;font-size:11px">'+counts[6]+' not started</span>'
+    +'<span style="font-size:11px;color:var(--tx3);margin-left:8px">'+Math.round(totAcIn).toLocaleString()+' ac-in logged · '+(totAcIn*22610.673/1e6).toFixed(1)+'M gal</span>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
+    +'<select onchange="_irEst=this.value;rIr()" style="font-size:12px;padding:4px">'+selOpt(_irEst,ests,'All estates')+'</select>'
+    +'<select onchange="_irCrop=this.value;rIr()" style="font-size:12px;padding:4px">'+selOpt(_irCrop,crops,'All crops')+'</select>'
+    +'<select onchange="_irSt=this.value;rIr()" style="font-size:12px;padding:4px">'
+      +'<option value="">All statuses</option><option value="1"'+(_irSt==='1'?' selected':'')+'>1 — due</option><option value="2"'+(_irSt==='2'?' selected':'')+'>2 — definitely start</option><option value="3"'+(_irSt==='3'?' selected':'')+'>3 — on programme</option><option value="4"'+(_irSt==='4'?' selected':'')+'>ok</option><option value="6"'+(_irSt==='6'?' selected':'')+'>not started</option><option value="5"'+(_irSt==='5'?' selected':'')+'>no warning days set</option>'
+    +'</select></div>'
+    +'<div style="background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:auto;max-height:560px">'
+    +'<table><thead><tr><th>Field</th><th>Estate</th><th>Crop</th><th style="text-align:right">Acres</th><th style="text-align:right">Last pass</th><th style="text-align:right">Applied</th><th style="text-align:right">Left vs avg</th><th>Status</th><th></th></tr></thead>'
+    +'<tbody>'+(rows||'<tr><td colspan="9" style="padding:14px;color:var(--tx3)">No fields match.</td></tr>')+'</tbody></table></div>'
+    +'<div style="background:#fff;border:1px solid var(--bd);border-radius:6px;padding:14px;margin-top:14px">'
+    +'<div style="font-weight:bold;color:var(--g1);font-size:14px;margin-bottom:8px">⏱ Warning days — when the 1 appears</div>'
+    +'<div style="font-size:11px;color:var(--tx3);margin-bottom:8px">Days after the last pass of over 5mm before a field flags as due. A variety/type line beats its crop line.</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:10px">'+baseGap+'</div>'
+    +'<div style="font-weight:600;color:var(--g1);font-size:12.5px;margin:12px 0 6px">Variety / type overrides</div>'
+    +'<div style="display:flex;flex-direction:column;gap:5px">'+(varGap||'<span style="font-size:11px;color:var(--tx3)">none yet</span>')+'</div>'
+    +'<div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap">'
+    +'<select id="ir-g-crop" onchange="irrFillSubs()" style="font-size:12px;padding:5px"><option value="">crop…</option>'+crops.map(function(c){return '<option>'+c+'</option>';}).join('')+'</select>'
+    +'<select id="ir-g-sub" style="font-size:12px;padding:5px;min-width:150px"><option value="">variety / type…</option></select>'
+    +'<input id="ir-g-days" type="number" placeholder="days" style="width:64px;font-size:12px;padding:5px">'
+    +'<button onclick="irrGapAdd()" style="font-size:12px;padding:5px 14px;background:var(--g1);color:#fff;border:1px solid var(--g1);border-radius:5px;cursor:pointer">+ Add</button>'
+    +'</div></div>'
+    +'</div>';
+}
 function onTypeCheckHtml(){
   if(onYr!=='2027')return '';
   var live=window._onionLive;
@@ -5231,6 +5415,8 @@ function buildFileContent(){
   src=src.replace(/var WC = \{[\s\S]*?\};/, 'var WC = '+JSON.stringify(WC)+';');
   src=src.replace(/var WC_VAR=\{[\s\S]*?\};/, 'var WC_VAR='+JSON.stringify(WC_VAR)+';');
   src=src.replace(/var WC_NOTE=\{[\s\S]*?\};/, 'var WC_NOTE='+JSON.stringify(WC_NOTE)+';');
+  src=src.replace(/var IRR_CFG=\{[\s\S]*?\}; \/\/ warning days/, 'var IRR_CFG='+JSON.stringify(IRR_CFG)+'; // warning days');
+  src=src.replace(/var IRR_LOG=\{[\s\S]*?\};        \/\/ field key/, 'var IRR_LOG='+JSON.stringify(IRR_LOG)+';        // field key');
 
   // ── Auto-generate baseline diff ─────────────────────────────────────────
   // window.BASELINE_F is the live authoritative source — setCrop() keeps it
@@ -5272,6 +5458,7 @@ function buildFileContent(){
 
   // Save current F[] as new snapshot for next push on this device
   try { localStorage.setItem('fp_last_push_snap', JSON.stringify(F)); } catch(e){}
+  try { localStorage.removeItem('fp_irr_shadow'); } catch(e){}
   // Always clear the local accepted flag so the banner re-appears after a push
   localStorage.removeItem('fp_accepted_baseline');
 
