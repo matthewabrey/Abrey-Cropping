@@ -2597,12 +2597,18 @@ function rWt(){
     +gaugeCards
     +'</div>'
 
-    // ── water rates editor (shared with Settings)
-    +waterRatesHtml()
-    +'<div style="height:18px"></div>'
+    // ── yearly budget per estate, by month
+    +'<div style="margin-bottom:22px">'
+    +'<h3 style="font-size:14px;color:var(--g1);margin:0 0 4px">&#128200; Yearly Budget per Estate — by month</h3>'
+    +'<p style="font-size:11px;color:var(--tx3);margin:0 0 12px">Annual irrigation spend split by month — enter actual costs as they come in. Budget comes from the crop plan and the rates below.</p>'
+    +'<div id="wt-budget-table"></div>'
+    +'</div>'
+
+    // ── update your figures
+    +'<h3 style="font-size:14px;color:var(--g1);margin:0 0 6px">&#9999;&#65039; Update your figures</h3>'
 
     // ── data table
-    +'<details open><summary style="font-size:13px;font-weight:bold;color:var(--g1);cursor:pointer;margin-bottom:8px;user-select:none">Detail table</summary>'
+    +'<details open><summary style="font-size:13px;font-weight:bold;color:var(--g1);cursor:pointer;margin-bottom:8px;user-select:none">Zone budgets &amp; &pound; rates — budget (gal), &pound; rate, pricing (per ac-in / per 20mm application) and notes</summary>'
     +'<div style="overflow-x:auto;border:1px solid var(--bd);border-radius:6px">'
     +'<table><thead><tr>'
     +'<th>Zone</th>'
@@ -2628,6 +2634,19 @@ function rWt(){
     +'<td></td></tr></tfoot>'
     +'</table></div></details>'
 
+    // ── crop & variety rates (this is the only place these live)
+    +waterRatesHtml()
+
+    // ── how it's worked out
+    +'<div style="background:#fff;border:1px solid var(--bd);border-radius:6px;padding:14px;margin-top:14px">'
+    +'<div style="font-weight:bold;color:var(--g1);font-size:14px;margin-bottom:6px">&#129518; How the numbers are worked out</div>'
+    +'<div style="font-size:12px;color:var(--tx2);line-height:1.8">'
+    +'1. Each field\u2019s water need = field acres \u00d7 its crop\u2019s rate (ac-in/acre) \u2014 or the variety rate where one is set below.<br>'
+    +'2. Zone budgets are entered in UK gallons; \u00f7 22,611 gives the budget in acre-inches. The gauges show need vs budget for the chosen year.<br>'
+    +'3. Cost per zone: <strong>per ac-in</strong> = acre-inches \u00d7 \u00a3 rate. <strong>Per application</strong> = acre-inches \u00f7 0.787 (one 20mm pass) \u00d7 \u00a3 per application \u2014 the zone table also shows the rough number of 20mm passes.<br>'
+    +'4. The monthly split above uses the historical pattern of spend (Apr\u2013Sep) from past years.'
+    +'</div></div>'
+
     // ── cost by field
     +'<div style="margin-top:24px">'
     +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap">'
@@ -2643,11 +2662,6 @@ function rWt(){
     +'</select>'
     +'</div>'
     +'<div id="wc-table"></div>'
-    +'<div style="margin-top:24px">'
-    +'<h3 style="font-size:14px;color:var(--g1);margin:0 0 4px">&#128200; Budget vs Actual</h3>'
-    +'<p style="font-size:11px;color:var(--tx3);margin:0 0 12px">Annual irrigation spend — enter actual costs once known. Budget is calculated from the crop plan using average water rates.</p>'
-    +'<div id="wt-budget-table"></div>'
-    +'</div>'
     +'</div>';
 
   setTimeout(rWtCost, 50);
@@ -3427,14 +3441,6 @@ function rCf(){
   }).join('');
   var totalRent=RENT_CFG.reduce(function(a,r){return a+(r.ha*(r.rate_ha||0));},0);
 
-  var waterRows=WATER_CFG.zones.map(function(z,i){
-    return '<tr>'
-      +'<td style="font-weight:bold;font-size:12px">'+z.name+'</td>'
-      +'<td style="text-align:right"><input type="number" value="'+z.gal+'" onchange="WATER_CFG.zones['+i+'].gal=parseFloat(this.value)||0;rWt()" style="width:120px;text-align:right;font-size:12px"></td>'
-      +'<td style="text-align:right"><input type="number" value="'+z.rate+'" onchange="WATER_CFG.zones['+i+'].rate=parseFloat(this.value)||0;rWt()" style="width:80px;text-align:right;font-size:12px"></td>'
-      +'<td style="text-align:right;color:var(--tx3)">'+(z.gal/22611).toFixed(0)+' ac-in</td>'
-      +'</tr>';
-  }).join('');
 
   var _elCf=document.getElementById('cf');
   if(_elCf)_elCf.innerHTML=
@@ -3449,16 +3455,7 @@ function rCf(){
     +'<td style="text-align:right">&pound;'+Math.round(totalRent).toLocaleString()+'</td><td></td></tr></tfoot>'
     +'</table></div>'
 
-    // Water budgets
-    +'<div style="background:#fff;border:1px solid var(--bd);border-radius:6px;padding:14px">'
-    +'<div style="font-weight:bold;color:var(--g1);font-size:14px;margin-bottom:10px">&#128167; Water Budgets &amp; Rates</div>'
-    +'<table><thead><tr><th>Zone</th><th style="text-align:right">Budget (UK gal)</th><th style="text-align:right">&pound;/ac-in</th><th style="text-align:right">Budget (ac-in)</th></tr></thead>'
-    +'<tbody>'+waterRows+'</tbody></table>'
-    +'<div style="font-size:11px;color:var(--tx3);margin-top:8px">Changes here also update the Water tab.</div>'
-    +'</div>'
-
-    // Water rates per crop (shared editor)
-    +waterRatesHtml()
+    // Water settings now live on the Water tab
     +'<div style="background:#fff;border:1px solid var(--bd);border-radius:6px;padding:14px;margin-top:14px">'
     +'<div style="font-weight:bold;color:var(--g1);font-size:14px;margin-bottom:6px">&#128274; Saving</div>'
     +'<div style="font-size:12px;color:var(--tx2)">Saves publish through the secure relay with your employee number and 4-digit save PIN. No GitHub connection is needed in the browser. Live app: <a href="https://matthewabrey.github.io/Abrey-Cropping/FieldPlan.html" target="_blank" style="color:var(--g1)">matthewabrey.github.io/Abrey-Cropping/FieldPlan.html</a></div>'
