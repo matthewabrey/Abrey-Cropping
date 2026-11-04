@@ -3375,10 +3375,13 @@ function rCf(){
       return '<div style="display:flex;align-items:center;gap:6px">'
         +'<span style="font-size:12px;min-width:120px">'+p[0]+'</span>'
         +'<input type="number" value="'+p[1]+'" step="0.01" onchange="WC[\''+p[0]+'\']=parseFloat(this.value)||0;rWt()" style="width:70px;font-size:12px">'
-        +'<span style="font-size:11px;color:var(--tx3)">ac-in/ac</span></div>'
-    +'<div style="margin-top:24px;border-top:1px solid var(--bd);padding-top:18px">'    +'<div style="font-weight:bold;font-size:14px;color:var(--g1);margin-bottom:10px">&#9651; GitHub Live Save</div>'    +'<div style="font-size:12px;color:var(--tx2);margin-bottom:10px">Live URL: <a href="https://matthewabrey.github.io/Abrey-Cropping/FieldPlan.html" target="_blank" style="color:var(--g1)">matthewabrey.github.io/Abrey-Cropping/FieldPlan.html</a></div>'    +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'    +'<button onclick="showGhTokenModal()" style="font-size:12px;padding:5px 14px;background:var(--g1);color:#fff;border-color:var(--g1)">&#9651; '+(GH.token?'Update token':'Connect GitHub')+'</button>'    +(GH.token?'<button onclick="GH.token=\'\';localStorage.removeItem(\'gh_token\');updateSaveBtn(\'disconnected\');rCf()" style="font-size:12px;padding:5px 14px;color:#c0392b;border-color:#c0392b;background:none">Disconnect</button>':'')    +(localStorage.getItem('gh_last_save')?'<span style="font-size:11px;color:var(--tx3)">Last pushed: '+new Date(localStorage.getItem('gh_last_save')).toLocaleString('en-GB')+'</span>':'')    +'</div></div>';
+        +'<span style="font-size:11px;color:var(--tx3)">ac-in/ac</span></div>';
     }).join('')
     +'</div></div>'
+    +'<div style="background:#fff;border:1px solid var(--bd);border-radius:6px;padding:14px;margin-top:14px">'
+    +'<div style="font-weight:bold;color:var(--g1);font-size:14px;margin-bottom:6px">&#128274; Saving</div>'
+    +'<div style="font-size:12px;color:var(--tx2)">Saves publish through the secure relay with your employee number and 4-digit save PIN. No GitHub connection is needed in the browser. Live app: <a href="https://matthewabrey.github.io/Abrey-Cropping/FieldPlan.html" target="_blank" style="color:var(--g1)">matthewabrey.github.io/Abrey-Cropping/FieldPlan.html</a></div>'
+    +'</div>'
 
     
     +'</div>';
