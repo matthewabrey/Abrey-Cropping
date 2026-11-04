@@ -5824,22 +5824,23 @@ function rOmSpray(){
       if(r.ProductName&&j.prods.indexOf(r.ProductName)<0)j.prods.push(r.ProductName);
       if(r.FieldId&&!(r.FieldId in j.fields))j.fields[r.FieldId]=parseFloat(r.CroppingRecordArea||'')||0;
     });
-    var byday={},opTot={},totHa=0;
+    var byday={},opTot={},opRigs={},totHa=0;
     Object.keys(jobs).forEach(function(k){
       var j=jobs[k],ha=0;
       for(var f in j.fields)ha+=j.fields[f];
       j.ha=ha;j.nf=Object.keys(j.fields).length;totHa+=ha;
       j.fldNames=Object.keys(j.fields).map(function(x){return fname[x]||('#'+x);}).sort();
       var dd=byday[j.day]||(byday[j.day]={});
-      var dk=j.by+'|'+j.rig;
+      var dk=j.by;
       (dd[dk]=dd[dk]||[]).push(j);
       opTot[dk]=(opTot[dk]||0)+ha;
+      var rg=opRigs[dk]||(opRigs[dk]={});
+      rg[j.rig]=1;
     });
     var cards=Object.keys(opTot).sort().map(function(k){
-      var p=k.split('|');
       return '<div style="background:#fff;border:1px solid var(--bd);border-radius:9px;padding:10px 16px;min-width:150px">'
-        +'<div style="font-weight:700;font-size:13px;color:#1a5c2e">'+p[0]+'</div>'
-        +'<div style="font-size:10.5px;color:var(--tx3)">'+p[1]+'</div>'
+        +'<div style="font-weight:700;font-size:13px;color:#1a5c2e">'+k+'</div>'
+        +'<div style="font-size:10.5px;color:var(--tx3)">'+Object.keys(opRigs[k]||{}).sort().join(' + ')+'</div>'
         +'<div style="font-size:17px;font-weight:700;margin-top:3px">'+opTot[k].toFixed(1)+' ha</div>'
         +'<div style="font-size:10px;color:var(--tx3)">last 7 days</div></div>';
     }).join('');
@@ -5853,13 +5854,13 @@ function rOmSpray(){
         var dayHa=0;
         var drvHtml=drivers.map(function(dk){
           var js=byday[d2][dk].sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});
-          var p=dk.split('|');
+          var rigs={};js.forEach(function(j){rigs[j.rig]=1;});
           var ha=js.reduce(function(a,j){return a+j.ha;},0);
           var nf=js.reduce(function(a,j){return a+j.nf;},0);
           dayHa+=ha;
           var rows=js.map(function(j){
             return '<tr>'
-              +'<td style="padding:4px 8px;font-size:11px;white-space:nowrap">'+(j.time||'')+'</td>'
+              +'<td style="padding:4px 8px;font-size:11px;white-space:nowrap">'+(j.time||'')+'<div style="font-size:9.5px;color:var(--tx3)">'+j.rig+'</div></td>'
               +'<td style="padding:4px 8px;font-size:11px">'+j.plan+'<div style="font-size:10px;color:var(--tx3)">'+j.prods.join(' + ')+'</div></td>'
               +'<td style="padding:4px 8px;font-size:10.5px;max-width:340px">'+j.fldNames.join(', ')+'</td>'
               +'<td style="padding:4px 8px;font-size:11.5px;text-align:right;font-weight:600;white-space:nowrap">'+j.ha.toFixed(1)+' ha</td>'
@@ -5868,8 +5869,8 @@ function rOmSpray(){
           return '<details style="border-top:1px solid var(--bd)">'
             +'<summary style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;padding:8px 14px;cursor:pointer;list-style:none">'
             +'<span style="font-size:12px;color:var(--tx3)">▸</span>'
-            +'<span style="font-weight:700;font-size:13px">'+p[0]+'</span>'
-            +'<span style="font-size:11px;color:var(--tx3)">'+p[1]+'</span>'
+            +'<span style="font-weight:700;font-size:13px">'+dk+'</span>'
+            +'<span style="font-size:11px;color:var(--tx3)">'+Object.keys(rigs).sort().join(' + ')+'</span>'
             +'<span style="font-size:11px;color:var(--tx3)">'+js.length+' job'+(js.length===1?'':'s')+' · '+nf+' field'+(nf===1?'':'s')+'</span>'
             +'<span style="margin-left:auto;font-size:13.5px;font-weight:700;color:#1a5c2e">'+ha.toFixed(1)+' ha</span>'
             +'</summary>'
