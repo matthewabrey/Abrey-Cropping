@@ -3302,16 +3302,23 @@ function onTypeCheckHtml(){
     var p=pl[k]||(pl[k]={name:r[0],types:{},used:false});
     p.types[String(r[1]||'').replace(/^\s+|\s+$/g,'')]=1;
   });
+  var toks=function(s){
+    s=String(s||'').toLowerCase().replace(/\brd\b/g,'road');
+    return s.replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(function(w){return w;}).sort().join('|');
+  };
+  var plT={};
+  live.fields.forEach(function(r){var t=toks(r[0]);if(t)plT[t]=norm(r[0]);});
   var plKeys=Object.keys(pl);
-  function findPl(n){
+  function findPl(n,t){
     if(pl[n])return pl[n];
+    if(plT[t]&&pl[plT[t]])return pl[plT[t]];
     for(var i=0;i<plKeys.length;i++){var k=plKeys[i];
       if(k.length>3&&n.length>3&&(k.indexOf(n)===0||n.indexOf(k)===0))return pl[k];}
     return null;
   }
   var bad=[],noPl=[];
   app.forEach(function(a){
-    var p=findPl(norm(a.name));
+    var p=findPl(norm(a.name),toks(a.name));
     if(!p){noPl.push(a);return;}
     p.used=true;
     var ts=Object.keys(p.types);
