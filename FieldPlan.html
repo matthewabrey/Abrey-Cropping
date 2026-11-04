@@ -3307,14 +3307,21 @@ function irrStat(f){
   var gap=irrGap(c,irrSub(f));
   var days=last?Math.floor((Date.now()-new Date(last+'T12:00:00').getTime())/864e5):null;
   var st=L.st||0;
+  var todayIso=new Date().toISOString().slice(0,10);
+  var g=(L.g||[]).slice().sort(function(a,b){return a[0]<b[0]?-1:1;});
+  var nextProg=null;
+  g.forEach(function(x){if(x[0]>=todayIso&&(!nextProg||x[0]<nextProg))nextProg=x[0];});
+  var dueIso=null;
+  if(last&&gap!=null){var dt=new Date(last+'T12:00:00');dt.setDate(dt.getDate()+gap);dueIso=dt.toISOString().slice(0,10);}
   var code,badge;
   if(st===2){code=2;badge='<span style="background:#e67e22;color:#fff;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:700">2 · Definitely start</span>';}
+  else if(nextProg){code=3;badge='<span style="background:#1565c0;color:#fff;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:700">3 · Programme '+irrDM(nextProg)+'</span>';}
   else if(st===3){code=3;badge='<span style="background:#1565c0;color:#fff;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:700">3 · On programme</span>';}
   else if(last==null){code=6;badge='<span style="color:var(--tx3);font-size:10.5px">no passes yet</span>';}
   else if(gap==null){code=5;badge='<span style="background:#eee;color:#666;padding:2px 8px;border-radius:10px;font-size:10.5px">set warning days</span>';}
   else if(days>=gap){code=1;badge='<span style="background:#c0392b;color:#fff;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:700">1 · Due — '+days+'d since last ('+gap+'d set)</span>';}
   else{code=4;badge='<span style="background:#e8f5e9;color:#1a5c2e;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:600">ok · due in '+(gap-days)+'d</span>';}
-  return {c:c,key:key,p:p,last:last,days:days,gap:gap,perAc:perAc,st:st,code:code,badge:badge};
+  return {c:c,key:key,p:p,g:g,nextProg:nextProg,dueIso:dueIso,last:last,days:days,gap:gap,perAc:perAc,st:st,code:code,badge:badge};
 }
 function irrFields(){
   return F.filter(function(f){var c=gc(f,irYr);return WC[c]!==undefined&&f.ha>0;});
@@ -3330,10 +3337,20 @@ function irrAddPass(i){
   if(isNaN(ap)){alert('Enter the applied mm');return;}
   var L=IRR_LOG[k]||(IRR_LOG[k]={});
   (L.p=L.p||[]).push([d,told,ap]);
+  L.g=(L.g||[]).filter(function(x){return x[0]!==d;}); // pass fulfils that day's programme
   L.st=0; // a pass resets 2/3 back to auto
   irrTouch();rIr();
 }
 function irrDelPass(i,pi){var f=window._irList[i];var k=irrKey(f);var L=IRR_LOG[k];if(!L||!L.p)return;L.p.sort(function(a,b){return a[0]<b[0]?-1:1;});L.p.splice(pi,1);irrTouch();rIr();}
+function irrProgToggle(i,iso){
+  var f=window._irList[i],k=irrKey(f);
+  var L=IRR_LOG[k]||(IRR_LOG[k]={});
+  L.g=L.g||[];
+  var ix=-1;L.g.forEach(function(x,j){if(x[0]===iso)ix=j;});
+  if(ix>=0)L.g.splice(ix,1);
+  else{var mmv=parseFloat((document.getElementById('ir-prog-mm')||{}).value)||20;L.g.push([iso,mmv]);}
+  irrTouch();rIr();
+}
 function irrGapSet(k,v){IRR_CFG.gap[k]=(v===''?'':(+v||0));if(v==='')delete IRR_CFG.gap[k];irrTouch();rIr();}
 function irrGapDel(k){delete IRR_CFG.gap[k];irrTouch();rIr();}
 function irrFillSubs(){
@@ -3446,6 +3463,37 @@ function rIr(){
     +'<select onchange="_irSt=this.value;rIr()" style="font-size:12px;padding:4px">'
       +'<option value="">All statuses</option><option value="1"'+(_irSt==='1'?' selected':'')+'>1 — due</option><option value="2"'+(_irSt==='2'?' selected':'')+'>2 — definitely start</option><option value="3"'+(_irSt==='3'?' selected':'')+'>3 — on programme</option><option value="4"'+(_irSt==='4'?' selected':'')+'>ok</option><option value="6"'+(_irSt==='6'?' selected':'')+'>not started</option><option value="5"'+(_irSt==='5'?' selected':'')+'>no warning days set</option>'
     +'</select></div>'
+    +(function(){
+      var tIso=new Date().toISOString().slice(0,10);
+      var daysArr=[];for(var di=-5;di<=7;di++){var dd=new Date(Date.now()+di*864e5);daysArr.push(dd.toISOString().slice(0,10));}
+      var head=daysArr.map(function(iso){return '<th style="text-align:center;font-size:9.5px;padding:3px 4px;min-width:40px;'+(iso===tIso?'background:#fff3e0;':'')+(iso<tIso?'color:var(--tx3);':'')+'">'+irrDM(iso)+(iso===tIso?'<div style="font-size:8px;color:#e67e22">today</div>':'')+'</th>';}).join('');
+      var body=window._irList.map(function(f,i){
+        var s=sOrd[i];
+        var pass={};s.p.forEach(function(x){pass[x[0]]=(pass[x[0]]||0)+(+x[2]||0);});
+        var prog={};(s.g||[]).forEach(function(x){prog[x[0]]=x[1];});
+        var markIso=s.dueIso;
+        if(markIso&&markIso<tIso)markIso=tIso;
+        if(s.code===2||s.code===3)markIso=null;
+        var cells=daysArr.map(function(iso){
+          var inner='';
+          if(pass[iso]!=null)inner='<span onclick="irrToggle('+i+')" title="applied — click for detail" style="display:inline-block;background:#1a5c2e;color:#fff;border-radius:4px;padding:1px 5px;font-size:9.5px;font-weight:700;cursor:pointer">'+pass[iso]+'</span>';
+          else if(prog[iso]!=null)inner='<span onclick="irrProgToggle('+i+',\''+iso+'\')" title="programmed — click to remove" style="display:inline-block;background:#1565c0;color:#fff;border-radius:4px;padding:1px 5px;font-size:9.5px;font-weight:700;cursor:pointer">'+prog[iso]+'</span>';
+          else if(markIso===iso&&iso>=tIso)inner='<span onclick="irrProgToggle('+i+',\''+iso+'\')" title="predicted due — click to programme" style="display:inline-block;background:#c0392b;color:#fff;border-radius:50%;width:15px;height:15px;line-height:15px;font-size:9.5px;font-weight:700;cursor:pointer">1</span>';
+          else if(iso>=tIso)inner='<span onclick="irrProgToggle('+i+',\''+iso+'\')" style="color:#c9d4c9;cursor:pointer;font-size:11px" title="click to programme">+</span>';
+          return '<td style="text-align:center;padding:2px 3px;'+(iso===tIso?'background:#fffaf2;':'')+'">'+inner+'</td>';
+        }).join('');
+        return '<tr><td style="font-weight:600;font-size:11px;white-space:nowrap;position:sticky;left:0;background:#fff;z-index:1">'+f.field+'</td><td style="font-size:10px;color:var(--tx3);white-space:nowrap">'+s.c+'</td>'+cells+'</tr>';
+      }).join('');
+      return '<div style="background:#fff;border:1px solid var(--bd);border-radius:8px;margin-bottom:12px">'
+        +'<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--bd);flex-wrap:wrap">'
+        +'<strong style="color:var(--g1);font-size:13px">Programme — last 5 / next 7 days</strong>'
+        +'<span style="font-size:10px;color:var(--tx3)"><span style="color:#1a5c2e;font-weight:700">green</span> = applied mm · <span style="color:#1565c0;font-weight:700">blue</span> = programmed mm (click a day to add, click again to remove) · <span style="color:#c0392b;font-weight:700">1</span> = predicted due</span>'
+        +'<span style="margin-left:auto;font-size:10.5px;color:var(--tx3)">programme at</span><input id="ir-prog-mm" type="number" value="20" style="width:52px;font-size:11px;padding:2px"><span style="font-size:10.5px;color:var(--tx3)">mm</span>'
+        +'</div>'
+        +'<div style="overflow:auto;max-height:420px">'
+        +'<table style="border-collapse:collapse"><thead><tr><th style="position:sticky;left:0;background:#fff;z-index:2">Field</th><th>Crop</th>'+head+'</tr></thead>'
+        +'<tbody>'+body+'</tbody></table></div></div>';
+    })()
     +'<div style="background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:auto;max-height:560px">'
     +'<table><thead><tr><th>Field</th><th>Estate</th><th>Crop</th><th style="text-align:right">Acres</th><th style="text-align:right">Last pass</th><th style="text-align:right">Applied</th><th style="text-align:right">Left vs avg</th><th>Status</th><th></th></tr></thead>'
     +'<tbody>'+(rows||'<tr><td colspan="9" style="padding:14px;color:var(--tx3)">No fields match.</td></tr>')+'</tbody></table></div>'
