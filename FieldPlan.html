@@ -3279,6 +3279,21 @@ function getOnionHa(yr){
 }
 
 function rOn(){
+  if(window._onionLive===undefined){
+    window._onionLive=null;
+    fetch('https://raw.githubusercontent.com/matthewabrey/Abrey-Cropping/main/onion_live.json?v='+Math.floor(Date.now()/600000))
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(j){window._onionLive=j||null;if(tab==='on')rOn();})
+      .catch(function(){});
+  }
+  var _liveMap={};
+  if(window._onionLive&&window._onionLive.types){
+    var T2V={'Brown Seed':'Brown Seed','Red Sets':'Red Sets','Winter Sets':'Winter Sets','Spring Sets':'Spring Sets','Red Seed':'Red Seed','Banana':'Speciality','Pickle':'Speciality','Shallot':'Speciality'};
+    Object.keys(window._onionLive.types).forEach(function(ty){
+      var vn=T2V[ty];
+      if(vn)_liveMap[vn]=(_liveMap[vn]||0)+window._onionLive.types[ty];
+    });
+  }
   var totalHa=getOnionHa(onYr);
   var ptg=ONION_CFG.packed_to_green;
   var totalTonnes=0;
@@ -3291,7 +3306,9 @@ function rOn(){
 
   ONION_CFG.varieties.forEach(function(v,i){
     var ha=totalHa*(v.pct/100);
-    var t=ha*v.yield_tha*ptg;
+    var _lv=_liveMap[v.name];
+    var _isLive=(_lv!=null&&_lv>0&&onYr==='2027');
+    var t=_isLive?_lv:ha*v.yield_tha*ptg;
     var rawReload=v.reload||0;
     var reload=Math.min(rawReload,t);  // cap reload at actual production — 99999 = "all"
     var isAllReload=rawReload>=99999;
@@ -3302,7 +3319,7 @@ function rOn(){
       +'<td style="text-align:right"><input type="number" value="'+v.pct.toFixed(2)+'" step="0.01" onchange="ONION_CFG.varieties['+i+'].pct=parseFloat(this.value)||0;rOn()" style="width:70px;text-align:right;font-size:12px"></td>'
       +'<td style="text-align:right">'+ha.toFixed(1)+'</td>'
       +'<td style="text-align:right"><input type="number" value="'+v.yield_tha.toFixed(2)+'" step="0.01" onchange="ONION_CFG.varieties['+i+'].yield_tha=parseFloat(this.value)||0;rOn()" style="width:70px;text-align:right;font-size:12px"></td>'
-      +'<td style="text-align:right;font-weight:bold">'+Math.round(t).toLocaleString()+'</td>'
+      +'<td style="text-align:right;font-weight:bold">'+(_isLive?'<span title="Live green tons from the C1 Sales Planner" style="color:#1a5c2e">\u25cf '+Math.round(t).toLocaleString()+'</span>':Math.round(t).toLocaleString())+'</td>'
       +'<td style="text-align:right">'
         +(isAllReload
         ?'<div style="display:flex;align-items:center;gap:4px">'          +'<span style="font-size:11px;font-weight:bold;color:#1565c0">All ('+Math.round(t)+'t)</span> '          +'<button onclick="ONION_CFG.varieties['+i+'].reload=0;rOn()" style="font-size:9px;padding:1px 5px;color:#c0392b;border-color:#c0392b;background:none">&times;</button>'          +'</div>'        :'<div style="display:flex;align-items:center;gap:3px">'          +'<input type="number" value="'+(rawReload||'')+'" placeholder="0" min="0" '          +'onchange="ONION_CFG.varieties['+i+'].reload=parseFloat(this.value)||0;rOn()" '          +'style="width:64px;text-align:right;font-size:12px;background:'+(rawReload>0?'#e8f5e9':'#fff')+'" >'          +'<button onclick="ONION_CFG.varieties['+i+'].reload=99999;rOn()" title="Reload all production" style="font-size:9px;padding:1px 5px;color:#1565c0;border-color:#1565c0;background:none">All</button>'          +'</div>'      )+'</td>'      +'</tr>';
@@ -3388,6 +3405,7 @@ function rOn(){
     +'<td style="text-align:right">'+Math.round(totalTonnes).toLocaleString()+'</td>'
     +'<td style="text-align:right;color:#1565c0">'+(totalReload>0?'+'+Math.round(totalReload).toLocaleString()+'t':'—')+'</td>'
     +'</tr></tfoot></table>'
+    +(window._onionLive&&window._onionLive.asOf&&onYr==='2027'?'<div style="font-size:11px;color:#1a5c2e;padding:6px 8px;background:#e8f5e9;border-top:1px solid #c8e6c9">\u25cf Live green tons from the C1 Sales Planner \u2014 updated '+(function(d){return d.slice(8,10)+'/'+d.slice(5,7)+' '+d.slice(11,16);})(window._onionLive.asOf)+'. Varieties without a live figure show the forecast (% \u00d7 yield).</div>':'')
     +(totalReload>0?'<div style="font-size:11px;color:#1565c0;padding:6px 8px;background:#e3f2fd;border-top:1px solid #bbdefb">&#9432; Reload: '+Math.round(totalReload).toLocaleString()+'t will pass through stores early in the season, freeing that capacity for remaining stock. Effective total capacity = '+Math.round(totalStore).toLocaleString()+'t store + '+Math.round(totalReload).toLocaleString()+'t reload = '+Math.round(effectiveCapacity).toLocaleString()+'t</div>':'')
     +'</div></div>'
 
