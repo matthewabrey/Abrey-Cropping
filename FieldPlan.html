@@ -1567,7 +1567,7 @@ function aF(){
       // Use zoneFields() — ALL fields in zone, not just filtered
       var zf=zoneFields(z,yearStr);
       var used=zf.reduce(function(a,f){
-        var c=gc(f,yearStr); return WC[c]?a+f.ha*2.471*WC[c]:a;
+        var r=wcRate(f,yearStr); return r?a+f.ha*2.471*r:a;
       },0);
       totalUsed+=used;
       totalBudget+=z.gal/UK_GAL2;
@@ -2316,6 +2316,68 @@ function addMsg(cls,html){
 // ═══════════════════════════════════════════════════════════════════
 var WATER_CFG={"zones":[{"name":"Rackham — Dolphin Farm","machines":3,"estate":"Rackham Farms","zone":"Dolphin Farm","gal":40000000,"rate":30},{"name":"Rackham — Moorland Stud","machines":2,"estate":"Rackham Farms","zone":"Moorland Stud","gal":23000000,"rate":30},{"name":"Rackham — Lodge Farm","machines":4,"estate":"Rackham Farms","zone":"Lodge Farm Gasthorpe","gal":47000000,"rate":30},{"name":"Rackham — Manor Farm","machines":4,"estate":"Rackham Farms","zone":"Manor Farm Bridgham","gal":55000000,"rate":30},{"name":"Blakeney + Wretham","machines":16,"estate":"__BW","zone":"__BW","gal":125000000,"rate":25},{"name":"Euston — Bore/West Pump","machines":5,"estate":"Euston","zone":"__BORWEST","gal":52000000,"rate":38},{"name":"Euston — Main Pump","machines":12,"estate":"Euston","zone":"__MAIN","gal":160000000,"rate":38},{"name":"Pickenham — SPEC","machines":10,"estate":"Pickenham","zone":"SPEC","gal":117000000,"rate":48},{"name":"Pickenham — PFC","machines":10,"estate":"Pickenham","zone":"PFC","gal":170000000,"rate":48},{"name":"Chandler","machines":5,"estate":"Chandler","zone":"__ALL","gal":60000000,"rate":42},{"name":"Gooderham — Home Farm","machines":3,"estate":"Gooderham","zone":"Home Farm","gal":25000000,"rate":65},{"name":"Gooderham — Snare Hill","machines":3,"estate":"Gooderham","zone":"Snare Hill","gal":25000000,"rate":65}]};
 var WC = {Potatoes:11.12,'Salad Potatoes':9.37,Carrots:6.54,Onions:4.91,Parsnips:9.44};
+var WC_VAR={};
+function wcRate(f,yr){
+  var c=gc(f,yr);
+  var base=WC[c];
+  if(base===undefined)return undefined;
+  try{
+    var v=f.oid&&_omVar[f.oid]&&_omVar[f.oid][yr]&&_omVar[f.oid][yr].v;
+    if(v&&WC_VAR[c+'|'+v]!==undefined)return WC_VAR[c+'|'+v];
+  }catch(e){}
+  return base;
+}
+function waterRatesHtml(){
+  var baseRows=Object.entries(WC).map(function(p){
+    return '<div style="display:flex;align-items:center;gap:6px">'
+      +'<span style="font-size:12px;min-width:110px">'+p[0]+'</span>'
+      +'<input type="number" value="'+p[1]+'" step="0.01" onchange="WC[\''+p[0]+'\']=parseFloat(this.value)||0;if(tab===\'wt\')rWt()" style="width:70px;font-size:12px">'
+      +'<span style="font-size:11px;color:var(--tx3)">ac-in/ac</span></div>';
+  }).join('');
+  var varRows=Object.keys(WC_VAR).sort().map(function(k){
+    var ix=k.indexOf('|');
+    var esc=k.replace(/'/g,"\\'");
+    return '<div style="display:flex;align-items:center;gap:6px">'
+      +'<span style="font-size:12px;min-width:110px">'+k.slice(0,ix)+'</span>'
+      +'<span style="font-size:11.5px;min-width:140px;color:#0d47a1;font-weight:600">'+k.slice(ix+1)+'</span>'
+      +'<input type="number" value="'+WC_VAR[k]+'" step="0.01" onchange="WC_VAR[\''+esc+'\']=parseFloat(this.value)||0;if(tab===\'wt\')rWt()" style="width:70px;font-size:12px">'
+      +'<span style="font-size:11px;color:var(--tx3)">ac-in/ac</span>'
+      +'<button onclick="delete WC_VAR[\''+esc+'\'];if(tab===\'wt\')rWt();if(tab===\'cf\'&&typeof rCf===\'function\')rCf()" style="font-size:12px;border:none;background:none;color:#c0392b;cursor:pointer" title="Remove">&#10005;</button>'
+      +'</div>';
+  }).join('');
+  var cropOpts=Object.keys(WC).map(function(c){return '<option>'+c+'</option>';}).join('');
+  return '<div style="background:#fff;border:1px solid var(--bd);border-radius:6px;padding:14px;margin-top:14px">'
+    +'<div style="font-weight:bold;color:var(--g1);font-size:14px;margin-bottom:10px">&#128166; Water Rates per Crop (ac-in/acre)</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:10px">'+baseRows+'</div>'
+    +'<div style="font-weight:600;color:var(--g1);font-size:12.5px;margin:14px 0 6px">Variety overrides'+(varRows?'':' <span style="font-weight:400;color:var(--tx3)">(none yet — add one below)</span>')+'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:6px">'+varRows+'</div>'
+    +'<div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap">'
+    +'<select id="wcv-crop" onchange="wcvFillVars()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd);border-radius:5px"><option value="">crop…</option>'+cropOpts+'</select>'
+    +'<select id="wcv-var" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd);border-radius:5px;min-width:160px"><option value="">variety…</option></select>'
+    +'<input id="wcv-rate" type="number" step="0.01" placeholder="rate" style="width:72px;font-size:12px;padding:5px">'
+    +'<button onclick="wcvAdd()" style="font-size:12px;padding:5px 14px;background:var(--g1);color:#fff;border:1px solid var(--g1);border-radius:5px;cursor:pointer">+ Add variety rate</button>'
+    +'<span style="font-size:10.5px;color:var(--tx3)">varieties from Omnia — an override beats the crop rate on fields growing that variety</span>'
+    +'</div></div>';
+}
+function wcvFillVars(){
+  var c=(document.getElementById('wcv-crop')||{}).value||'';
+  var sel=document.getElementById('wcv-var'); if(!sel)return;
+  var M={'Potatoes':['Potatoes'],'Salad Potatoes':['Potatoes'],'Carrots':['Carrots'],'Onions':['Bulb Onions - Dry','Shallots'],'Parsnips':['Parsnips']};
+  var vs={};
+  (M[c]||[c]).forEach(function(oc){Object.keys((window._omCropVars||{})[oc]||{}).forEach(function(v){if(v)vs[v]=1;});});
+  var names=Object.keys(vs).sort();
+  sel.innerHTML='<option value="">variety…</option>'+names.map(function(v){return '<option>'+v.replace(/</g,'&lt;')+'</option>';}).join('');
+  if(!names.length)sel.innerHTML='<option value="">no Omnia varieties yet</option>';
+}
+function wcvAdd(){
+  var c=(document.getElementById('wcv-crop')||{}).value||'';
+  var v=(document.getElementById('wcv-var')||{}).value||'';
+  var r=parseFloat((document.getElementById('wcv-rate')||{}).value||'');
+  if(!c||!v||isNaN(r)){alert('Pick a crop, a variety and a rate.');return;}
+  WC_VAR[c+'|'+v]=r;
+  if(tab==='wt')rWt();
+  if(tab==='cf'&&typeof rCf==='function')rCf();
+}
 var UK_GAL = 22611;
 
 function zoneFields(zCfg, yr){
@@ -2340,7 +2402,7 @@ function zoneWater(zCfg, yr){
   var acin=0;
   fields.forEach(function(f){
     var c=gc(f,yr);
-    if(WC[c]&&isOurs(f,yr)) acin+=f.ha*2.471*WC[c];
+    var _r=wcRate(f,yr); if(_r&&isOurs(f,yr)) acin+=f.ha*2.471*_r;
   });
   return acin;
 }
@@ -2397,26 +2459,32 @@ function rWt(){
 
   // ── fuel gauge SVG for a zone
   function fuelGauge(pct, label, used, budget, cost, vegHa, machines){
-    var clamp=Math.min(Math.max(pct,0),150);
     var col=pct>110?'#922b21':pct>97?'#c0392b':pct>80?'#e67e22':pct>50?'#27ae60':'#2980b9';
     var bgCard=pct>97?'#fef0f0':pct>80?'#fff8f0':'#f8faf8';
     var borderCard=pct>97?'#f1948a':pct>80?'#f0a070':'#cde';
-    var W=180,H=120,cx=90,cy=80,r=60;
-    function polar(deg,rad){
-      var a=(deg-90)*Math.PI/180;
-      return {x:cx+rad*Math.cos(a),y:cy+rad*Math.sin(a)};
-    }
-    function arc(a1,a2,rad,la){
-      var s=polar(a1,rad),e=polar(a2,rad);
-      return 'M '+s.x.toFixed(1)+' '+s.y.toFixed(1)+' A '+rad+' '+rad+' 0 '+(la?1:0)+' 1 '+e.x.toFixed(1)+' '+e.y.toFixed(1);
-    }
-    var as=150,ae=390,fill=Math.min(clamp,100);
-    var fe=as+(fill/100)*240,la=fill>50?1:0;
-    var t75=polar(as+180,r+8),t75i=polar(as+180,r-4);
-    var t100=polar(ae,r+8),t100i=polar(ae,r-4);
+    var fill=Math.min(Math.max(pct,0),100);
     var usedK=(used/1000).toFixed(0)+'K',budK=(budget/1000).toFixed(0)+'K';
     var galM=(budget/22611).toFixed(0)+'M gal';
-    return '<div class="wt-gauge-card" style="background:'+bgCard+';border:1.5px solid '+borderCard+';border-radius:12px;padding:10px 8px 8px;break-inside:avoid">'      +'<div style="font-size:11px;font-weight:700;color:#1a5c2e;text-align:center;margin-bottom:4px;height:46px;overflow:hidden;line-height:1.3">'+label+'</div>'      +'<svg viewBox="0 0 '+W+' '+H+'" style="display:block;margin:0 auto;width:'+W+'px;height:'+H+'px">'      +'<path d="'+arc(as,ae,r,1)+'" fill="none" stroke="#e0e0e0" stroke-width="18" stroke-linecap="round"/>'      +(fill>0?'<path d="'+arc(as,fe,r,la)+'" fill="none" stroke="'+col+'" stroke-width="18" stroke-linecap="round"/>':'')      +'<line x1="'+t75i.x.toFixed(1)+'" y1="'+t75i.y.toFixed(1)+'" x2="'+t75.x.toFixed(1)+'" y2="'+t75.y.toFixed(1)+'" stroke="#bbb" stroke-width="2.5"/>'      +'<line x1="'+t100i.x.toFixed(1)+'" y1="'+t100i.y.toFixed(1)+'" x2="'+t100.x.toFixed(1)+'" y2="'+t100.y.toFixed(1)+'" stroke="'+col+'" stroke-width="2.5"/>'      +'<text x="'+cx+'" y="'+(cy-2)+'" text-anchor="middle" font-size="26" font-weight="800" fill="'+col+'" font-family="Arial,sans-serif">'+Math.round(pct)+'%</text>'      +'<text x="'+cx+'" y="'+(cy+16)+'" text-anchor="middle" font-size="10" fill="#888" font-family="Arial,sans-serif">of budget</text>'      +'<text x="'+cx+'" y="'+(cy+30)+'" text-anchor="middle" font-size="9" fill="'+col+'" font-weight="600" font-family="Arial,sans-serif">'+usedK+' / '+budK+' ac-in</text>'      +'</svg>'      +'<div style="text-align:center;font-size:11px;line-height:1.9;border-top:1px solid rgba(0,0,0,.08);margin-top:4px;padding-top:5px">'      +(vegHa>0?'<span style="color:#1a5c2e;font-weight:600">'+Math.round(vegHa)+'ha veg</span>'+(machines?' · '+machines+' mach':'')+'<br>':'<span style="color:#aaa">no veg</span><br>')      +'<span style="color:#999;font-size:10px">'+galM+'</span><br>'      +'<span style="font-weight:700;color:'+col+'">£'+Math.round(cost/1000)+'K est.</span>'      +'</div>'      +'</div>';
+    var over=pct>100;
+    return '<div class="wt-gauge-card" style="background:'+bgCard+';border:1.5px solid '+borderCard+';border-radius:12px;padding:10px 8px 8px;width:132px;break-inside:avoid">'
+      +'<div style="font-size:10.5px;font-weight:700;color:#1a5c2e;text-align:center;margin-bottom:6px;height:34px;overflow:hidden;line-height:1.25">'+label+'</div>'
+      +'<div style="display:flex;gap:9px;justify-content:center;align-items:flex-end">'
+      +'<div style="position:relative;width:40px;height:132px;background:#eceff1;border:1.5px solid #b0bec5;border-radius:9px;overflow:hidden">'
+        +'<div style="position:absolute;bottom:0;left:0;right:0;height:'+fill+'%;background:'+col+'"></div>'
+        +'<div style="position:absolute;bottom:80%;left:0;right:0;border-top:1.5px dashed rgba(0,0,0,.3)"></div>'
+        +(over?'<div style="position:absolute;top:0;left:0;right:0;height:6px;background:#922b21"></div>':'')
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;justify-content:flex-end;height:132px;min-width:52px">'
+        +'<span style="font-size:20px;font-weight:800;color:'+col+'">'+Math.round(pct)+'%</span>'
+        +'<span style="font-size:9px;color:#888">of budget</span>'
+        +'<span style="font-size:9.5px;color:'+col+';font-weight:600;margin-top:5px">'+usedK+' /<br>'+budK+' ac-in</span>'
+      +'</div>'
+      +'</div>'
+      +'<div style="text-align:center;font-size:10.5px;line-height:1.7;border-top:1px solid rgba(0,0,0,.08);margin-top:7px;padding-top:5px">'
+      +(vegHa>0?'<span style="color:#1a5c2e;font-weight:600">'+Math.round(vegHa)+'ha veg</span>'+(machines?' · '+machines+' mach':'')+'<br>':'<span style="color:#aaa">no veg</span><br>')
+      +'<span style="color:#999;font-size:9.5px">'+galM+'</span> · <span style="font-weight:700;color:'+col+'">£'+Math.round(cost/1000)+'K</span>'
+      +'</div>'
+      +'</div>';
   }
 
   // ── build gauge cards
@@ -2512,6 +2580,10 @@ function rWt(){
     +'<div id="wt-gauges" style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:22px;align-items:flex-start">'
     +gaugeCards
     +'</div>'
+
+    // ── water rates editor (shared with Settings)
+    +waterRatesHtml()
+    +'<div style="height:18px"></div>'
 
     // ── data table
     +'<details open><summary style="font-size:13px;font-weight:bold;color:var(--g1);cursor:pointer;margin-bottom:8px;user-select:none">Detail table</summary>'
@@ -2642,7 +2714,7 @@ function rWtBudget(){
       var zf=zoneFields(z,year);
       zf.forEach(function(f){
         var c=gc(f,year);
-        var wrate=WC[c]||0;
+        var wrate=wcRate(f,year)||0;
         if(!wrate) return;
         total += f.ha * 2.47105 * wrate * z.rate;
       });
@@ -2954,7 +3026,7 @@ function rWtCost(){
         var c=gc(f,y);
         if(selCrop&&c!==selCrop) return;
         if(!WC[c]||!isOurs(f,y)) return;
-        var acIn=f.ha*2.471*WC[c];
+        var acIn=f.ha*2.471*(wcRate(f,y)||WC[c]);
         var cost=acIn*rate;
         estTot[y].cost+=cost; estTot[y].acIn+=acIn;
         grandTot[y].cost+=cost; grandTot[y].acIn+=acIn;
@@ -3367,17 +3439,8 @@ function rCf(){
     +'<div style="font-size:11px;color:var(--tx3);margin-top:8px">Changes here also update the Water tab.</div>'
     +'</div>'
 
-    // Water rates per crop
-    +'<div style="background:#fff;border:1px solid var(--bd);border-radius:6px;padding:14px">'
-    +'<div style="font-weight:bold;color:var(--g1);font-size:14px;margin-bottom:10px">&#128166; Water Rates per Crop (ac-in/acre)</div>'
-    +'<div style="display:flex;flex-wrap:wrap;gap:10px">'
-    +Object.entries(WC).map(function(p,i){
-      return '<div style="display:flex;align-items:center;gap:6px">'
-        +'<span style="font-size:12px;min-width:120px">'+p[0]+'</span>'
-        +'<input type="number" value="'+p[1]+'" step="0.01" onchange="WC[\''+p[0]+'\']=parseFloat(this.value)||0;rWt()" style="width:70px;font-size:12px">'
-        +'<span style="font-size:11px;color:var(--tx3)">ac-in/ac</span></div>';
-    }).join('')
-    +'</div></div>'
+    // Water rates per crop (shared editor)
+    +waterRatesHtml()
     +'<div style="background:#fff;border:1px solid var(--bd);border-radius:6px;padding:14px;margin-top:14px">'
     +'<div style="font-weight:bold;color:var(--g1);font-size:14px;margin-bottom:6px">&#128274; Saving</div>'
     +'<div style="font-size:12px;color:var(--tx2)">Saves publish through the secure relay with your employee number and 4-digit save PIN. No GitHub connection is needed in the browser. Live app: <a href="https://matthewabrey.github.io/Abrey-Cropping/FieldPlan.html" target="_blank" style="color:var(--g1)">matthewabrey.github.io/Abrey-Cropping/FieldPlan.html</a></div>'
@@ -5069,6 +5132,8 @@ function buildFileContent(){
   var src=document.documentElement.outerHTML;
   src=src.replace(/const F=\[[\s\S]*?\];/, 'const F='+JSON.stringify(F)+';');
   src=src.replace(/var WATER_CFG\s*=\s*\{[\s\S]*?\};/, 'var WATER_CFG='+JSON.stringify(WATER_CFG)+';');
+  src=src.replace(/var WC = \{[\s\S]*?\};/, 'var WC = '+JSON.stringify(WC)+';');
+  src=src.replace(/var WC_VAR=\{[\s\S]*?\};/, 'var WC_VAR='+JSON.stringify(WC_VAR)+';');
 
   // ── Auto-generate baseline diff ─────────────────────────────────────────
   // window.BASELINE_F is the live authoritative source — setCrop() keeps it
@@ -5307,6 +5372,8 @@ function omniaSyncFields(){
       if(r.HoldingId!=='15859'||!r.VarietyName)return;
       var a=parseFloat(r.Area||'')||0;
       if(a<0.5)return; // skip margin slivers
+      var cv=window._omCropVars||(window._omCropVars={});
+      (cv[r.CropName]=cv[r.CropName]||{})[r.VarietyName]=1;
       var o=_omVar[r.FieldId]||(_omVar[r.FieldId]={});
       var prev=o[r.Year];
       if(!prev||a>prev.a)o[r.Year]={v:r.VarietyName,a:a};
