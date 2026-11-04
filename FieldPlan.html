@@ -5448,7 +5448,7 @@ function rOmRecs(){
       return '<div style="padding:8px 12px;border-bottom:1px solid var(--bd)">'
         +'<div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">'
         +'<span style="font-weight:700;font-size:12.5px">#'+b.num+' '+b.name+'</span>'
-        +'<span style="font-size:10.5px;color:var(--tx3)">'+b.type+' · '+b.year+' · planned '+(b.date||'—')+'</span>'
+        +'<span style="font-size:10.5px;color:var(--tx3)">'+b.type+' · '+b.year+' · planned '+(b.date?b.date.slice(8,10)+'/'+b.date.slice(5,7):'—')+'</span>'
         +'<span style="font-size:10.5px;color:var(--tx3)">'+b.n+' field'+(b.n===1?'':'s')+' · '+b.ha.toFixed(1)+'ha'+(showOut?' · <strong style="color:#c05000">'+b.dn+'/'+b.n+' done</strong>':'')+'</span>'
         +'</div>'+prods+chips+'</div>';
     }
