@@ -5642,12 +5642,12 @@ function rOmMatch(){
   el.innerHTML='<div style="max-width:900px">'
     +'<h2 style="font-size:16px;font-weight:normal;color:var(--g1);margin-bottom:2px">Field Matching</h2>'
     +'<div style="font-size:11.5px;color:var(--tx3);margin-bottom:10px">'+todo.length+' field'+(todo.length===1?'':'s')+' not yet linked to Omnia ('+decided+' linked). Decisions apply straight away — press <strong>Save</strong> when done so everyone gets them.</div>'
-    +(function(){try{var n=Object.keys(JSON.parse(localStorage.getItem('fp_om_pending')||'{}')).length;return n?'<div style="font-size:11.5px;background:#fff3e0;border:1px solid #e67e22;border-radius:6px;padding:7px 12px;margin-bottom:10px;color:#8a4500"><strong>'+n+' decision'+(n===1?'':'s')+' not yet saved</strong> — kept safe in this browser, but press Save decisions to publish for everyone.</div>':'';}catch(e){return '';}})()
-    +(todo.length?'<div style="margin-bottom:10px"><button onclick="saveToGitHub(\'Omnia field matching decisions\')" style="font-size:12px;padding:6px 20px;background:#e67e22;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">💾 Save decisions</button></div>':'')
+    +(function(){try{var n=Object.keys(JSON.parse(localStorage.getItem('fp_om_pending')||'{}')).length;window._omPendN=n;return n?'<div style="font-size:11.5px;background:#fff3e0;border:1px solid #e67e22;border-radius:6px;padding:7px 12px;margin-bottom:10px;color:#8a4500"><strong>'+n+' decision'+(n===1?'':'s')+' not yet saved</strong> — kept safe in this browser, but press Save decisions to publish for everyone.</div>':'';}catch(e){window._omPendN=0;return '';}})()
+    +((todo.length||window._omPendN)?'<div style="margin-bottom:10px"><button onclick="saveToGitHub(\'Omnia field matching decisions\')" style="font-size:12px;padding:6px 20px;background:#e67e22;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">💾 Save decisions</button></div>':'')
     +'<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden">'
     +(rows||'<div style="padding:16px;color:#1a5c2e;font-weight:600">All fields are linked — nothing to do 🎉</div>')
     +'</div>'
-    +(todo.length?'<div style="margin-top:10px"><button onclick="saveToGitHub(\'Omnia field matching decisions\')" style="font-size:12px;padding:6px 20px;background:#e67e22;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">💾 Save decisions</button></div>':'')
+    +((todo.length||window._omPendN)?'<div style="margin-top:10px"><button onclick="saveToGitHub(\'Omnia field matching decisions\')" style="font-size:12px;padding:6px 20px;background:#e67e22;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">💾 Save decisions</button></div>':'')
     +'</div>';
 }
 var _suQ='',_suFrom='',_suTo='',_suTimer=null;
