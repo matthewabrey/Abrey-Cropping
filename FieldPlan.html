@@ -3523,7 +3523,8 @@ function onTypeCheckHtml(){
     if(!o||!o.c)return;
     if(o.c.indexOf('Onion')<0&&o.c!=='Shallots')return;
     if(seen[f.oid])return; seen[f.oid]=1;
-    app.push({name:f.field,estate:f.estate,type:(o.d||'')});
+    var tps=[]; if(o.d)tps.push(o.d); (o.xs||[]).forEach(function(x){if(tps.indexOf(x)<0)tps.push(x);});
+    app.push({name:f.field,estate:f.estate,type:tps.join(' / '),types:tps});
   });
   if(!app.length)return '';
   if(!live.fields||!live.fields.length){
@@ -3555,7 +3556,7 @@ function onTypeCheckHtml(){
     if(!p){noPl.push(a);return;}
     p.used=true;
     var ts=Object.keys(p.types);
-    var ok=a.type&&ts.some(function(t){return norm(t)===norm(a.type);});
+    var ok=a.types.length&&a.types.some(function(at){return ts.some(function(t){return norm(t)===norm(at);});});
     if(!ok)bad.push({f:a,p:ts.join(' / ')});
   });
   var extra=plKeys.filter(function(k){return !pl[k].used;}).map(function(k){return pl[k];});
@@ -5651,7 +5652,8 @@ function omVarHtml(f,y){
   var isOn=o.c&&(o.c.indexOf('Onion')>=0||o.c==='Shallots');
   var txt=(isOn&&o.d)?o.d:o.v;
   if(!txt)return '';
-  var tip=(isOn&&o.d)?(o.d+(o.v?' \u2014 '+o.v:'')+' (Omnia type)'):(o.v+' (Omnia)');
+  if(o.xs&&o.xs.length)txt+=' / '+o.xs.join(' / ');
+  var tip=(isOn&&o.d)?(txt+(o.v?' \u2014 '+o.v:'')+' (Omnia type)'):(txt+' (Omnia)');
   return '<div style="font-size:8.5px;color:var(--tx3);line-height:1.1;max-width:78px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+tip.replace(/"/g,'&quot;')+'">'+txt+'</div>';
 }
 function parseOmniaCsv(t){
@@ -5718,7 +5720,15 @@ function omniaSyncFields(){
       (cv[r.CropName]=cv[r.CropName]||{})[r.VarietyName]=1;
       var o=_omVar[r.FieldId]||(_omVar[r.FieldId]={});
       var prev=o[r.Year];
-      if(!prev||a>prev.a)o[r.Year]={v:r.VarietyName,a:a,c:r.CropName,d:(r.CropDescr||'').replace(/^\s+|\s+$/g,'')};
+      var dd=(r.CropDescr||'').replace(/^\s+|\s+$/g,'');
+      if(!prev){o[r.Year]={v:r.VarietyName,a:a,c:r.CropName,d:dd,xs:[]};}
+      else{
+        // second type/variety on the same field+year: keep it, first one stays primary
+        var isOnX=prev.c&&(prev.c.indexOf('Onion')>=0||prev.c==='Shallots');
+        var tx=(isOnX&&dd)?dd:r.VarietyName;
+        var t0=(isOnX&&prev.d)?prev.d:prev.v;
+        if(tx&&tx!==t0&&prev.xs.indexOf(tx)<0)prev.xs.push(tx);
+      }
     });
     try{if(tab==='pl'&&typeof aF==='function')aF();}catch(e){}
   });
