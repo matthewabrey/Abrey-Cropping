@@ -5468,6 +5468,7 @@ function buildFileContent(){
   src=src.replace(/var WC = \{[\s\S]*?\};/, 'var WC = '+JSON.stringify(WC)+';');
   src=src.replace(/var WC_VAR=\{[\s\S]*?\};/, 'var WC_VAR='+JSON.stringify(WC_VAR)+';');
   src=src.replace(/var WC_NOTE=\{[\s\S]*?\};/, 'var WC_NOTE='+JSON.stringify(WC_NOTE)+';');
+  src=src.replace(/var OM_STORES=\{[\s\S]*?\}; \/\/ store/, 'var OM_STORES='+JSON.stringify(OM_STORES)+'; // store');
   src=src.replace(/var IRR_CFG=\{[\s\S]*?\}; \/\/ warning days/, 'var IRR_CFG='+JSON.stringify(IRR_CFG)+'; // warning days');
   src=src.replace(/var IRR_LOG=\{[\s\S]*?\};        \/\/ field key/, 'var IRR_LOG='+JSON.stringify(IRR_LOG)+';        // field key');
 
@@ -5512,6 +5513,7 @@ function buildFileContent(){
   // Save current F[] as new snapshot for next push on this device
   try { localStorage.setItem('fp_last_push_snap', JSON.stringify(F)); } catch(e){}
   try { localStorage.removeItem('fp_irr_shadow'); } catch(e){}
+  try { localStorage.removeItem('fp_omstores_shadow'); } catch(e){}
   // Always clear the local accepted flag so the banner re-appears after a push
   localStorage.removeItem('fp_accepted_baseline');
 
@@ -6085,6 +6087,18 @@ function rOmIn(){
       +'</div></div>';
   });
 }
+var OM_STORES={"Edwardstone":["Edwardstone"],"Wretham":["__REST"]}; // store -> farm groups it serves; __REST = everything not assigned elsewhere
+(function(){try{var s=JSON.parse(localStorage.getItem('fp_omstores_shadow')||'null');if(s&&typeof s==='object'&&!Array.isArray(s))OM_STORES=s;}catch(e){}})();
+function omStoresTouch(){try{localStorage.setItem('fp_omstores_shadow',JSON.stringify(OM_STORES));}catch(e){}}
+function omStoreFor(fg){var rest=null;for(var st in OM_STORES){var a=OM_STORES[st]||[];if(a.indexOf(fg)>=0)return st;if(a.indexOf('__REST')>=0)rest=st;}return rest;}
+function omStoreSave(st){
+  var cls='omst-'+st.replace(/[^A-Za-z0-9]/g,'_');
+  var sel=[].slice.call(document.querySelectorAll('input.'+cls+':checked')).map(function(x){return x.value;});
+  if(!sel.length){alert('Tick at least one farm');return;}
+  OM_STORES[st]=sel;
+  for(var o in OM_STORES){if(o!==st)OM_STORES[o]=(OM_STORES[o]||[]).filter(function(x){return x==='__REST'||sel.indexOf(x)<0;});}
+  omStoresTouch();rOmStock();
+}
 function rOmStock(){
   var el=document.getElementById('om-body'); if(!el)return;
   omniaCsv('Fields.csv',function(frows){
@@ -6094,8 +6108,11 @@ function rOmStock(){
     if(!srows||!prows){el.innerHTML='<div style="padding:20px;color:#c0392b">Could not load Omnia data — check internet / relay.</div>';return;}
     var fgrp={};(frows||[]).forEach(function(r){if(r.HoldingId==='15859')fgrp[r.FieldId]=r.FieldGroup||'Other';});
     // current stock: latest-year row per location+product
-    var stock={}; // key loc|prodkey
-    srows.filter(function(s){return s.HoldingId==='15859'&&s.Year>='2026';})
+    var OM_CY='2027';
+    var active={};
+    srows.forEach(function(s){if(s.HoldingId==='15859'&&s.Year>=OM_CY&&s.LocationName)active[s.LocationName]=1;});
+    var stock={}; // key loc|prodkey — only stores active in the current crop year
+    srows.filter(function(s){return s.HoldingId==='15859'&&s.Year>='2026'&&active[s.LocationName];})
       .sort(function(a,b){return a.Year.localeCompare(b.Year);})
       .forEach(function(s){
         stock[(s.LocationName||'?')+'|'+(s.ProductKey||s.StockName)]={loc:s.LocationName||'?',name:s.StockName||s.ProductName,type:s.StockType,pk:s.ProductKey,qty:parseFloat(s.BulkQuantity||'')||0,unit:s.BulkUnit||''};
@@ -6127,7 +6144,8 @@ function rOmStock(){
       var pid='#'+p.PlanNumber+' '+p.PlanName+' ('+p.Year+')';
       nb[pid]=(nb[pid]||0)+q;
       var fg=fgrp[p.FieldId]||'Other';
-      var na=needArea[fg]||(needArea[fg]={});
+      var st0=omStoreFor(fg)||'Wretham';
+      var na=needArea[st0]||(needArea[st0]={});
       na[k]=(na[k]||0)+q;
     });
     // allocate need across locations holding the product (proportional to stock, else first)
@@ -6140,14 +6158,13 @@ function rOmStock(){
       var holders=Object.keys(stock).map(function(k){return stock[k];}).filter(function(s){return s.pk===pk;});
       if(!holders.length)return;
       matched[pk]=1;
-      var tot=holders.reduce(function(a,s){return a+Math.max(s.qty,0);},0);
       var tip=Object.keys(needBy[pk]||{}).sort().map(function(pid){
         var v=needBy[pk][pid];
         return pid+': '+(Math.abs(v)>=100?Math.round(v).toLocaleString():Math.round(v*10)/10)+' '+(needUnit[pk]==='Litre'?'L':'kg');
       }).join('\n');
       holders.forEach(function(s){
-        s.need=(s.need||0)+(tot>0?need[pk]*Math.max(s.qty,0)/tot:need[pk]/holders.length);
-        s.tip=tip;
+        var nq=(needArea[s.loc]||{})[pk]||0; // need tallied to the store serving each farm
+        if(nq>0.001){s.need=(s.need||0)+nq;s.tip=tip;}
       });
     });
     function fmt(v,u){
@@ -6197,7 +6214,7 @@ function rOmStock(){
     var areaKeys=Object.keys(needArea).sort();
     if(areaKeys.length){
       areaHtml='<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px">'
-        +'<div style="padding:8px 14px;background:#0d47a1;color:#fff;font-weight:700;font-size:13px">Needed for open recs — by area (ordering guide)</div>'
+        +'<div style="padding:8px 14px;background:#0d47a1;color:#fff;font-weight:700;font-size:13px">Needed for open recs — by store (ordering guide)</div>'
         +areaKeys.map(function(ar){
           var pks=Object.keys(needArea[ar]).sort(function(a,b){return (needName[a]||'').localeCompare(needName[b]||'');});
           var trs=pks.map(function(pk){
@@ -6212,7 +6229,10 @@ function rOmStock(){
               +'<td style="padding:3px 10px;font-size:11.5px;text-align:right;white-space:nowrap;font-weight:700;color:'+(order>0.01?'#c0392b':'#1a5c2e')+'">'+(order>0.01?fmt(order,needUnit[pk]):'✓ covered')+'</td>'
               +'</tr>';
           }).join('');
-          return '<div style="padding:7px 14px 3px;font-weight:700;font-size:12.5px;color:#0d47a1;border-top:1px solid var(--bd)">'+ar+'</div>'
+          var covA=OM_STORES[ar]||[];var covTxt;
+          if(covA.indexOf('__REST')>=0){var oth=[];for(var o2 in OM_STORES){if(o2!==ar)(OM_STORES[o2]||[]).forEach(function(x){if(x!=='__REST')oth.push(x);});}covTxt=oth.length?'all farms except '+oth.join(', '):'all farms';}
+          else covTxt=covA.join(', ')||'no farms assigned';
+          return '<div style="padding:7px 14px 3px;font-weight:700;font-size:12.5px;color:#0d47a1;border-top:1px solid var(--bd)">'+ar+' <span style="font-weight:400;font-size:10px;color:var(--tx3)">— serves '+covTxt+'</span></div>'
             +'<table style="border-collapse:collapse;width:100%"><thead><tr style="background:var(--c2)">'
             +'<th style="padding:3px 10px;font-size:10px;text-align:left">Product</th>'
             +'<th style="padding:3px 10px;font-size:10px;text-align:right">Needed</th>'
@@ -6222,10 +6242,25 @@ function rOmStock(){
         }).join('')
         +'</div>';
     }
+    var unknown=Object.keys(active).filter(function(l){return !(l in OM_STORES);}).sort();
+    var allGroups=[];(frows||[]).forEach(function(r){if(r.HoldingId==='15859'&&r.FieldGroup&&allGroups.indexOf(r.FieldGroup)<0)allGroups.push(r.FieldGroup);});
+    allGroups.sort();
+    var assignedElsewhere={};for(var o3 in OM_STORES)(OM_STORES[o3]||[]).forEach(function(x){assignedElsewhere[x]=o3;});
+    var cfgHtml=unknown.map(function(st){
+      var cls='omst-'+st.replace(/[^A-Za-z0-9]/g,'_');
+      return '<div style="background:#fff3e0;border:1px solid #e67e22;border-radius:10px;padding:12px 14px;margin-bottom:16px">'
+        +'<div style="font-weight:700;color:#8a4500;font-size:13px;margin-bottom:6px">New store found in Omnia: '+st+'</div>'
+        +'<div style="font-size:11px;color:#8a4500;margin-bottom:8px">Tick the farms this store serves — their rec requirements will tally here instead of the default store. Then press Save in the top bar so everyone gets it.</div>'
+        +'<div style="display:flex;flex-wrap:wrap;gap:4px 14px;margin-bottom:8px">'
+        +allGroups.map(function(g){return '<label style="font-size:11.5px;white-space:nowrap"><input type="checkbox" class="'+cls+'" value="'+g.replace(/"/g,'&quot;')+'"'+(assignedElsewhere[g]&&assignedElsewhere[g]!==st?' title="currently: '+assignedElsewhere[g]+'"':'')+'> '+g+'</label>';}).join('')
+        +'</div>'
+        +'<button onclick="omStoreSave(\''+st.replace(/'/g,"\\'")+'\')" style="font-size:12px;padding:5px 16px;background:#e67e22;color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:600">Save coverage</button>'
+        +'</div>';
+    }).join('');
     el.innerHTML='<div style="max-width:1000px">'
       +'<h2 style="font-size:16px;font-weight:normal;color:var(--g1);margin-bottom:2px">Stock</h2>'
-      +'<div style="font-size:11px;color:var(--tx3);margin-bottom:12px">Levels from Omnia’s stock records per store. “Open recs need” = product required to finish every open and part-done rec (l/ha × outstanding area). '+(skipped?skipped+' plan lines without a usable rate/area not counted.':'')+'</div>'
-      +areaHtml+missHtml+locHtml
+      +'<div style="font-size:11px;color:var(--tx3);margin-bottom:12px">Stores with stock in the current crop year ('+OM_CY+'). Each farm’s rec requirements count against the store that serves it — Edwardstone’s fields on the Edwardstone store, everything else on Wretham, until more stores are added. “Open recs need” = product required to finish every open and part-done rec (l/ha × outstanding area). '+(skipped?skipped+' plan lines without a usable rate/area not counted.':'')+'</div>'
+      +cfgHtml+areaHtml+missHtml+locHtml
       +'</div>';
   });});});});
 }
