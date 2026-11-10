@@ -1,0 +1,10 @@
+{
+  "name": "Abreys Irrigation",
+  "short_name": "Irrigation",
+  "start_url": "Irrigation.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1a5c2e",
+  "theme_color": "#1a5c2e",
+  "icons": [{ "src": "irrigation-icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }]
+}
