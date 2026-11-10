@@ -846,7 +846,120 @@ function ops(){return LOCAL.ops||(LOCAL.ops={});}
 function opList(t){var O=ops(),out=[];Object.keys(O).forEach(function(k){var o=O[k];if(o&&o.t===t&&!o.x)out.push(o);});return out;}
 function opPut(o){o.u=Date.now();ops()[o.id]=o;PEND.o[o.id]=++SEQ;}
 function opsCommit(){persistShadow();schedSave();render();}
-function machines(){return cfg().mach||(cfg().mach=[]);}
+/* machines = the irrigators on the Checklist App's asset list (AssetList.xlsx, Front Sheet), read live
+   through the relay (or imported from the file), plus any extras added by hand. Keyed 'A:<fleet no>'. */
+var ASSETS=null;try{ASSETS=JSON.parse(localStorage.getItem('irr_assets')||'null');}catch(e){}
+function assetSrc(){var a=ASSETS,b=cfg().assets;if(a&&b)return (b.t||0)>(a.t||0)?b:a;return a||b||null;}
+function assetList(){var x=assetSrc();return (x&&x.list)||[];}
+function machines(){
+  var C=cfg(),off=C.machOff||{},home=C.machEst||{},out=[];
+  assetList().forEach(function(a){if(off[a.id])return;out.push({id:'A:'+a.id,n:String(a.name).trim(),est:home[a.id]||a.est||'',a:a});});
+  (C.mach||[]).forEach(function(m){if(!off[m.id])out.push(m);});
+  return out;
+}
+// where a machine is now = the estate of the field it was last started on (else its home estate)
+function machEst(m){if(!m)return '';var st=machState(m.id);if(st.cur){var f=BYKEY[st.cur.k];if(f)return f.estate;}return m.est||'';}
+function machOptions(list,sel,inEst){ // machines on the estate first, then every other machine
+  var a=[],b=[];list.forEach(function(m){(inEst(machEst(m))?a:b).push(m);});
+  var o=function(m){var st=machState(m.id);return '<option value="'+esc(m.id)+'"'+(m.id===sel?' selected':'')+'>'+esc(m.n)+(st.running?' — running on '+esc(fName(st.cur.k))+', in '+tShow(st.inAt):machEst(m)?' — '+esc(machEst(m)):'')+'</option>';};
+  return '<option value="">pick…</option>'+(a.length?'<optgroup label="On this estate">'+a.map(o).join('')+'</optgroup>':'')+(b.length?'<optgroup label="'+(a.length?'Other machines':'Machines')+'">'+b.map(o).join('')+'</optgroup>':'');
+}
+async function importAssets(inp){
+  var f=inp.files&&inp.files[0];if(!f)return;
+  try{var list=assetIrrigators(await xlsxSheetRows(await f.arrayBuffer(),'Front Sheet'));
+    if(!list.length)throw new Error('no Irrigator rows found on the Front Sheet');
+    cfg().assets={t:Date.now(),src:'imported file '+f.name,list:list};cfgTouch();toast(list.length+' irrigators loaded from '+f.name);
+  }catch(e){alert('Could not read that file: '+e.message);}
+}
+async function loadAssets(force){
+  var u=user();if(!u)return;
+  try{var r=await fetch(RELAY+'assets?emp='+encodeURIComponent(u.emp)+(force?'&fresh=1':''));if(!r.ok){SRC.assets='shared asset list not linked to the relay yet';return;}
+    var o=await r.json();if(o&&o.ok&&o.list&&o.list.length){ASSETS={t:Date.now(),src:'shared file (Checklist App)',list:o.list};SRC.assets='read '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+      try{localStorage.setItem('irr_assets',JSON.stringify(ASSETS));}catch(e){}if(LOCAL)softRender();}
+    else SRC.assets=(o&&o.error)||'shared asset list not available';
+  }catch(e){SRC.assets='shared asset list not reachable';}
+}
+function machHome(id,v){var C=cfg();C.machEst=C.machEst||{};if(v)C.machEst[id]=v;else delete C.machEst[id];cfgTouch();}
+function machUse(id,on){var C=cfg();C.machOff=C.machOff||{};if(on)delete C.machOff[id];else C.machOff[id]=1;cfgTouch();}
+// Minimal .xlsx reader (no libraries): unzips with the built-in DecompressionStream and
+// returns one sheet as an array of row arrays (strings/numbers). Works in browsers and
+// Cloudflare Workers. Used for the Checklist App's AssetList.xlsx.
+async function xlsxSheetRows(buf, sheetName) {
+  const u8 = new Uint8Array(buf), dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  let eocd = -1;
+  for (let i = u8.length - 22; i >= Math.max(0, u8.length - 65557); i--) if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) throw new Error('not an xlsx file');
+  const n = dv.getUint16(eocd + 10, true); let p = dv.getUint32(eocd + 16, true); const files = {};
+  for (let k = 0; k < n; k++) {
+    const meth = dv.getUint16(p + 10, true), csz = dv.getUint32(p + 20, true), nl = dv.getUint16(p + 28, true),
+      xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true), lho = dv.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(u8.subarray(p + 46, p + 46 + nl));
+    files[name] = { meth, csz, lho }; p += 46 + nl + xl + cl;
+  }
+  async function read(name) {
+    const f = files[name]; if (!f) return null;
+    const o = f.lho + 30 + dv.getUint16(f.lho + 26, true) + dv.getUint16(f.lho + 28, true);
+    const raw = u8.subarray(o, o + f.csz);
+    if (f.meth === 0) return new TextDecoder().decode(raw);
+    const s = new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return new TextDecoder().decode(await new Response(s).arrayBuffer());
+  }
+  const unx = s => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (m, d) => String.fromCharCode(+d)).replace(/&amp;/g, '&');
+  const wb = await read('xl/workbook.xml'), rels = await read('xl/_rels/workbook.xml.rels');
+  let rid = null;
+  for (const m of wb.matchAll(/<sheet\b[^>]*>/g)) {
+    const nm = /name="([^"]*)"/.exec(m[0]), id = /r:id="([^"]*)"/.exec(m[0]);
+    if (nm && unx(nm[1]).trim() === sheetName.trim()) rid = id && id[1];
+  }
+  if (!rid) throw new Error('sheet "' + sheetName + '" not found');
+  let target = null;
+  for (const m of rels.matchAll(/<Relationship\b[^>]*>/g)) if (m[0].indexOf('Id="' + rid + '"') >= 0) target = /Target="([^"]*)"/.exec(m[0])[1];
+  const path = target.replace(/^\//, '').replace(/^(?!xl\/)/, 'xl/');
+  const ssx = await read('xl/sharedStrings.xml'), ss = [];
+  if (ssx) for (const m of ssx.matchAll(/<si>([\s\S]*?)<\/si>/g)) ss.push(unx([...m[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(x => x[1]).join('')));
+  const sx = await read(path), rows = [];
+  const col = ref => { let c = 0; for (const ch of ref.replace(/\d+/g, '')) c = c * 26 + ch.charCodeAt(0) - 64; return c - 1; };
+  for (const rm of sx.matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/g)) {
+    const row = [];
+    for (const cm of rm[1].matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
+      const at = cm[1], r = /r="([A-Z]+\d+)"/.exec(at), t = /t="([^"]*)"/.exec(at), body = cm[2] || '';
+      const v = /<v>([\s\S]*?)<\/v>/.exec(body), is = /<is>[\s\S]*?<t[^>]*>([\s\S]*?)<\/t>/.exec(body);
+      let val = null;
+      if (t && t[1] === 's' && v) val = ss[+v[1]];
+      else if (t && t[1] === 'inlineStr' && is) val = unx(is[1]);
+      else if (v) val = (t && (t[1] === 'str' || t[1] === 'e')) ? unx(v[1]) : (isNaN(+v[1]) ? unx(v[1]) : +v[1]);
+      row[r ? col(r[1]) : row.length] = val;
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+// Irrigators from the Checklist App's AssetList.xlsx ("Front Sheet": Check Type, NameColumn, MakeColumn, Crop, Year)
+// NameColumn looks like "B1 A F Machinery 11920207 R64" or "P13 Pickenham E330047 / VR7 600".
+function assetIrrigators(rows) {
+  const out = [], seen = {};
+  const head = (rows[0] || []).map(x => String(x || '').trim().toLowerCase());
+  const iT = Math.max(0, head.indexOf('check type')), iN = head.indexOf('namecolumn') >= 0 ? head.indexOf('namecolumn') : 1,
+    iM = head.indexOf('makecolumn') >= 0 ? head.indexOf('makecolumn') : 2;
+  for (const r of rows.slice(1)) {
+    if (!/irrigat/i.test(String(r[iT] || ''))) continue;
+    const full = String(r[iN] || '').replace(/\s+/g, ' ').trim(); if (!full) continue;
+    const m = /^(\S+)\s+(A F Machinery|Pickenham|Non Existant|[A-Za-z ]+?)\s+(.*)$/i.exec(full);
+    const fleet = m ? m[1] : full.split(' ')[0], owner = m ? m[2] : '', rest = m ? m[3].trim() : '';
+    if (/non exist/i.test(owner) || seen[fleet]) continue;
+    seen[fleet] = 1;
+    let serial = rest, model = '';
+    if (rest.indexOf(' / ') >= 0) { serial = rest.split(' / ')[0].trim(); model = rest.split(' / ').slice(1).join(' / ').trim(); }
+    else { const t = rest.split(' '); model = t.length > 1 ? t.pop() : ''; serial = t.join(' '); }
+    const make = String(r[iM] || '').trim();
+    out.push({ id: fleet, name: fleet + ' ' + (make ? make + ' ' : '') + model, make, model, serial: serial === 'n/a' ? '' : serial,
+      owner, est: /pickenham/i.test(owner) ? 'Pickenham' : '' });
+  }
+  const key = s => { const m = /^([A-Z]*)(\d*)/i.exec(s); return [m[1].toUpperCase(), +(m[2] || 0)]; };
+  out.sort((a, b) => { const x = key(a.id), y = key(b.id); return x[0] < y[0] ? -1 : x[0] > y[0] ? 1 : x[1] - y[1]; });
+  return out;
+}
+
 function mach(id){return machines().filter(function(m){return m.id===id;})[0]||null;}
 function runsOf(k){var r=cfg().runs||{};return r[k]?+r[k]:null;}
 function team(){return cfg().team||(cfg().team={});}
@@ -915,14 +1028,14 @@ function delOp(id){var o=ops()[id];if(!o||!confirm('Delete this?'))return;o.x=1;
 function openStart(planId,machId){
   if(!canEdit())return;var u=user();if(!u){signIn(function(){openStart(planId,machId);});return;}
   var pl=planId?ops()[planId]:null,ests=myEsts();
-  var M=machines().filter(function(m){return !ests.length||ests.indexOf(m.est)>=0||(pl&&m.id===pl.m);});
+  var M=machines(),inMine=function(e){return !ests.length||ests.indexOf(e)>=0;};
   var mid=pl?pl.m:(machId||''),k=pl?pl.k:'',run=pl?pl.run:'',mm=pl?pl.mm:'';
   var F=fieldList().filter(function(f){return !ests.length||ests.indexOf(f.estate)>=0||key(f)===k;}).sort(function(a,b){return a.field<b.field?-1:1;});
   var now=new Date(),nt=pad(now.getHours())+':'+pad(now.getMinutes());
   modal('<div style="display:flex;align-items:start"><h2 style="flex:1">Start a machine</h2><button class="x" style="font-size:20px;color:var(--tx3)" onclick="closeModal()">✕</button></div>'
     +(pl?'<div class="banner info">Planned: <b>'+esc((mach(pl.m)||{}).n||'')+'</b> to <b>'+esc(fName(pl.k))+'</b> run '+pl.run+' at '+esc(pl.at||'')+(pl.mm?' · '+pl.mm+'mm':'')+'</div>':'')
     +'<div class="form">'
-    +'<div><label>Machine</label><select id="stM">'+'<option value="">pick…</option>'+M.map(function(m){return '<option value="'+esc(m.id)+'"'+(m.id===mid?' selected':'')+'>'+esc(m.n)+' — '+esc(m.est)+'</option>';}).join('')+'</select></div>'
+    +'<div><label>Machine</label><select id="stM">'+machOptions(M,mid,inMine)+'</select></div>'
     +'<div><label>Field</label><select id="stK" onchange="stFieldChange()"><option value="">pick…</option>'+F.map(function(f){var kk=key(f);return '<option value="'+esc(kk)+'"'+(kk===k?' selected':'')+'>'+esc(f.field)+' — '+esc(f.estate)+'</option>';}).join('')+'</select></div>'
     +'<div class="row2"><div><label>Run</label><input id="stR" type="number" inputmode="numeric" value="'+(run||'')+'" oninput="stCalc()"></div><div><label>Started at</label><input id="stS" type="time" value="'+nt+'" oninput="stCalc()"></div></div>'
     +'<div class="row2"><div><label>Speed (m/h)</label><input id="stSp" type="number" inputmode="decimal" oninput="stCalc()"></div><div><label>Gun angle (°)</label><input id="stA" type="number" inputmode="numeric"></div></div>'
@@ -956,15 +1069,15 @@ function stSubmit(planId){
 /* ── plan a move (supervisor) ─────────────────────────────────────────── */
 function openPlan(o){
   if(!canEdit())return;o=o||{};var ex=o.id?ops()[o.id]:null;if(ex)o=ex;
-  var est=o.est||(o.k?fEst(o.k):'')||(o.m?(mach(o.m)||{}).est:'')||(S.supEst!=='ALL'?S.supEst:'');
+  var est=o.est||(o.k?fEst(o.k):'')||(o.m?machEst(mach(o.m)):'')||(S.supEst!=='ALL'?S.supEst:'');
   var inE=function(e){return !est||e===est||(est==='Blakeney + Wretham'&&(e==='Blakeney'||e==='Wretham'));};
-  var M=machines().filter(function(m){return inE(m.est);}),F=fieldList().filter(function(f){return inE(f.estate);}).sort(function(a,b){return a.field<b.field?-1:1;});
+  var M=machines(),F=fieldList().filter(function(f){return inE(f.estate);}).sort(function(a,b){return a.field<b.field?-1:1;});
   var T=team(),staff=Object.keys(T).filter(function(e){return T[e].r==='staff'&&(!est||!T[e].est||!T[e].est.length||T[e].est.some(inE));});
   if(!staff.length)staff=Object.keys(T);
   var ms=o.m?machState(o.m):null,at=o.at||(ms&&ms.inAt&&ms.inAt>nowDT()?ms.inAt.slice(11,16):'18:00');
   var k=o.k||'',mm=o.mm;if(k&&mm==null){var s=stat(BYKEY[k]);mm=s.mm2||'';s.g.forEach(function(x){if(x[0]>=isoOf(new Date())&&!mm)mm=x[1];});}
   modal('<div style="display:flex;align-items:start"><h2 style="flex:1">'+(ex?'Edit move':'Plan a move')+'</h2><button class="x" style="font-size:20px;color:var(--tx3)" onclick="closeModal()">✕</button></div><div class="form">'
-    +'<div><label>Machine</label><select id="plM" onchange="plMachChange()"><option value="">pick…</option>'+M.map(function(m){var st=machState(m.id);return '<option value="'+esc(m.id)+'"'+(m.id===o.m?' selected':'')+'>'+esc(m.n)+(st.cur?' — on '+esc(fName(st.cur.k))+' r'+st.cur.run+(st.inAt?', in '+tShow(st.inAt):''):' — idle')+'</option>';}).join('')+'</select></div>'
+    +'<div><label>Machine</label><select id="plM" onchange="plMachChange()">'+machOptions(M,o.m,inE)+'</select></div>'
     +'<div><label>Move to field</label><select id="plK" onchange="plFieldChange()"><option value="">pick…</option>'+F.map(function(f){var kk=key(f),s=stat(f);return '<option value="'+esc(kk)+'"'+(kk===k?' selected':'')+'>'+esc(f.field)+' ('+s.lab.split(' —')[0]+')</option>';}).join('')+'</select></div>'
     +'<div class="row2"><div><label>Run</label><input id="plR" type="number" inputmode="numeric" value="'+(o.run||(k?nextRun(k):''))+'"></div><div><label>Runs in field</label><input id="plN" type="number" inputmode="numeric" value="'+(k&&runsOf(k)||'')+'" placeholder="?"></div></div>'
     +'<div class="row2"><div><label>Staff</label><select id="plE"><option value="">pick…</option>'+staff.map(function(e){return '<option value="'+esc(e)+'"'+(e===o.emp?' selected':'')+'>'+esc(nameOf(e))+'</option>';}).join('')+'</select></div><div><label>Move at</label><input id="plAt" type="time" value="'+esc(at)+'"></div></div>'
@@ -985,21 +1098,21 @@ function plSave(id){
 }
 
 /* ── STAGE 2: supervisor page ─────────────────────────────────────────── */
-function estChoices(){var E={};fieldList().forEach(function(f){E[f.estate]=1;});machines().forEach(function(m){E[m.est]=1;});return Object.keys(E).sort();}
+function estChoices(){var E={};fieldList().forEach(function(f){E[f.estate]=1;});machines().forEach(function(m){var e=machEst(m);if(e)E[e]=1;});return Object.keys(E).sort();}
 function vSup(){
   if(is26())return '<div class="banner info">The supervisor page runs on the '+LIVE_YR+' season.</div>';
   var ests=estChoices();if(!S.supEst)S.supEst=myEsts()[0]||'ALL';
   var sel=S.supEst,inE=function(e){return sel==='ALL'||e===sel;};
   var now=nowDT(),T=isoOf(new Date());
-  var M=machines().filter(function(m){return inE(m.est);});
-  var plans=opList('plan').filter(function(p){return !p.done&&p.d>=addDays(T,-1)&&inE(fEst(p.k)||(mach(p.m)||{}).est);}).sort(function(a,b){return (a.d+a.at)<(b.d+b.at)?-1:1;});
+  var M=machines().filter(function(m){return inE(machEst(m));});
+  var plans=opList('plan').filter(function(p){return !p.done&&p.d>=addDays(T,-1)&&inE(fEst(p.k)||machEst(mach(p.m)));}).sort(function(a,b){return (a.d+a.at)<(b.d+b.at)?-1:1;});
   var nextFor=function(mid){return plans.filter(function(p){return p.m===mid;})[0];};
   var allIn='',nRun=0,nIn=0;
   var mrows=M.map(function(m){var st=machState(m.id),c=st.cur,nx=nextFor(m.id);
     if(st.running){nRun++;if(st.inAt&&st.inAt>allIn)allIn=st.inAt;}else nIn++;
     var fin=c?(st.running?'<b>'+tShow(st.inAt)+'</b> <span class="muted small">('+durShow(st.left)+')</span>':'<span class="badge c6">in '+tShow(st.inAt)+'</span>'):'<span class="muted">idle</span>';
     var fpN=c?runsOf(c.k):null;
-    return '<tr><td class="fn" style="cursor:default;color:var(--tx)">'+esc(m.n)+'<div class="muted small">'+esc(m.est)+'</div></td>'
+    return '<tr><td class="fn" style="cursor:default;color:var(--tx)">'+esc(m.n)+'<div class="muted small">'+esc(machEst(m)||'not placed yet')+'</div></td>'
       +'<td>'+(c?'<span class="lnk" onclick="openField('+jsq(c.k)+')">'+esc(fName(c.k))+'</span> <span class="muted">run '+c.run+(fpN?'/'+fpN:'')+'</span>':'—')+'</td>'
       +'<td class="n">'+(c?tShow(c.s):'')+'</td><td class="n">'+fin+'</td>'
       +'<td class="hide-m small">'+(c?(c.spd?c.spd+' m/h':'')+(c.ang?' · '+c.ang+'°':'')+(c.mm?' · '+c.mm+'mm':''):'')+'</td>'
@@ -1075,10 +1188,17 @@ function fieldSetsHtml(k){
 /* ── settings: machines & team ────────────────────────────────────────── */
 function setupInfo(){var u=user();return '<div class="card"><div class="pad small">Signed in as <b>'+esc(u?u.name:'')+'</b> ('+esc(u?u.emp:'')+') · '+({sup:'Supervisor',staff:'Staff',mgr:'Manager'}[myRole()]||'not on the irrigation team yet')+(myEsts().length?' · '+esc(myEsts().join(', ')):'')+'<div style="margin-top:8px"><button class="btn r sm" onclick="signOut()">Sign out of this phone</button></div></div></div>';}
 function setupHtml(){
-  var M=machines(),ests=estChoices(),T=team();
-  var mrows=M.map(function(m,i){return '<tr><td><input value="'+esc(m.n)+'" onchange="machines()['+i+'].n=this.value;cfgTouch()" style="width:150px;padding:5px;border:1px solid var(--bd);border-radius:5px"></td>'
-    +'<td><select onchange="machines()['+i+'].est=this.value;cfgTouch()" style="padding:5px">'+ests.map(function(e){return '<option'+(e===m.est?' selected':'')+'>'+esc(e)+'</option>';}).join('')+'</select></td>'
-    +'<td><button class="x" onclick="if(confirm(\'Remove '+esc(m.n).replace(/'/g,'')+'?\')){machines().splice('+i+',1);cfgTouch();}">✕</button></td></tr>';}).join('');
+  var M=machines(),ests=estChoices(),T=team(),C=cfg(),src=assetSrc(),AL=assetList(),off=C.machOff||{},home=C.machEst||{};
+  var eOpts=function(sel){return '<option value="">—</option>'+ests.map(function(e){return '<option'+(e===sel?' selected':'')+'>'+esc(e)+'</option>';}).join('');};
+  var arows=AL.map(function(a){var id='A:'+a.id,m=mach(id)||{id:id,est:home[a.id]||a.est||''},st=machState(id);
+    return '<tr'+(off[a.id]?' style="opacity:.5"':'')+'><td><b>'+esc(a.id)+'</b></td><td>'+esc(a.make)+' '+esc(a.model)+'<div class="muted small">'+esc(a.serial||'')+(a.owner?' · '+esc(a.owner):'')+'</div></td>'
+      +'<td class="small">'+(st.cur?esc(machEst(m))+(st.running?' <span class="badge c4">running</span>':''):'<span class="muted">—</span>')+'</td>'
+      +'<td><select onchange="machHome('+jsq(a.id)+',this.value)" style="padding:4px">'+eOpts(home[a.id]||a.est||'')+'</select></td>'
+      +'<td><input type="checkbox"'+(off[a.id]?'':' checked')+' onchange="machUse('+jsq(a.id)+',this.checked)"></td></tr>';}).join('');
+  var xrows=(C.mach||[]).map(function(m,i){return '<tr><td><b>'+esc(m.n)+'</b></td><td class="muted small">added here</td><td class="small">'+esc(machEst(m)||'—')+'</td>'
+    +'<td><select onchange="cfg().mach['+i+'].est=this.value;cfgTouch()" style="padding:4px">'+eOpts(m.est)+'</select></td>'
+    +'<td><button class="x" onclick="if(confirm(\'Remove '+esc(m.n).replace(/'/g,'')+'?\')){cfg().mach.splice('+i+',1);cfgTouch();}">✕</button></td></tr>';}).join('');
+  var mrows=arows+xrows;
   var trows=Object.keys(T).sort(function(a,b){return nameOf(a)<nameOf(b)?-1:1;}).map(function(e){var t=T[e];
     return '<tr><td>'+esc(nameOf(e))+' <span class="muted small">'+esc(e)+'</span></td><td><select onchange="team()['+jsq(e)+'].r=this.value;cfgTouch()" style="padding:5px">'
       +[['staff','Staff'],['sup','Supervisor'],['mgr','Manager / agronomist']].map(function(r){return '<option value="'+r[0]+'"'+(t.r===r[0]?' selected':'')+'>'+r[1]+'</option>';}).join('')+'</select></td>'
@@ -1086,18 +1206,17 @@ function setupHtml(){
       +'<td><button class="x" onclick="delete team()['+jsq(e)+'];cfgTouch()">✕</button></td></tr>';}).join('');
   var uopts=(FP.USERS||[]).filter(function(x){return !T[x.emp];}).map(function(x){return '<option value="'+esc(x.name+' ('+x.emp+')')+'">';}).join('');
   var zc=(FP.WATER_CFG.zones||[]).filter(function(z){return z.machines;}).map(function(z){return esc(z.name)+' '+z.machines;}).join(' · ');
-  return '<div class="card"><h3>🚿 Machines</h3><div class="pad small"><div class="muted" style="margin-bottom:8px">Each machine belongs to an estate. Supervisors see their estate’s machines; staff pick from them when they start.</div>'
-    +'<div class="tw"><table><thead><tr><th>Name</th><th>Estate</th><th></th></tr></thead><tbody>'+(mrows||'<tr><td colspan="3" class="muted">None yet.</td></tr>')+'</tbody></table></div>'
-    +'<div class="filters" style="margin-top:8px"><input id="nmN" placeholder="e.g. Reel 7 / Bauer 3"><select id="nmE">'+ests.map(function(e){return '<option>'+esc(e)+'</option>';}).join('')+'</select><button class="btn sm" onclick="addMach()">+ Add machine</button>'
-    +(M.length?'':'<button class="btn o sm" onclick="seedMach()">Create from FieldPlan machine counts</button>')+'</div>'
-    +'<div class="muted">FieldPlan’s Water page counts: '+zc+'</div></div></div>'
+  return '<div class="card"><h3>🚿 Machines <span class="muted small" style="font-weight:400">'+(src?AL.length+' irrigators from the Checklist App asset list · '+esc(src.src)+(SRC.assets?' · '+esc(SRC.assets):''):'not loaded yet')+'</span></h3><div class="pad small">'
+    +'<div class="muted" style="margin-bottom:8px">The machine list comes from the <b>Checklist App asset list</b> (AssetList.xlsx, “Irrigator” rows) so it’s the same list the daily checks use. <b>Now on</b> follows the machine — it’s the estate of the field it was last started on. <b>Home</b> is only where a machine sits before it’s first used. Untick machines that are off the fleet.</div>'
+    +'<div class="filters"><label class="btn sm" style="display:inline-block">⬆ Import AssetList.xlsx<input type="file" accept=".xlsx" style="display:none" onchange="importAssets(this)"></label>'
+    +'<button class="btn o sm" onclick="loadAssets(true).then(render)">↻ Re-read shared file</button></div>'
+    +'<div class="tw" style="max-height:50vh"><table><thead><tr><th>Fleet no</th><th>Machine</th><th>Now on</th><th>Home</th><th>In use</th></tr></thead><tbody>'+(mrows||'<tr><td colspan="5" class="muted">No machines yet — import the asset list.</td></tr>')+'</tbody></table></div>'
+    +'<div class="filters" style="margin-top:8px"><span class="muted">Not on the asset list (e.g. hired):</span><input id="nmN" placeholder="name"><select id="nmE">'+eOpts('')+'</select><button class="btn o sm" onclick="addMach()">+ Add</button></div></div></div>'
     +'<div class="card"><h3>👥 Team</h3><div class="pad small"><div class="muted" style="margin-bottom:8px">Supervisors open on the Supervisor page for their estates; staff open on their own Moves page. Everyone signs in with their FieldPlan employee number — no PIN. Only people listed here (plus FieldPlan admins/editors) can record irrigation.</div>'
     +'<div class="tw"><table><thead><tr><th>Person</th><th>Role</th><th>Estates</th><th></th></tr></thead><tbody>'+(trows||'<tr><td colspan="4" class="muted">Nobody yet.</td></tr>')+'</tbody></table></div>'
     +'<div class="filters" style="margin-top:8px"><input id="ntU" list="ntUs" placeholder="add a person…" style="min-width:220px"><datalist id="ntUs">'+uopts+'</datalist><select id="ntR"><option value="staff">Staff</option><option value="sup">Supervisor</option><option value="mgr">Manager / agronomist</option></select><button class="btn sm" onclick="addTeam()">+ Add</button></div></div></div>';
 }
-function addMach(){var n=document.getElementById('nmN').value.trim();if(!n){toast('Name the machine');return;}machines().push({id:newId(),n:n,est:document.getElementById('nmE').value});cfgTouch();}
-function seedMach(){var n=0;(FP.WATER_CFG.zones||[]).forEach(function(z){var est=z.estate==='__BW'?'Wretham':z.estate,short=z.name.replace(/^.*— /,'');
-  for(var i=1;i<=(+z.machines||0);i++){machines().push({id:newId(),n:(z.estate==='__BW'?'B+W':short)+' '+i,est:est});n++;}});toast(n+' machines created — rename them to match the yard');cfgTouch();}
+function addMach(){var n=document.getElementById('nmN').value.trim();if(!n){toast('Name the machine');return;}(cfg().mach=cfg().mach||[]).push({id:newId(),n:n,est:document.getElementById('nmE').value});cfgTouch();}
 function addTeam(){var v=document.getElementById('ntU').value,m=/\((\w+)\)\s*$/.exec(v);if(!m){toast('Pick a person from the list');return;}team()[m[1]]={r:document.getElementById('ntR').value,est:[]};cfgTouch();}
 function teamEst(e,x,on){var t=team()[e];t.est=(t.est||[]).filter(function(y){return y!==x;});if(on)t.est.push(x);cfgTouch();}
 function setRuns(k,v){if(!canEdit())return;var n=parseInt(v);if(n>0)cfg().runs[k]=n;else delete cfg().runs[k];cfgTouch();}
@@ -1143,7 +1262,7 @@ async function refreshAll(force){
   await loadFieldPlan(force);
   try{var oc=JSON.parse(localStorage.getItem('irr_om_cache')||'null');if(oc&&!OMT){Object.assign(OMV,oc.v);SRC.om='last copy '+new Date(oc.t).toLocaleString('en-GB');}}catch(e){}
   render();
-  await loadOmnia();ZMAP=null;render();
+  await loadOmnia();ZMAP=null;await loadAssets(force);render();
 }
 (async function boot(){
   try{
@@ -1154,6 +1273,7 @@ async function refreshAll(force){
     if(!_s0){var rr=myRole();S.view=rr==='sup'?'sup':rr==='staff'?'staff':S.view;}
     render();
     loadOmnia().then(function(){ZMAP=null;render();});
+    loadAssets();
   }catch(e){
     document.getElementById('main').innerHTML='<div class="banner err">Could not load FieldPlan: '+esc(e.message)+'. Check your connection and reload.</div>';
   }
