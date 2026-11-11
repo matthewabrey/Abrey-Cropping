@@ -4895,6 +4895,16 @@ var EUSTON_BUCKWHEAT_TARGET_HA = 200;
 var EUSTON_ST_NOTE_2027 = 'Euston to drill and charge the livestock';
 var EUSTON_MVB_NOTE_2027 = 'Abrey Farms to drill and establish, and bill livestock for grazing';
 var GREENING_ALL_MV_NOTE = 'All greening here will be Maxi Veg';
+// Matthew 11/11/26 overrides (match on oid or field name):
+//  - unirrigated -> Turnips even with veg history; irrigated -> Maxi Veg - Buckwheat even if never veg
+var EUSTON_UNIRRIGATED = ['759169','Top Meadow Honington'];
+var EUSTON_IRRIGATED_OK = ['Breckland B (Wholefield - 31.24)'];
+function _inGrList(l,f){return l.indexOf(f.field)>=0||(f.oid&&f.oid!=='none'&&l.indexOf(String(f.oid))>=0);}
+function eustonTurnips27(f){
+  if(_inGrList(EUSTON_IRRIGATED_OK,f)) return false;
+  if(_inGrList(EUSTON_UNIRRIGATED,f)) return true;
+  return !fieldEverVeg(f);
+}
 function fieldEverVeg(f){
   return Object.keys(f.history||{}).some(function(y){
     return /Potato|Carrot|Onion|Parsnip|Sets|Brown Seed|Red Seed|Veg/i.test(f.history[y]||'');
@@ -4934,7 +4944,7 @@ function getCoverType(f, fromYr, toYr) {
     if (!isOurs(f, fromYr)) return null;
     if (to==='Euston Rye') return null;
     if (MV_TO.includes(to) || to==='Euston Maize') {
-      if (fromYr==='2027' && !fieldEverVeg(f)) return 'ST';  // never had veg -> Turnips
+      if (fromYr==='2027' && eustonTurnips27(f)) return 'ST';  // never veg / unirrigated -> Turnips
       return 'MV';                                           // 2027: Maxi Veg - Buckwheat
     }
     return null;
@@ -5216,7 +5226,7 @@ function rGr() {
       var tgt='<div style="padding:6px 10px;margin-bottom:10px;font-size:12px;border-radius:5px;background:var(--c2);border:1px solid var(--bd)">'
         +'<strong>Maxi Veg - Buckwheat target:</strong> '+EUSTON_BUCKWHEAT_TARGET_HA+'ha &nbsp;·&nbsp; currently <strong>'+mvHa.toFixed(1)+'ha</strong> '
         +(Math.abs(diff)<5?'<span style="color:#27ae60">(on target)</span>':'<span style="color:#c0392b">('+(diff>0?'+':'')+diff.toFixed(1)+'ha vs target)</span>')
-        +'<div style="font-size:11px;color:var(--tx3);margin-top:3px">Split rule: fields that have never grown veg = Turnips; fields with veg history = Maxi Veg - Buckwheat.</div></div>';
+        +'<div style="font-size:11px;color:var(--tx3);margin-top:3px">Split rule: fields that have never grown veg or are unirrigated = Turnips; irrigated veg fields = Maxi Veg - Buckwheat.</div></div>';
       if(!e27.length) return '';
       return '<div class="gr-estate-block" style="margin-bottom:24px">'
         +'<div style="font-weight:bold;font-size:14px;color:var(--g1);margin-bottom:6px">'+estate+'</div>'
