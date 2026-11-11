@@ -1641,7 +1641,7 @@ function aF(){
         var bdr=y===yr?'box-shadow:inset 0 0 0 2px rgba(200,130,26,.5);':'';
         var prevPY=AY[AY.indexOf(y)-1]||null;
         var covPY=prevPY?getCoverType(f,prevPY,y):null;
-        var dotPY=covPY?'<span style="display:block;width:7px;height:7px;border-radius:50%;background:'+(MV_COL)+';flex-shrink:0" title="Maxi Veg opportunity"></span>':'';
+        var dotPY=covPY?'<span style="display:block;width:7px;height:7px;border-radius:50%;background:'+(covPY==='ST'?'#e74c3c':MV_COL)+';flex-shrink:0" title="'+(covPY==='ST'?'Stubble Turnips':(f.estate==='Euston'&&prevPY==='2027'?'Maxi Veg - Buckwheat':'Maxi Veg opportunity'))+'"></span>':'';
         return '<td style="text-align:center;cursor:pointer;'+bg+bdr+' position:relative" onclick="editCrop(event,\''+f.estate+'\',\''+f.field.replace(/'/g,"\\\\'")+'\',\''+y+'\')" title="Click to change crop">'
         +'<div style="display:flex;flex-direction:column;align-items:center;gap:3px">'
         +dotPY
@@ -4888,6 +4888,18 @@ function rAD(){
 var EUSTON_STUBBLE_TURNIPS_2026 = ["Big Cranwell Hill (West Farm)", "Big Wordwell Corner (West Farm)", "Euston Allotments", "Euston Breck (Headings)", "Flats North (Headings)", "Mill Hill (Headings)", "New Layer", "Old Layer"];
 
 var EUSTON_GREENING_END_2026 = ["36 Acre", "Anne Harts", "Behind Barn", "Big Field (Euston)", "Big Honda (Cereals)", "Corner Field", "Covey Land", "Farmhouse Field", "Heath Meadow", "Landing Lights", "Long Field (Euston)", "New Beyton Grove", "Nobles Ash", "Old Beyton Grove", "Pear Pit", "Pit Field Euston", "R H Side of Road", "Railway Line", "Sapiston 10 Acres", "Sixteen Acres", "Table Land", "Thetford Road", "Tin Shed", "Top Cullum"];
+// Euston end-2027 -> 2028 (Matthew 11/11/26): eligible fields that have NEVER grown veg
+// -> Stubble Turnips (Euston to drill, charge livestock); fields with veg history ->
+// Maxi Veg - Buckwheat (Abrey Farms to drill & establish, bill livestock for grazing).
+var EUSTON_BUCKWHEAT_TARGET_HA = 200;
+var EUSTON_ST_NOTE_2027 = 'Euston to drill and charge the livestock';
+var EUSTON_MVB_NOTE_2027 = 'Abrey Farms to drill and establish, and bill livestock for grazing';
+var GREENING_ALL_MV_NOTE = 'All greening here will be Maxi Veg';
+function fieldEverVeg(f){
+  return Object.keys(f.history||{}).some(function(y){
+    return /Potato|Carrot|Onion|Parsnip|Sets|Brown Seed|Red Seed|Veg/i.test(f.history[y]||'');
+  });
+}
 var GREENING_ESTATES = ['Wretham','Chandler','Rackham Farms','Euston','Pickenham',
   'Blakeney','Edwardstone/Borehouse','Gooderham'];  // all estates
 var CEREAL_CROPS = ['Wheat','Barley','Rye','Rye A','Conventional Rye','Oats','Triticale','Wholecrop','Over Winter Cereal'];
@@ -4921,7 +4933,10 @@ function getCoverType(f, fromYr, toYr) {
     if ((f.zone||'')==='Rymer') return null;
     if (!isOurs(f, fromYr)) return null;
     if (to==='Euston Rye') return null;
-    if (MV_TO.includes(to) || to==='Euston Maize') return 'MV';
+    if (MV_TO.includes(to) || to==='Euston Maize') {
+      if (fromYr==='2027' && !fieldEverVeg(f)) return 'ST';  // never had veg -> Turnips
+      return 'MV';                                           // 2027: Maxi Veg - Buckwheat
+    }
     return null;
   }
   // All other estates: must be our crop in from year
@@ -5167,6 +5182,49 @@ function rGr() {
         +'<div style="font-weight:bold;font-size:14px;color:var(--g1);margin-bottom:6px">'+estate+'</div>'
         +eustonExplicit+stHtml+'</div>';
     }
+    // Euston end-2027: Turnips (never-veg) + Maxi Veg - Buckwheat (veg history)
+    if(estate==='Euston'&&_grFY==='2027'){
+      var e27=ef.filter(function(f){return getCoverType(f,'2027','2028')!==null;});
+      function e27Tbl(list,type,col,bg,title,note){
+        if(!list.length) return '';
+        var tot=list.reduce(function(a,f){return a+f.ha;},0);
+        return '<div style="border:1px solid '+col+';border-radius:6px;overflow:hidden;margin-bottom:10px">'
+          +'<div style="padding:6px 10px;background:'+col+';color:#fff;font-size:11px;font-weight:bold;letter-spacing:.3px">'
+          +'&#9679; '+title+' — end of 2027 harvest ('+list.length+' fields, '+tot.toFixed(1)+'ha)</div>'
+          +'<div style="padding:5px 10px;font-size:11px;background:'+bg+';border-bottom:1px solid '+col+'"><strong>Note:</strong> '+note+'</div>'
+          +'<table style="border-collapse:collapse;font-size:12px;width:100%">'
+          +'<thead><tr style="background:'+bg+'">'
+          +'<th style="text-align:left;padding:4px 8px">Field</th>'
+          +'<th style="text-align:right;padding:4px 8px;min-width:60px">Ha</th>'
+          +'<th style="text-align:left;padding:4px 8px">2027 crop</th>'
+          +'<th style="text-align:left;padding:4px 8px">2028 plan</th>'
+          +'<th style="text-align:left;padding:4px 8px">Cover</th>'
+          +'</tr></thead><tbody>'
+          +list.sort(function(a,b){return a.field.localeCompare(b.field);}).map(function(f){
+            return '<tr><td style="padding:3px 8px;font-weight:bold">'+f.field+'</td>'
+              +'<td style="text-align:right;padding:3px 8px;color:var(--tx3)">'+f.ha.toFixed(1)+'</td>'
+              +'<td style="padding:3px 8px">'+(gc(f,'2027')||'—')+'</td>'
+              +'<td style="padding:3px 8px">'+(gc(f,'2028')||'—')+'</td>'
+              +'<td style="padding:3px 8px">'+type+'</td></tr>';
+          }).join('')
+          +'</tbody></table></div>';
+      }
+      var e27st=e27.filter(function(f){return getCoverType(f,'2027','2028')==='ST';});
+      var e27mv=e27.filter(function(f){return getCoverType(f,'2027','2028')==='MV';});
+      var mvHa=e27mv.reduce(function(a,f){return a+f.ha;},0);
+      var diff=mvHa-EUSTON_BUCKWHEAT_TARGET_HA;
+      var tgt='<div style="padding:6px 10px;margin-bottom:10px;font-size:12px;border-radius:5px;background:var(--c2);border:1px solid var(--bd)">'
+        +'<strong>Maxi Veg - Buckwheat target:</strong> '+EUSTON_BUCKWHEAT_TARGET_HA+'ha &nbsp;·&nbsp; currently <strong>'+mvHa.toFixed(1)+'ha</strong> '
+        +(Math.abs(diff)<5?'<span style="color:#27ae60">(on target)</span>':'<span style="color:#c0392b">('+(diff>0?'+':'')+diff.toFixed(1)+'ha vs target)</span>')
+        +'<div style="font-size:11px;color:var(--tx3);margin-top:3px">Split rule: fields that have never grown veg = Turnips; fields with veg history = Maxi Veg - Buckwheat.</div></div>';
+      if(!e27.length) return '';
+      return '<div class="gr-estate-block" style="margin-bottom:24px">'
+        +'<div style="font-weight:bold;font-size:14px;color:var(--g1);margin-bottom:6px">'+estate+'</div>'
+        +tgt
+        +e27Tbl(e27mv,'Maxi Veg - Buckwheat',MV_COL,'#eafaf0','Maxi Veg - Buckwheat',EUSTON_MVB_NOTE_2027)
+        +e27Tbl(e27st,'Turnips','#e74c3c','#fdecea','Turnips',EUSTON_ST_NOTE_2027)
+        +'</div>';
+    }
     // All estates: simple list of greening fields for end of 2026
     var grFields=ef.filter(function(f){
       return getCoverType(f,_grFY,_grTY)!==null;
@@ -5175,6 +5233,7 @@ function rGr() {
     var grTotal=grFields.reduce(function(a,f){return a+f.ha;},0);
     return '<div class="gr-estate-block" style="margin-bottom:24px">'
       +'<div style="font-weight:bold;font-size:14px;color:var(--g1);margin-bottom:6px">'+estate+'</div>'
+      +((estate==='Wretham'||estate==='Chandler')?'<div style="padding:5px 10px;margin-bottom:6px;font-size:11px;background:#eafaf0;border:1px solid #27ae60;border-radius:5px"><strong>Note:</strong> '+GREENING_ALL_MV_NOTE+'</div>':'')
       +'<div style="border:1px solid #27ae60;border-radius:6px;overflow:hidden">'
       +'<div style="padding:6px 10px;background:#27ae60;color:#fff;font-size:11px;font-weight:bold;letter-spacing:.3px">'
       +'&#9679; Greening — end of '+_grFY+' harvest ('+grFields.length+' fields, '+grTotal.toFixed(1)+'ha)</div>'
