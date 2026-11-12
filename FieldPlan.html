@@ -3719,6 +3719,8 @@ var EUSTON_RULES_MD = `# Abreys FieldPlan — Master Rulebook
 | O6 | **David Hill** — noted as not farmed from 2027 (cropping removed). |
 
 ## 0b. DECISIONS LOG (newest first)
+- 12/11/2026 — Blakeney and Gooderham do NOT have greening (removed from the app's greening calculation and dots).
+- 12/11/2026 — Field issue flags added to the app (see Section 9). Cavity spot is a FIELD issue, not a growing issue: avoid carrots on fields with historic cavity; not an outright no, but a high level is.
 - 12/11/2026 — App Rules tab now shows this rulebook (replaces the August 2026 version; nothing from the old page dropped).
 - 12/11/2026 — Rackham: potatoes only are ours (it WAS all veg from 2027; changed). Rye is fine at Euston. AD Rye target is a yearly decision based on last year's yield and usage. 60 Acres + Bottom Cullum definitely come out of pigs in March; other pig fields undecided. Water rates always follow the tick selection on the Water page, falling back to the main crop rate. West Farm can grow veg or anything like the rest of Euston. Rymer fields cereals only.
 - 11/11/2026 — Euston end-2027 greening split (Turnips vs Maxi Veg - Buckwheat); Top Meadow Honington unirrigated; Breckland B irrigated.
@@ -3827,6 +3829,7 @@ var EUSTON_RULES_MD = `# Abreys FieldPlan — Master Rulebook
 - **Euston end-2026 — stubble turnips (as in the app):** Big Cranwell Hill (West Farm), Big Wordwell Corner (West Farm), Euston Allotments, Euston Breck (Headings), Flats North (Headings), Mill Hill (Headings), New Layer, Old Layer. (The August rules page listed an earlier set: Ann Harts, Behind Barn, Big Hodna, Heath Meadow, Sixteen Acres, Euston Allotments West.)
 - **Euston end-2027 into 2028 (11/11/2026):** never-veg and/or unirrigated fields = **Turnips** ("Euston to drill and charge the livestock"); the rest = **Maxi Veg - Buckwheat**, target 200 ha ("Abrey Farms to drill and establish and bill livestock for grazing"). Currently 316 ha vs 200 target — more unirrigated fields still to be identified.
 - **Wretham + Chandler:** all greening is Maxi Veg.
+- **Blakeney and Gooderham: no greening at all** (12/11/2026) — never list them or show greening dots there.
 - **Clearance (10/11/2026):** Euston potato fields clear 2 weeks before the VCS Pot Plan planting week; maize fields by the last week of March.
 - Pickenham: SFI cover crops (stubble turnips) shown separately.
 
@@ -3859,6 +3862,15 @@ var EUSTON_RULES_MD = `# Abreys FieldPlan — Master Rulebook
 - Omnia is the authority for field names and working areas; variety/type shown in small text under each crop; first Omnia row wins where a field has two.
 - Dates shown DD/MM. For printed maps avoid orange with yellow, and red with pink.
 - Change tracking: when changes are saved, the app shows an orange banner listing changed fields; "Accept & clear" dismisses it. Highlights are stored per user in the browser.
+
+## 9. FIELD ISSUES (historic problems by field and crop) — added 12/11/2026
+- **Rule (Matthew 12/11/2026):** cavity spot in carrots is a field issue, not a growing issue, so we try to avoid fields with historic cavity problems. It is not an outright no, but a high level is. When a field is chosen for a crop the app flags any history; the user presses it to see what and when, then OK to go ahead or Cancel.
+- **Levels:** cavity 8%+ = high, 3–8% = medium, under 3% = low (shown, never flagged). PCN High/Medium, powdery scab Medium, weeds, wireworm and nematode notes flag for the crops they affect (PCN, powdery scab, wireworm = potato types; cavity = carrots; nematodes = parsnips/carrots; weeds = carrots/parsnips/onions).
+- **In the app:** data is the FIELD_ISSUES list (keyed by Omnia field id, falling back to estate + field name). A warning triangle shows on plan cells (red = high, orange = medium, grey with a tick = accepted). Acceptances are stored in FIELD_ISSUE_OK with who and when, and are saved with the plan.
+- **Sources (company OneDrive):** "Cropping 24 - Simple V1.xlsx" in Matt's OneDrive, Farm/Cropping/2024 (per-field cavity % and year, PCN, powdery scab, weeds — data to 2022); Harvest Review 2025 and 2026 notes on the Crops site (Cornerways cavity, Bulley Hall wireworm + nematodes, Hogs Back wireworm, Spurway nematodes on ex-organic lucerne, New Zealand Breck residual herbicide and fanging, Duffers Gore free-living nematodes).
+- **Not yet in the app — field names no longer match:** Wretham: River Field (27.3% 2019), Apple Shed Fruit Pit Pear Tree (21.8% 2018), Whitegate - Illington (18.9% 2021), Keepers Corner Field (13.6% 2013), Bridge Field (13.2% 2014), Sandy Hill (12.95% 2021), Kathleens (9% 2013), Long Wood (8.5% 2014), Peddars Way (7.4% 2017), Little Hockham N/E (5.5% 2019), Old Farm Meadow (2.1% 2018), Little Meadow (PCN High), Pit Meadow (PCN Low). Pickenham: Twelve Acres (PCN Low). Also North Whinns (powdery scab 2026, Georgina) — not a field in the app.
+- **Other review points worth knowing (not field-specific):** maize holds fusarium — consider before onions; avoid ex-organic land for parsnips; check herbicide records before carrots follow Euston cereals; pigs ideally 2 years away from onions and 3 from carrots (Harvest Review 2025 suggestion, not yet a rule).
+- No 2023–2026 per-field cavity figures were found on the OneDrive (only "VCS QC/Week 22.xlsx" for 2026). When new figures are available, add them to FIELD_ISSUES.
 `;
 
 function renderMarkdown(md){
@@ -4966,7 +4978,7 @@ function fieldEverVeg(f){
   });
 }
 var GREENING_ESTATES = ['Wretham','Chandler','Rackham Farms','Euston','Pickenham',
-  'Blakeney','Edwardstone/Borehouse','Gooderham'];  // all estates
+  'Edwardstone/Borehouse'];  // Blakeney and Gooderham have NO greening (Matthew 12/11/2026)
 var CEREAL_CROPS = ['Wheat','Barley','Rye','Rye A','Conventional Rye','Oats','Triticale','Wholecrop','Over Winter Cereal'];
 var ELIGIBLE_FROM = CEREAL_CROPS.concat(['Carrots','Parsnips','Onions']);
 var MV_TO   = ['Maize','Potatoes','Salad Potatoes','Seed Potatoes']; // Maxi Veg: before Maize or Potatoes
