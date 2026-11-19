@@ -5706,8 +5706,8 @@ function rOmRecs(){
   omniaCsv('Plans.csv',function(prows){
   omniaCsv('Records.csv',function(rrows){
     if(!prows||!rrows){el.innerHTML='<div style="padding:20px;color:#c0392b">Could not load Omnia data — check internet / relay.</div>';return;}
-    var fname={},fha={};
-    (frows||[]).forEach(function(r){if(r.HoldingId==='15859'){fname[r.FieldId]=r.FieldName;fha[r.FieldId]=parseFloat(r.WorkingArea||'')||0;}});
+    var fname={},fha={},fgrp={};
+    (frows||[]).forEach(function(r){if(r.HoldingId==='15859'){fname[r.FieldId]=r.FieldName;fha[r.FieldId]=parseFloat(r.WorkingArea||'')||0;fgrp[r.FieldId]=r.FieldGroup;}});
     var byplan={};
     prows.forEach(function(p){
       if(p.HoldingId!=='15859'||p.Year<'2026')return;
@@ -5727,6 +5727,7 @@ function rOmRecs(){
       b.n=fl.length;
       b.dn=fl.filter(function(x){return d[x];}).length;
       b.ha=fl.reduce(function(a,x){return a+(fha[x]||0);},0);
+      b.outIds=fl.filter(function(x){return !d[x];});
       b.out=fl.filter(function(x){return !d[x];}).map(function(x){return fname[x]||('#'+x);}).sort();
       b.doneF=fl.filter(function(x){return d[x];}).map(function(x){var dt=String(d[x]);return {n:fname[x]||('#'+x),dt:dt.length===10?dt.slice(8,10)+'/'+dt.slice(5,7):''};}).sort(function(a,b3){return a.n.localeCompare(b3.n);});
       if(b.status==='Abandoned'){abandoned++;return;}
@@ -5761,11 +5762,29 @@ function rOmRecs(){
         +'</div>';
     }
     var o2=fil(open),s2=fil(started),f2=fil(finished);
+    // area awaiting the sprayer: crop protection recs issued (not Draft, has a date), fields not yet done — by due status, Edwardstone store vs Wretham store (all others)
+    var td=new Date(),today=td.getFullYear()+'-'+String(td.getMonth()+1).padStart(2,'0')+'-'+String(td.getDate()).padStart(2,'0');
+    var wk=new Date(td.getTime()+7*864e5),in7=wk.getFullYear()+'-'+String(wk.getMonth()+1).padStart(2,'0')+'-'+String(wk.getDate()).padStart(2,'0');
+    var AW={od:{o:0,e:0,on:0,en:0},d7:{o:0,e:0,on:0,en:0},lt:{o:0,e:0,on:0,en:0}};
+    o2.concat(s2).forEach(function(b){
+      if(b.type!=='Crop protection'||b.status==='Draft'||!b.date)return;
+      var c=AW[b.date<today?'od':(b.date<=in7?'d7':'lt')];
+      b.outIds.forEach(function(x){var ha=fha[x]||0;if(fgrp[x]==='Edwardstone'){c.e+=ha;c.en++;}else{c.o+=ha;c.on++;}});
+    });
+    function awCell(ha,n,bold){return '<td style="padding:6px 12px;text-align:right;'+(bold?'font-weight:700;':'')+'"><span style="font-size:15px">'+ha.toFixed(1)+' ha</span> <span style="font-size:10.5px;color:var(--tx3)">('+n+')</span></td>';}
+    function awRow(lbl,col,c){return '<tr style="border-top:1px solid var(--bd)"><td style="padding:6px 12px;font-weight:700;color:'+col+'">'+lbl+'</td>'+awCell(c.o,c.on)+awCell(c.e,c.en)+awCell(c.o+c.e,c.on+c.en,1)+'</tr>';}
+    var tot={o:AW.od.o+AW.d7.o+AW.lt.o,e:AW.od.e+AW.d7.e+AW.lt.e,on:AW.od.on+AW.d7.on+AW.lt.on,en:AW.od.en+AW.d7.en+AW.lt.en};
+    var awHtml='<div style="font-size:12px;font-weight:700;color:var(--g1);margin-bottom:6px">Total area awaiting sprayer</div>'
+      +'<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:6px;max-width:760px"><table style="width:100%;border-collapse:collapse;font-size:12.5px">'
+      +'<tr style="background:var(--c2);font-size:11px;color:var(--tx3)"><th style="padding:6px 12px;text-align:left;font-weight:normal">Due</th><th style="padding:6px 12px;text-align:right;font-weight:normal">All farms except Edwardstone</th><th style="padding:6px 12px;text-align:right;font-weight:normal">Edwardstone</th><th style="padding:6px 12px;text-align:right;font-weight:normal">Total</th></tr>'
+      +awRow('Overdue','#c0392b',AW.od)+awRow('Due in next 7 days','#e67e22',AW.d7)+awRow('Later','#555',AW.lt)
+      +'<tr style="border-top:2px solid var(--bd);background:#f6f8f5"><td style="padding:6px 12px;font-weight:700">Total</td>'+awCell(tot.o,tot.on,1)+awCell(tot.e,tot.en,1)+awCell(tot.o+tot.e,tot.on+tot.en,1)+'</tr>'
+      +'</table></div><div style="font-size:10.5px;color:var(--tx3);margin-bottom:14px">Crop protection recs that are published or started, by their planned date: each field not yet sprayed counts (bracket = field applications; a field on two recs counts twice). Overdue = planned before today. Drafts and recs still waiting for a due date are not included.</div>';
     var yrBtn=function(v,lbl){return '<button onclick="window._omYr=\''+v+'\';rOm()" style="font-size:11.5px;padding:4px 14px;border-radius:5px;border:1px solid '+(yrSel===v?'#1a5c2e':'var(--bd)')+';background:'+(yrSel===v?'#1a5c2e':'#fff')+';color:'+(yrSel===v?'#fff':'#333')+';cursor:pointer">'+lbl+'</button>';};
     el.innerHTML='<div style="max-width:1100px">'
       +'<h2 style="font-size:16px;font-weight:normal;color:var(--g1);margin-bottom:2px">Rec Situation</h2>'
       +'<div style="font-size:11px;color:var(--tx3);margin-bottom:10px">Live from the Omnia daily export (refreshes ~4am). Status comes from Omnia; “done” counts from recorded operations.</div>'
-      +'<div style="display:flex;gap:6px;margin-bottom:14px">'+yrBtn('all','All years')+yrBtn('2026','2026')+yrBtn('2027','2027')+yrBtn('2028','2028')+'</div>'
+      +'<div style="display:flex;gap:6px;margin-bottom:14px">'+yrBtn('all','All years')+yrBtn('2026','2026')+yrBtn('2027','2027')+yrBtn('2028','2028')+'</div>'+awHtml
       +section('● Open — not started','#c0392b',o2,false,'Nothing open — all caught up.')
       +section('◑ Started — fields outstanding','#e67e22',s2,true,'Nothing part-done.')
       +section('✓ Finished','#1a5c2e',f2,false,'None finished yet.')
