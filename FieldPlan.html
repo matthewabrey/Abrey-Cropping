@@ -5786,7 +5786,7 @@ function omaSplit(head){
   return {est:null,label:String(head||'').trim()};
 }
 function omaDate(iso,add){var d=new Date(iso+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+(add||0));return d.toISOString().slice(0,10);}
-function omaFmt(iso){return iso?iso.slice(8,10)+'/'+iso.slice(5,7)+'/'+iso.slice(2,4):'';}
+function omaFmt(iso){return iso?(+iso.slice(8,10))+'/'+(+iso.slice(5,7))+'/'+iso.slice(2,4):'';}
 window._omaTicks=window._omaTicks||null;
 function omaTick(key,on){
   var u=typeof fpUser==='function'?fpUser():null; if(!u){alert('Please sign in first.');return;}
@@ -5843,35 +5843,43 @@ function rOmAlerts(keepTicks){
       b.hit=fl.filter(function(f){return got[f];}).map(function(f){return {n:fname[f]||('#'+f),d:got[f]};}).sort(function(x,y){return x.d.localeCompare(y.d)||x.n.localeCompare(y.n);});
       b.miss=fl.filter(function(f){return !got[f];}).map(function(f){return fname[f]||('#'+f);}).sort();
       if(!b.hit.length){waiting.push(b);return;}
-      var first=b.hit[0].d,last=b.hit[b.hit.length-1].d;
-      b.d1=omaDate(first,b.a);b.d2=b.b?omaDate(first,b.b):null;b.dl=last!==first?omaDate(last,b.a):null;b.last=last;
-      b.newest=last;
+      // group fields sprayed within 3 days of each other; each group gets its own due date
+      b.groups=[];
+      b.hit.forEach(function(h){
+        var g=b.groups[b.groups.length-1];
+        if(g&&omaDate(g.start,3)>=h.d)g.f.push(h);
+        else b.groups.push({start:h.d,f:[h]});
+      });
+      b.groups.forEach(function(g){g.end=g.f[g.f.length-1].d;g.due=omaDate(g.start,b.a);g.dueEnd=omaDate(g.end,b.a);g.due2=b.b?omaDate(g.end,b.b):null;});
+      b.d1=b.groups[0].due;
       ready.push(b);
     });
     var T=window._omaTicks||{};
-    ready.sort(function(x,y){var tx=T[x.key]?1:0,ty=T[y.key]?1:0;return tx-ty||x.d1.localeCompare(y.d1);});
+    ready.forEach(function(b){b.groups.forEach(function(g){g.key=b.key+'|'+g.start;g.t=T[g.key];});b.allT=b.groups.every(function(g){return g.t;});});
+    ready.sort(function(x,y){var tx=x.allT?1:0,ty=y.allT?1:0;return tx-ty||x.d1.localeCompare(y.d1);});
     var yday=omaDate(new Date().toISOString().slice(0,10),-1);
     function card(b){
-      var t=T[b.key],dim=t?'opacity:.5;':'';
+      var dim=b.allT?'opacity:.5;':'';
       var newB=b.hit.some(function(h){return h.d>=yday;})?'<span style="background:#e67e22;color:#fff;border-radius:4px;padding:1px 6px;font-size:10px;margin-left:6px">NEW</span>':'';
       var days=b.a+(b.b?'–'+b.b:'');
       return '<div style="display:flex;gap:12px;padding:10px 14px;border-top:1px solid var(--bd);'+dim+'">'
-        +'<div style="padding-top:2px"><input type="checkbox" '+(t?'checked':'')+' onclick="omaTick(\''+b.key+'\',this.checked)" title="Tick when the date has been entered in Omnia" style="width:18px;height:18px;cursor:pointer"></div>'
         +'<div style="flex:1;font-size:12.5px">'
-        +'<div><b>'+b.est+' '+omaEsc(b.prev)+'</b> sprayed on '+b.hit.map(function(h){return omaEsc(h.n)+' <span style="color:var(--tx3)">'+omaFmt(h.d)+'</span>';}).join(', ')+newB+'</div>'
-        +'<div style="margin-top:3px">→ Rec <b>'+b.ref+'</b> “'+omaEsc(b.name)+'” — put in application date <b style="color:#1a5c2e;font-size:13.5px">'+omaFmt(b.d1)+'</b>'
-        +(b.d2?' <span style="color:var(--tx3)">(window '+omaFmt(b.d1)+' – '+omaFmt(b.d2)+')</span>':'')+' <span style="color:var(--tx3)">· '+days+' days after</span></div>'
-        +(b.dl?'<div style="margin-top:3px;font-size:11.5px;color:#8a5a00">Sprayed over several days — last field '+omaFmt(b.last)+' → '+omaFmt(b.dl)+'</div>':'')
+        +'<div><b>'+b.est+' '+omaEsc(b.prev)+'</b> done'+newB+' → Rec <b>'+b.ref+'</b> “'+omaEsc(b.name)+'” <span style="color:var(--tx3)">· '+days+' days after</span></div>'
+        +b.groups.map(function(g){
+          return '<div style="margin-top:5px;display:flex;gap:8px;align-items:flex-start;'+(g.t&&!b.allT?'opacity:.5;':'')+'"><input type="checkbox" '+(g.t?'checked':'')+' onclick="omaTick(\''+g.key+'\',this.checked)" title="Tick when this due date has been entered in Omnia" style="width:17px;height:17px;cursor:pointer;margin-top:1px;flex:none"><div style="padding-left:8px;border-left:3px solid #1a5c2e">'
+            +'Due date <b style="color:#1a5c2e;font-size:13.5px">'+omaFmt(g.due)+(g.dueEnd!==g.due?'–'+omaFmt(g.dueEnd):'')+'</b>'+(g.due2?' <span style="color:var(--tx3)">(window '+omaFmt(g.due)+' – '+omaFmt(g.due2)+')</span>':'')
+            +' — '+g.f.map(function(h){return omaEsc(h.n)+' <span style="color:var(--tx3)">sprayed '+omaFmt(h.d)+'</span>';}).join(', ')
+            +(g.t?'<div style="font-size:11px;color:var(--tx3)">✓ Ticked by '+omaEsc(g.t.name||g.t.by)+' '+omaFmt((g.t.at||'').slice(0,10))+' — clears when Omnia shows the date</div>':'')+'</div></div>';
+        }).join('')
         +(b.miss.length?'<div style="margin-top:3px;font-size:11.5px;color:#c0392b">⚠ Not all fields have had '+omaEsc(b.prev)+': '+b.miss.map(omaEsc).join(', ')+'</div>':'')
-        +(t?'<div style="margin-top:3px;font-size:11px;color:var(--tx3)">✓ Ticked by '+omaEsc(t.name||t.by)+' '+omaFmt((t.at||'').slice(0,10))+' — clears when Omnia shows the date</div>':'')
         +'</div></div>';
     }
     function box(title,col,inner,count){return '<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px"><div style="padding:8px 14px;background:'+col+';color:#fff;font-weight:700;font-size:13px">'+title+' ('+count+')</div>'+inner+'</div>';}
-    var nOpen=ready.filter(function(b){return !T[b.key];}).length;
+    var nOpen=ready.filter(function(b){return !b.allT;}).length;
     el.innerHTML='<div style="max-width:1100px">'
       +'<h2 style="font-size:16px;font-weight:normal;color:var(--g1);margin-bottom:2px">Draft Rec Alerts</h2>'
-      +'<div style="font-size:11px;color:var(--tx3);margin-bottom:12px">Live from the Omnia daily export (~4am). Recs named <b>“Estate Label – 7 days after Label”</b> (or “7-10 days after”) with no application date are matched to the completed spray on the same fields. Date = first field sprayed + days. Tick once the date is in Omnia.</div>'
-      +box('● Ready — application date can now go in','#c0392b',ready.length?ready.map(card).join(''):'<div style="padding:10px 14px;font-size:11.5px;color:var(--tx3)">Nothing waiting for a date.</div>',nOpen+(ready.length>nOpen?' + '+(ready.length-nOpen)+' ticked':''))
+      +'<div style="font-size:11px;color:var(--tx3);margin-bottom:12px">Live from the Omnia daily export (~4am). Recs named <b>“Estate Label – 7 days after Label”</b> (or “7-10 days after”) with no application date are matched to the completed spray on the same fields. Due date = date sprayed + days; fields sprayed within 3 days of each other are grouped, with a due date range from the first to the last field sprayed. Tick once the date is in Omnia.</div>'
+      +box('● Ready — due date can now go in','#c0392b',ready.length?ready.map(card).join(''):'<div style="padding:10px 14px;font-size:11.5px;color:var(--tx3)">Nothing waiting for a date.</div>',nOpen+(ready.length>nOpen?' + '+(ready.length-nOpen)+' ticked':''))
       +box('◌ Waiting — previous spray not done yet','#7f8c8d',waiting.length?waiting.map(function(b){return '<div style="padding:7px 14px;border-top:1px solid var(--bd);font-size:12px">Rec <b>'+b.ref+'</b> “'+omaEsc(b.name)+'” — waiting for <b>'+b.est+' '+omaEsc(b.prev)+'</b> on '+(b.miss.length)+' field'+(b.miss.length===1?'':'s')+'</div>';}).join(''):'<div style="padding:10px 14px;font-size:11.5px;color:var(--tx3)">None.</div>',waiting.length)
       +(bad.length?box('? Name not understood — check the format','#e67e22',bad.map(function(b){return '<div style="padding:7px 14px;border-top:1px solid var(--bd);font-size:12px">Rec <b>'+b.ref+'</b> “'+omaEsc(b.name)+'”</div>';}).join(''),bad.length):'')
       +'</div>';
