@@ -6376,10 +6376,52 @@ function rOmStock(){
         +'<button onclick="omStoreSave(\''+st.replace(/'/g,"\\'")+'\')" style="font-size:12px;padding:5px 16px;background:#e67e22;color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:600">Save coverage</button>'
         +'</div>';
     }).join('');
+    // 20/11/26: one table per store — current stock and what to order to finish open recs
+    var storeHtml=Object.keys(OM_STORES).sort(function(a,b){return a==='Wretham'?-1:b==='Wretham'?1:a.localeCompare(b);}).map(function(st){
+      var rowsM={};
+      (byLoc[st]||[]).forEach(function(x){if(x.qty>0.01)rowsM['s|'+omStkNorm(x.name)]={name:x.name,type:x.type,unit:x.unit,qty:x.qty,need:0,tip:''};});
+      Object.keys(needArea[st]||{}).forEach(function(pk){
+        var x=stockAt(st,pk),key='s|'+omStkNorm(x?x.name:needName[pk]);
+        var r=rowsM[key]||(rowsM[key]={name:x?x.name:needName[pk],type:x?x.type:'',unit:x?x.unit:needUnit[pk],qty:x?x.qty:null,need:0,tip:''});
+        r.need+=needArea[st][pk]; r.pk=pk;
+        r.tip=Object.keys(needBy[pk]||{}).sort().join('\n');
+      });
+      var rows=Object.keys(rowsM).map(function(k){var r=rowsM[k];r.order=r.need>0.001?Math.max(r.need-Math.max(r.qty||0,0),0):0;return r;});
+      rows.sort(function(a,b){var ao=a.order>0.01?0:1,bo=b.order>0.01?0:1;return ao-bo||(a.type||'').localeCompare(b.type||'')||a.name.localeCompare(b.name);});
+      var nOrder=rows.filter(function(r){return r.order>0.01;}).length;
+      var cov=OM_STORES[st]||[],covTxt;
+      if(cov.indexOf('__REST')>=0){var oth=[];for(var o2 in OM_STORES){if(o2!==st)(OM_STORES[o2]||[]).forEach(function(x){if(x!=='__REST')oth.push(x);});}covTxt='all farms except '+oth.join(', ')+(OM_STOCK_IGNORE.length?' and '+OM_STOCK_IGNORE.join(', '):'');}
+      else covTxt=cov.join(', ');
+      var trs=rows.map(function(r){
+        var tipA=r.tip?' title="'+('Needed for:\n'+r.tip).replace(/"/g,'&quot;')+'" ':'';
+        var elsewhere='';
+        if(r.order>0.01&&r.pk)elsewhere=Object.keys(OM_STORES).filter(function(o){return o!==st;}).map(function(o){var x=stockAt(o,r.pk);var spare=x?x.qty-((needArea[o]||{})[r.pk]||0):0;return spare>0.01?o+' has '+fmt(spare,x.unit)+' spare':'';}).filter(Boolean).join(', ');
+        var left=r.qty!==null?(r.qty||0)-r.need:null;
+        return '<tr style="border-top:1px solid var(--bd)">'
+          +'<td style="padding:4px 10px;font-size:11.5px;font-weight:600">'+r.name+'<span style="font-weight:400;font-size:10px;color:var(--tx3)"> '+(r.type||'')+'</span></td>'
+          +'<td style="padding:4px 10px;font-size:11.5px;text-align:right;white-space:nowrap;'+(r.qty!==null&&r.qty<0?'color:#c0392b':'')+'">'+(r.qty===null?'<span style="color:var(--tx3)">none</span>':fmt(r.qty,r.unit))+'</td>'
+          +'<td '+tipA+' style="padding:4px 10px;font-size:11.5px;text-align:right;white-space:nowrap;color:#8a4500;'+(r.tip?'cursor:help;':'')+'">'+(r.need>0.001?fmt(r.need,r.unit):'—')+'</td>'
+          +'<td style="padding:4px 10px;font-size:11.5px;text-align:right;white-space:nowrap;font-weight:700;color:'+(r.order>0.01?'#c0392b':'#1a5c2e')+'">'
+            +(r.order>0.01?fmt(r.order,r.unit):(r.need>0.001?'✓ covered':'')+(left!==null?' <span style="font-weight:400;color:var(--tx3)">'+fmt(left,r.unit)+' left</span>':''))
+            +(elsewhere?'<div style="font-size:10px;font-weight:400;color:#0d47a1">'+elsewhere+' — transfer?</div>':'')+'</td>'
+          +'</tr>';
+      }).join('');
+      return '<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px">'
+        +'<div style="padding:8px 14px;background:#1a5c2e;color:#fff;font-weight:700;font-size:13px">'+st+' store <span style="font-weight:400;font-size:11px">— serves '+covTxt+' · '+nOrder+' to order</span></div>'
+        +'<div style="padding:6px 14px;font-size:10.5px;color:var(--tx3);border-bottom:1px solid var(--bd)"><b>In stock</b> = what Omnia says is in the '+st+' store now (a minus figure means a delivery hasn’t been booked in). <b>Needed</b> = product still to apply on this store’s farms to finish every draft, published and part-done rec (rate × area of fields not yet sprayed) — hover for which recs. <b>To order</b> = needed minus in stock; ✓ covered shows what will be left. Blue = the other store has some spare after its own recs — transfer instead of ordering?</div>'
+        +(rows.length?'<table style="border-collapse:collapse;width:100%"><thead><tr style="background:var(--c2)">'
+          +'<th style="padding:4px 10px;font-size:10px;text-align:left">Product</th>'
+          +'<th style="padding:4px 10px;font-size:10px;text-align:right">In stock</th>'
+          +'<th style="padding:4px 10px;font-size:10px;text-align:right">Needed</th>'
+          +'<th style="padding:4px 10px;font-size:10px;text-align:right">To order</th>'
+          +'</tr></thead><tbody>'+trs+'</tbody></table>'
+          :'<div style="padding:10px 14px;font-size:11.5px;color:var(--tx3)">No stock in Omnia and nothing needed.</div>')
+        +'</div>';
+    }).join('');
     el.innerHTML='<div style="max-width:1000px">'
       +'<h2 style="font-size:16px;font-weight:normal;color:var(--g1);margin-bottom:2px">Stock</h2>'
       +'<div style="font-size:11px;color:var(--tx3);margin-bottom:12px">Two stock areas: <b>Wretham</b> (serves every farm except Euston) and <b>Euston</b> (serves Euston and Rymer). Edwardstone’s store and fields are left out. Each field’s outstanding rec product counts against the store that serves its farm. Live from the Omnia daily export (~4am). '+(skipped?skipped+' rec lines without a usable rate/area (e.g. t/ha, units/ha) not counted.':'')+'</div>'
-      +cfgHtml+areaHtml+missHtml+locHtml
+      +cfgHtml+storeHtml
       +'</div>';
   });});});});
 }
