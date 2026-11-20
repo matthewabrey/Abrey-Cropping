@@ -5795,18 +5795,28 @@ function rOmRecs(){
 // ═══ Draft Rec Alerts (19/11/26) — reads rec names "<Estate> <Label> - <n>[-<m>] days after <Label>" ═══
 function omaEsc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];});}
 var OMA_EST=['Rackham Farms','Rackham','Pickenham','Wretham','Euston','Chandler','Blakeney','Gooderham','Beard','Warren','David Hill','Edwardstone','Borehouse','Rymer','Genevieve'];
-var OMA_AFTER_RE=/^(.*)\s(\d+)(?:(?:[-–—]|\s+to\s+)(\d+))?\s*days?\s+after\s+(.+?)\s*$/i;
-// returns [whole, head, minDays, maxDays|null, previousLabel] or null — accepts "X - 7 days after Y", "X due 2 days after Y", "X 7-10 days after Y", "X 7 to 10 days after Y"
+// Reads "<head> <n>[<sep><m>] days after <prev>" however it's spaced or punctuated:
+// "X - 7 days after Y", "X due 2 days after Y", "X 7-10 days after Y", "X 7 - 10 days after Y", "X 7 to 10 days after Y", "X - 7days after Y".
+// Returns [whole, head, minDays, maxDays|null, previousLabel] or null.
+var OMA_AFTER_RE=/^(.*?)\s*(?:days?|day's|dys?)\s*after\s+(.+?)\s*$/i;
 var OMA_AFTER={test:function(n){return !!this.exec(n);},exec:function(n){
-  var m=OMA_AFTER_RE.exec(String(n||'')); if(!m)return null;
-  var head=m[1],a=m[2],b=m[3]||null;
-  var r=/\s(\d+)\s+to\s*$/i.exec(head);   // "7 to 10" / "7 - 10" split by the greedy head
-  if(!b&&r){b=a;a=r[1];head=head.slice(0,r.index);}
-  head=head.replace(/\s*(?:[-–—:]|\bdue\b)\s*$/i,'').trim();
+  var s=String(n||'').replace(/\s+/g,' ').trim(), m=OMA_AFTER_RE.exec(s); if(!m)return null;
+  var pre=m[1], prev=m[2];
+  var t=/(\d+)\s*$/.exec(pre); if(!t)return null;                 // the last number before "days"
+  var b=null, a=t[1], head=pre.slice(0,t.index);
+  var r=/(\d+)\s*(?:[-–—~\/]|to)\s*$/i.exec(head);                 // a range "7-10", "7 - 10", "7 to 10"
+  if(r){
+    var headR=head.slice(0,r.index);
+    var lblR=headR.replace(/[\s\-–—:]+$|\s*\bdue\s*$/ig,'').trim(), lblN=head.replace(/[\s\-–—:]+$|\s*\bdue\s*$/ig,'').trim();
+    // "Fung 4 - 7 days after Fung 3": keep the number on the label when the previous spray's label ends in a number too
+    var prevNum=/\d$/.test(omaNorm(prev)), keepLabelNum=prevNum&&!/\d$/.test(lblR)&&/\d$/.test(lblN.replace(/[\s\-–—~\/]+$/,''));
+    if(!keepLabelNum&&+r[1]<=+a){b=a;a=r[1];head=headR;}
+  }
+  head=head.replace(/(?:\s*(?:[-–—:~\/]|\bdue\b))+\s*$/i,'').trim();
   if(!head)return null;
-  return [m[0],head,a,b,m[4]];
+  return [m[0],head,a,b,prev];
 }};
-function omaNorm(s){return String(s||'').toLowerCase().replace(/\s+/g,'');}
+function omaNorm(s){return String(s||'').toLowerCase().replace(/\(\d+\)\s*$/,'').replace(/[^a-z0-9]+/g,'');}
 function omaSplit(head){
   for(var i=0;i<OMA_EST.length;i++){
     var m=new RegExp('\\b'+OMA_EST[i].replace(/ /g,'\\s+')+'\\b','i').exec(head);
