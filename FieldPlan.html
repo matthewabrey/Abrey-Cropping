@@ -6197,9 +6197,10 @@ function rOmIn(){
       +'</div></div>';
   });
 }
-var OM_STORES={"Edwardstone":["Edwardstone"],"Wretham":["__REST"]}; // store -> farm groups it serves; __REST = everything not assigned elsewhere
-(function(){try{var s=JSON.parse(localStorage.getItem('fp_omstores_shadow')||'null');if(s&&typeof s==='object'&&!Array.isArray(s))OM_STORES=s;}catch(e){}})();
-function omStoresTouch(){try{localStorage.setItem('fp_omstores_shadow',JSON.stringify(OM_STORES));}catch(e){}}
+var OM_STORES={"Wretham":["__REST"],"Euston":["Euston","Rymer"]}; // store -> farm groups it serves; __REST = everything not assigned elsewhere (20/11/26: two stores, Wretham + Euston)
+var OM_STOCK_IGNORE=['Edwardstone']; // 20/11/26: Edwardstone's store and fields are left out of the Stock page entirely
+(function(){try{var s=JSON.parse(localStorage.getItem('fp_omstores_v2')||'null');if(s&&typeof s==='object'&&!Array.isArray(s))OM_STORES=s;}catch(e){}})();
+function omStoresTouch(){try{localStorage.setItem('fp_omstores_v2',JSON.stringify(OM_STORES));}catch(e){}}
 function omStoreFor(fg){var rest=null;for(var st in OM_STORES){var a=OM_STORES[st]||[];if(a.indexOf(fg)>=0)return st;if(a.indexOf('__REST')>=0)rest=st;}return rest;}
 function omStoreSave(st){
   var cls='omst-'+st.replace(/[^A-Za-z0-9]/g,'_');
@@ -6220,9 +6221,9 @@ function rOmStock(){
     // current stock: latest-year row per location+product
     var OM_CY='2027';
     var active={};
-    srows.forEach(function(s){if(s.HoldingId==='15859'&&s.Year>=OM_CY&&s.LocationName)active[s.LocationName]=1;});
+    srows.forEach(function(s){if(s.HoldingId==='15859'&&s.Year>=OM_CY&&s.LocationName&&OM_STOCK_IGNORE.indexOf(s.LocationName)<0)active[s.LocationName]=1;});
     var stock={}; // key loc|prodkey — only stores active in the current crop year
-    srows.filter(function(s){return s.HoldingId==='15859'&&s.Year>='2026'&&active[s.LocationName];})
+    srows.filter(function(s){return s.HoldingId==='15859'&&s.Year>='2026'&&(s.LocationName in OM_STORES);})
       .sort(function(a,b){return a.Year.localeCompare(b.Year);})
       .forEach(function(s){
         stock[(s.LocationName||'?')+'|'+(s.ProductKey||s.StockName)]={loc:s.LocationName||'?',name:s.StockName||s.ProductName,type:s.StockType,pk:s.ProductKey,qty:parseFloat(s.BulkQuantity||'')||0,unit:s.BulkUnit||''};
@@ -6239,6 +6240,7 @@ function rOmStock(){
       if(p.HoldingId!=='15859'||p.Year<'2026')return;
       if(['Published','Draft','Started'].indexOf(p.Status)<0)return;
       if(done[p.PlanKey]&&done[p.PlanKey][p.FieldId])return; // field already done
+      if(OM_STOCK_IGNORE.indexOf(fgrp[p.FieldId])>=0)return; // Edwardstone fields not counted
       var rate=parseFloat(p.ProductRate||''),area=parseFloat(p.Area||'');
       var u=(p.ProductRateUnit||'').toLowerCase();
       if(isNaN(rate)||isNaN(area)||area<=0){skipped++;return;}
@@ -6260,12 +6262,13 @@ function rOmStock(){
     });
     // allocate need across locations holding the product (proportional to stock, else first)
     var byLoc={},matched={};
+    Object.keys(OM_STORES).forEach(function(st){byLoc[st]=[];});
     Object.keys(stock).forEach(function(k){
       var s=stock[k];
       (byLoc[s.loc]=byLoc[s.loc]||[]).push(s);
     });
     Object.keys(need).forEach(function(pk){
-      var holders=Object.keys(stock).map(function(k){return stock[k];}).filter(function(s){return s.pk===pk;});
+      var holders=Object.keys(stock).map(function(k){return stock[k];}).filter(function(s){return s.pk===pk||omStkNorm(s.name)===omStkNorm(needName[pk]);});
       if(!holders.length)return;
       matched[pk]=1;
       var tip=Object.keys(needBy[pk]||{}).sort().map(function(pid){
@@ -6277,6 +6280,8 @@ function rOmStock(){
         if(nq>0.001){s.need=(s.need||0)+nq;s.tip=tip;}
       });
     });
+    function omStkNorm(x){return String(x||'').toLowerCase().replace(/\(\d+\)/g,'').replace(/[^a-z0-9]+/g,'');}
+    function stockAt(loc,pk){var s0=stock[loc+'|'+pk];if(s0)return s0;var nn=omStkNorm(needName[pk]);for(var k in stock){if(stock[k].loc===loc&&omStkNorm(stock[k].name)===nn)return stock[k];}return null;}
     function fmt(v,u){
       var n=Math.abs(v)>=100?Math.round(v).toLocaleString():(Math.round(v*10)/10).toLocaleString();
       return n+' '+(u==='Litre'?'L':u==='Kg'?'kg':u);
@@ -6288,7 +6293,7 @@ function rOmStock(){
           if(an!==bn)return an-bn;
           return (a.type+a.name).localeCompare(b.type+b.name);
         });
-      if(!items.length)return '';
+      if(!items.length)return '<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px"><div style="padding:8px 14px;background:#1a5c2e;color:#fff;font-weight:700;font-size:13px">'+loc+' store — current stock (0 products)</div><div style="padding:10px 14px;font-size:11.5px;color:var(--tx3)">No stock is recorded in Omnia for the '+loc+' store yet. Once stock is booked into it, it appears here; until then everything its farms need shows as “to order” in the guide above.</div></div>';
       var rows=items.map(function(s){
         var after=s.qty-(s.need||0);
         return '<tr>'
@@ -6300,7 +6305,8 @@ function rOmStock(){
           +'</tr>';
       }).join('');
       return '<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px">'
-        +'<div style="padding:8px 14px;background:#1a5c2e;color:#fff;font-weight:700;font-size:13px">'+loc+' ('+items.length+' products)</div>'
+        +'<div style="padding:8px 14px;background:#1a5c2e;color:#fff;font-weight:700;font-size:13px">'+loc+' store — current stock ('+items.length+' products)</div>'
+        +'<div style="padding:6px 14px;font-size:10.5px;color:var(--tx3);border-bottom:1px solid var(--bd)"><b>In stock</b> = what Omnia says is in the '+loc+' store now. <b>Open recs need</b> = product still to be applied on the farms this store serves (rate × area of fields not yet sprayed, on draft, published and part-done recs); hover for which recs. <b>Left after</b> = in stock minus open recs need — red ⚠ means the store will run short. Products short come first.</div>'
         +'<table style="border-collapse:collapse;width:100%"><thead><tr style="background:var(--c2)">'
         +'<th style="padding:4px 10px;font-size:10px;text-align:left">Product</th>'
         +'<th style="padding:4px 10px;font-size:10px;text-align:left">Type</th>'
@@ -6314,6 +6320,7 @@ function rOmStock(){
     var missHtml=missing.length
       ?'<div style="background:#fff;border:1px solid #e67e22;border-radius:10px;overflow:hidden;margin-bottom:16px">'
        +'<div style="padding:8px 14px;background:#e67e22;color:#fff;font-weight:700;font-size:13px">Needed for open recs — not in any stock list ('+missing.length+')</div>'
+       +'<div style="padding:6px 14px;font-size:10.5px;color:var(--tx3);border-bottom:1px solid var(--bd)">Products on open recs that aren’t on either store’s stock list in Omnia (not bought in yet, or booked under a different product name). Total still to apply; hover for which recs.</div>'
        +missing.map(function(pk){
           var tip=Object.keys(needBy[pk]||{}).sort().join('\n');
           return '<div title="'+('Needed for:\n'+tip).replace(/"/g,'&quot;')+'" style="padding:5px 14px;border-bottom:1px solid var(--bd);font-size:11.5px;cursor:help"><strong>'+(needName[pk]||pk)+'</strong> — '+fmt(need[pk],needUnit[pk])+'</div>';
@@ -6325,17 +6332,19 @@ function rOmStock(){
     if(areaKeys.length){
       areaHtml='<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px">'
         +'<div style="padding:8px 14px;background:#0d47a1;color:#fff;font-weight:700;font-size:13px">Needed for open recs — by store (ordering guide)</div>'
+        +'<div style="padding:6px 14px;font-size:10.5px;color:var(--tx3)">For each store: every product its farms’ open recs still need. <b>Needed</b> = total still to apply; <b>In that store</b> = current Omnia stock there; <b>To order</b> = needed minus what’s in the store (✓ covered = enough already); a blue note shows when the other store has some to transfer. This is the shopping list. A minus stock figure means Omnia’s stock count is behind (applications booked before the delivery was entered).</div>'
         +areaKeys.map(function(ar){
           var pks=Object.keys(needArea[ar]).sort(function(a,b){return (needName[a]||'').localeCompare(needName[b]||'');});
           var trs=pks.map(function(pk){
             var needQ=needArea[ar][pk];
-            var st=stock[ar+'|'+pk];
+            var st=stockAt(ar,pk);
+            var elsewhere=Object.keys(OM_STORES).filter(function(o){return o!==ar;}).map(function(o){var x=stockAt(o,pk);return x&&x.qty>0.01?o+' has '+fmt(x.qty,x.unit):'';}).filter(Boolean).join(', ');
             var have=st?Math.max(st.qty,0):null;
             var order=have===null?needQ:Math.max(needQ-have,0);
             return '<tr>'
               +'<td style="padding:3px 10px;font-size:11.5px;font-weight:600">'+(needName[pk]||pk)+'</td>'
               +'<td style="padding:3px 10px;font-size:11.5px;text-align:right;white-space:nowrap">'+fmt(needQ,needUnit[pk])+'</td>'
-              +'<td style="padding:3px 10px;font-size:11px;text-align:right;white-space:nowrap;color:var(--tx3)">'+(have===null?'no store here':fmt(have,needUnit[pk])+' in store')+'</td>'
+              +'<td style="padding:3px 10px;font-size:11px;text-align:right;white-space:nowrap;color:var(--tx3)">'+(have===null?'none in store':fmt(have,needUnit[pk])+' in store')+(order>0.01&&elsewhere?'<div style="font-size:10px;color:#0d47a1">'+elsewhere+' — transfer?</div>':'')+'</td>'
               +'<td style="padding:3px 10px;font-size:11.5px;text-align:right;white-space:nowrap;font-weight:700;color:'+(order>0.01?'#c0392b':'#1a5c2e')+'">'+(order>0.01?fmt(order,needUnit[pk]):'✓ covered')+'</td>'
               +'</tr>';
           }).join('');
@@ -6369,7 +6378,7 @@ function rOmStock(){
     }).join('');
     el.innerHTML='<div style="max-width:1000px">'
       +'<h2 style="font-size:16px;font-weight:normal;color:var(--g1);margin-bottom:2px">Stock</h2>'
-      +'<div style="font-size:11px;color:var(--tx3);margin-bottom:12px">Stores with stock in the current crop year ('+OM_CY+'). Each farm’s rec requirements count against the store that serves it — Edwardstone’s fields on the Edwardstone store, everything else on Wretham, until more stores are added. “Open recs need” = product required to finish every open and part-done rec (l/ha × outstanding area). '+(skipped?skipped+' plan lines without a usable rate/area not counted.':'')+'</div>'
+      +'<div style="font-size:11px;color:var(--tx3);margin-bottom:12px">Two stock areas: <b>Wretham</b> (serves every farm except Euston) and <b>Euston</b> (serves Euston and Rymer). Edwardstone’s store and fields are left out. Each field’s outstanding rec product counts against the store that serves its farm. Live from the Omnia daily export (~4am). '+(skipped?skipped+' rec lines without a usable rate/area (e.g. t/ha, units/ha) not counted.':'')+'</div>'
       +cfgHtml+areaHtml+missHtml+locHtml
       +'</div>';
   });});});});
