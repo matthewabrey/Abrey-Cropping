@@ -5795,12 +5795,22 @@ function rOmRecs(){
 // ═══ Draft Rec Alerts (19/11/26) — reads rec names "<Estate> <Label> - <n>[-<m>] days after <Label>" ═══
 function omaEsc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];});}
 var OMA_EST=['Rackham Farms','Rackham','Pickenham','Wretham','Euston','Chandler','Blakeney','Gooderham','Beard','Warren','David Hill','Edwardstone','Borehouse','Rymer','Genevieve'];
-var OMA_AFTER=/^(.*?)\s*[-–—]\s*(\d+)\s*(?:[-–—]|to)?\s*(\d+)?\s*days?\s+after\s+(.+?)\s*$/i;
+var OMA_AFTER_RE=/^(.*)\s(\d+)(?:(?:[-–—]|\s+to\s+)(\d+))?\s*days?\s+after\s+(.+?)\s*$/i;
+// returns [whole, head, minDays, maxDays|null, previousLabel] or null — accepts "X - 7 days after Y", "X due 2 days after Y", "X 7-10 days after Y", "X 7 to 10 days after Y"
+var OMA_AFTER={test:function(n){return !!this.exec(n);},exec:function(n){
+  var m=OMA_AFTER_RE.exec(String(n||'')); if(!m)return null;
+  var head=m[1],a=m[2],b=m[3]||null;
+  var r=/\s(\d+)\s+to\s*$/i.exec(head);   // "7 to 10" / "7 - 10" split by the greedy head
+  if(!b&&r){b=a;a=r[1];head=head.slice(0,r.index);}
+  head=head.replace(/\s*(?:[-–—:]|\bdue\b)\s*$/i,'').trim();
+  if(!head)return null;
+  return [m[0],head,a,b,m[4]];
+}};
 function omaNorm(s){return String(s||'').toLowerCase().replace(/\s+/g,'');}
 function omaSplit(head){
   for(var i=0;i<OMA_EST.length;i++){
     var m=new RegExp('\\b'+OMA_EST[i].replace(/ /g,'\\s+')+'\\b','i').exec(head);
-    if(m)return {est:OMA_EST[i].replace(/^Rackham$/,'Rackham Farms'),label:head.slice(m.index+m[0].length).trim()};
+    if(m)return {est:OMA_EST[i].replace(/^Rackham$/,'Rackham Farms'),label:head.slice(m.index+m[0].length).replace(/[\s\-–—:]+$/,'').trim()};
   }
   return {est:null,label:String(head||'').trim()};
 }
