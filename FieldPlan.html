@@ -6073,6 +6073,11 @@ function rOmPlist(keep){
         if(!best)break;
         var sp=best.sp,it=best.it,r=it.rec,tank=sp.s.tank||6000;
         var job={u:it,wash:splWash(sp.last,it),steps:[]};sp.jobs.push(job);
+        // remember why this rec was picked, for the "Why this order" note
+        job.why={od:overdue(r),ahead:r.date>TOM?Math.round((new Date(r.date)-new Date(TOM))/864e5):0,km:nearestField(sp.pos,it.rest).km,first:sp.jobs.length===1,
+          rel:sp.last?splMixRel(sp.last.rec,r):null,prev:sp.last?sp.last.rec.ref:null,glyph:it.glyph,othersLeft:othersLeft,
+          wouldWash:pool.filter(function(q){return q!==it&&q.rest.length&&splWash(sp.last,q).l>0;}).length,
+          moreUrgent:pool.filter(function(q){return q!==it&&q.rest.length&&q.rec.date<r.date;}).map(function(q){return {ref:q.rec.ref,km:nearestField(sp.pos,q.rest).km,wash:splWash(sp.last,q).l,glyph:q.glyph};})};
         // where this mix is filled: bowser comes to him, otherwise the nearest fill point
         var start=(sp.s.bowser||(sp.last&&splMixRel(sp.last.rec,r)&&sp.lastFill&&sp.lastFill.room>0.5))?sp.pos:nearFill(sp.pos).f.c;
         // pick fields nearest-next from the fill until he reaches his ha for the day
@@ -6154,9 +6159,40 @@ function rOmPlist(keep){
           });
         });
         if(rows)rows='<tr><td colspan="5" style="padding:4px 10px;font-size:11px;color:var(--tx3)">🚜 Starts and finishes at Wretham yard</td></tr>'+rows;
+        // plain-English reasons for the order
+        var why=sp.jobs.filter(function(j){return j.steps.some(function(s){return s.t==='field';});}).map(function(j,k){
+          var w=j.why,r=j.u.rec,bits=[];
+          if(w.od>0)bits.push(w.od+' day'+(w.od===1?'':'s')+' overdue');else if(w.ahead>0)bits.push('not due until '+splFmtD(r.date)+' — brought forward because there was time');else bits.push('due tomorrow');
+          if(w.rel)bits.push(w.rel.same?'same mix as Rec '+w.prev+', so the tank just carries on':'Rec '+w.prev+'’s mix plus '+w.rel.add.map(function(p){return p.n;}).join(' + ')+' — add it to the tank, no wash-out');
+          else if(w.first)bits.push('nearest field ~'+Math.round(w.km*1.3)+' km from Wretham yard');
+          else bits.push('starts ~'+Math.round(w.km*1.3)+' km from where Rec '+w.prev+' finishes');
+          if(!w.first&&!w.rel){if(j.wash.l>0)bits.push('needs a '+SPL_LVL[j.wash.l].toLowerCase()+' first (shown below)');else if(w.wouldWash)bits.push('no wash-out needed, whereas '+w.wouldWash+' other job'+(w.wouldWash===1?'':'s')+' would have needed one');}
+          if(w.glyph)bits.push(w.othersLeft?'glyphosate — normally kept to the end of the day':'glyphosate — left until last because anything after it needs an ALL CLEAR');
+          if(w.moreUrgent.length){
+            var gl=[],far=[],wsh=[],same=[];
+            w.moreUrgent.slice(0,4).forEach(function(q){
+              if(w.rel)return;
+              if(q.glyph)gl.push(q.ref);
+              else if(q.wash>j.wash.l)wsh.push(q.ref+' would need a '+SPL_LVL[q.wash].toLowerCase()+' first');
+              else if(q.km>w.km+1)far.push(q.ref+' is ~'+Math.round((q.km-w.km)*1.3)+' km further away');
+              else same.push(q.ref);
+            });
+            var rs=[];
+            if(w.rel)rs.push('this carries straight on from the last tank');
+            if(gl.length)rs.push('Rec'+(gl.length>1?'s ':' ')+gl.join(' and ')+(gl.length>1?' are':' is')+' glyphosate, kept for the end of the day');
+            wsh.forEach(function(x){rs.push('Rec '+x);});far.forEach(function(x){rs.push('Rec '+x);});
+            if(same.length)rs.push(w.od>=30?'Rec'+(same.length>1?'s ':' ')+same.join(', ')+' and this are all over 30 days overdue so count the same, and this one is nearer':'Rec'+(same.length>1?'s ':' ')+same.join(', ')+(same.length>1?' are':' is')+' only a little older and this one fits the route better');
+            bits.push('done before older Rec'+(w.moreUrgent.length===1?' ':'s ')+w.moreUrgent.slice(0,4).map(function(q){return q.ref;}).join(', ')+' because '+rs.join('; '));
+          }
+          var gw=[];j.steps.forEach(function(s){if(s.t==='field'){var g=fgrp[s.f],x=W&&W[g];if(x&&gw.indexOf(g+': '+x.best)<0)gw.push(g+': '+x.best);}});
+          if(gw.length)bits.push('weather '+gw.join(', '));
+          return '<li style="margin:2px 0"><b>'+(k+1)+'. Rec '+r.ref+'</b> — '+bits.join('; ')+'.</li>';
+        }).join('');
+        var whyHtml=why?'<div style="padding:8px 14px;background:#f2f6fb;border-bottom:1px solid var(--bd);font-size:11.5px;color:#333"><b style="color:#0d47a1">Why this order</b><ul style="margin:4px 0 2px 18px;padding:0">'+why+'</ul>'
+          +'<div style="font-size:10.5px;color:var(--tx3);margin-top:3px">Within each rec the fields go in the shortest driving order from where the tank is filled (back-tracking removed). Refills are at the nearest fill point'+(sp.s.bowser?' — here the bowser comes to him':'')+'; if only a little is left in the tank he tops up before the next field rather than running dry part way in. Stops at '+sp.cap+' ha (his ha/day setting).</div></div>':'';
         return '<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px;break-inside:avoid">'
           +'<div style="padding:8px 14px;background:#1a5c2e;color:#fff;font-weight:700;font-size:14px">'+omaEsc(sp.s.name)+' <span style="font-weight:400;font-size:11.5px">— '+sp.used.toFixed(0)+' of '+sp.cap+' ha · '+sp.fills+' fill'+(sp.fills===1?'':'s')+' · '+Math.round(sp.L).toLocaleString()+' L · ~'+Math.round(sp.km*1.3)+' km road travel · '+(sp.s.bowser?'bowser with him':'no bowser')+' · '+(sp.s.tank||6000).toLocaleString()+' L tank</span></div>'
-          +(rows?'<table style="border-collapse:collapse;width:100%">'+rows+'</table>':'<div style="padding:10px 14px;font-size:11.5px;color:var(--tx3)">Nothing allocated.</div>')+'</div>';
+          +whyHtml+(rows?'<table style="border-collapse:collapse;width:100%">'+rows+'</table>':'<div style="padding:10px 14px;font-size:11.5px;color:var(--tx3)">Nothing allocated.</div>')+'</div>';
       }).join('');
       var listRows=function(arr,why){return arr.map(function(x){return '<div style="padding:4px 14px;border-top:1px solid var(--bd);font-size:11.5px">Rec <b>'+x.rec.ref+'</b> '+omaEsc(x.rec.name)+' — '+omaEsc(x.grp)+': '+x.fids.map(function(f){return omaEsc(fname[f]||f);}).join(', ')+' <span style="color:var(--tx3)">('+x.ha.toFixed(1)+' ha, due '+splFmtD(x.rec.date)+(x.part?', rest of a part-done job':'')+')</span></div>';}).join('');};
       var wxHtml='';
