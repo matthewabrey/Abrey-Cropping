@@ -6096,17 +6096,20 @@ function rOmPlist(keep){
           inTank=extra;carried=true;
           job.steps.push({t:'add',same:rel.same,add:rel.add,L:extra,from:sp.last.rec.ref});
         }
-        function fill(atPos,mid){
-          var amt=Math.min(tank,left);
-          if(sp.s.bowser){job.steps.push({t:'fill',L:amt,at:mid?'bowser meets him in '+(fname[mid]||mid):'bowser meets him'+(sp.jobs.length===1&&!job.steps.length&&splKm(sp.pos,SPL_YARD.c)<0.5?' at Wretham yard':''),bf:nearFill(atPos).f.n});}
-          else {var nfp=nearFill(atPos);sp.km+=nfp.km*(mid?2:1);job.steps.push({t:'fill',L:amt,at:nfp.f.n,km:nfp.km,mid:mid});atPos=nfp.f.c;}
-          sp.fills++;inTank=amt;sp.lastFill={step:job.steps[job.steps.length-1],room:tank-amt};return atPos;
+        function fill(atPos,mid,before){
+          var amt=Math.min(tank-inTank,left-inTank);   // top the tank up to full, or to exactly what's still needed
+          if(sp.s.bowser){var atYard=splKm(atPos,SPL_YARD.c)<0.5;job.steps.push({t:'fill',L:amt,top:inTank>0.5,at:atYard?'Wretham yard':mid?'bowser meets him in '+(fname[mid]||mid):'bowser meets him'+(before?' before '+(fname[before]||before):''),bf:atYard?null:nearFill(atPos).f.n});}
+          else {var nfp=nearFill(atPos);sp.km+=nfp.km*(mid?2:1);job.steps.push({t:'fill',L:amt,top:inTank>0.5,at:nfp.f.n,km:nfp.km,mid:mid});atPos=nfp.f.c;}
+          sp.fills++;inTank+=amt;sp.lastFill={step:job.steps[job.steps.length-1],room:tank-inTank};return atPos;
         }
         var cur=sp.pos;
-        if(!carried){cur=sp.s.bowser?sp.pos:nearFill(sp.pos).f.c;if(!sp.s.bowser)sp.km+=splKm(sp.pos,cur);fill(cur,null);}
+        if(!carried){cur=sp.s.bowser?sp.pos:nearFill(sp.pos).f.c;if(!sp.s.bowser)sp.km+=splKm(sp.pos,cur);fill(cur,null,pick[0]);}
         pick.forEach(function(f){
           sp.km+=splKm(cur,cen(f));cur=cen(f);
           var fl=r.fields[f].ha*r.wv,mid=false;
+          // not enough left for this field: if it's only a little (under a quarter of the field or 500 L), top up BEFORE going in
+          // rather than starting the field, running dry and coming back
+          if(fl>inTank+0.5&&(inTank<500||inTank<fl*0.25)){var c0=cur;cur=fill(cur,null,f);if(!sp.s.bowser)sp.km+=splKm(cur,cen(f))-splKm(c0,cen(f));}
           while(fl>inTank+0.5){fl-=inTank;left-=inTank;inTank=0;fill(cur,f);mid=true;}
           inTank-=fl;left-=fl;
           job.steps.push({t:'field',f:f,L:r.fields[f].ha*r.wv,ha:r.fields[f].ha,mid:mid});
@@ -6144,7 +6147,7 @@ function rOmPlist(keep){
               return;
             }
             if(s.t==='fill'){
-              rows+='<tr><td></td><td colspan="4" style="padding:3px 10px;font-size:11px;color:#0d47a1">⛽ Fill '+Math.round(s.L).toLocaleString()+' L — '+(sp.s.bowser?'<b>'+omaEsc(s.at)+'</b> <span style="color:var(--tx3)">(bowser reloads at '+omaEsc(s.bf)+')</span>':'<b>'+omaEsc(s.at)+'</b>'+(s.carry?' <span style="color:#1a5c2e">(includes '+Math.round(s.carry).toLocaleString()+' L to carry on into Rec '+s.carryRef+')</span>':'')+(s.km>0.3?' <span style="color:var(--tx3)">~'+(s.km*1.3).toFixed(0)+' km by road'+(s.mid?', then back to finish '+omaEsc(fname[s.mid]||s.mid):'')+'</span>':''))+'</td></tr>';
+              rows+='<tr><td></td><td colspan="4" style="padding:3px 10px;font-size:11px;color:#0d47a1">⛽ '+(s.top?'Top up':'Fill')+' '+Math.round(s.L).toLocaleString()+' L — '+(sp.s.bowser&&s.bf?'<b>'+omaEsc(s.at)+'</b> <span style="color:var(--tx3)">(bowser reloads at '+omaEsc(s.bf)+')</span>':'<b>'+omaEsc(s.at)+'</b>'+(s.carry?' <span style="color:#1a5c2e">(includes '+Math.round(s.carry).toLocaleString()+' L to carry on into Rec '+s.carryRef+')</span>':'')+(s.km>0.3?' <span style="color:var(--tx3)">~'+(s.km*1.3).toFixed(0)+' km by road'+(s.mid?', then back to finish '+omaEsc(fname[s.mid]||s.mid):'')+'</span>':''))+'</td></tr>';
             } else {
               n++;rows+='<tr style="border-top:1px solid var(--bd)"><td style="padding:3px 10px;font-size:11.5px;color:var(--tx3);width:28px">'+n+'</td><td style="padding:3px 10px;font-size:12px;font-weight:600">'+omaEsc(fname[s.f]||s.f)+' <span style="font-weight:400;font-size:10.5px;color:var(--tx3)">'+omaEsc(fgrp[s.f]||'')+'</span>'+(s.mid?' <span style="font-size:10px;color:#0d47a1">(refill part way)</span>':'')+'</td><td style="padding:3px 10px;font-size:11px;color:var(--tx3)">'+omaEsc(r.fields[s.f].crop)+'</td><td style="padding:3px 10px;font-size:11.5px;text-align:right">'+s.ha.toFixed(1)+' ha</td><td style="padding:3px 10px;font-size:11px;text-align:right;color:var(--tx3)">'+Math.round(s.L).toLocaleString()+' L</td></tr>';
             }
