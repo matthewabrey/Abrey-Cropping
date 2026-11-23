@@ -1,1 +1,1 @@
-{"sprayers":[{"name":"Rob","on":true,"bowser":false,"tank":6000,"haDay":120},{"name":"Jerry","on":false,"bowser":false,"tank":6000,"haDay":120},{"name":"3rd","on":false,"bowser":false,"tank":6000,"haDay":120}],"ahead":3,"updated":"2026-11-23T14:56:12.510Z","by":"Susan Horner"}
+{"sprayers":[{"name":"Rob","on":true,"bowser":true,"tank":6000,"haDay":120},{"name":"Jerry","on":false,"bowser":false,"tank":6000,"haDay":120},{"name":"3rd","on":false,"bowser":false,"tank":6000,"haDay":120}],"ahead":3,"updated":"2026-11-23T15:50:40.762Z","by":"Matthew Abrey"}
