@@ -6011,7 +6011,10 @@ function rOmPlist(keep){
   omniaCsv('Cropping.csv',function(crows){
     if(!prows||!rrows){el.innerHTML='<div style="padding:20px;color:#c0392b">Could not load Omnia data — check internet / relay.</div>';return;}
     var fname={},fgrp={};(frows||[]).forEach(function(r){if(r.HoldingId==='15859'){fname[r.FieldId]=r.FieldName;fgrp[r.FieldId]=r.FieldGroup;}});
-    var cropOf={};(crows||[]).forEach(function(r){if(r.HoldingId==='15859')cropOf[r.CroppingId]=r.CropName;});
+    var cropOf={},sowOf={};(crows||[]).forEach(function(r){if(r.HoldingId==='15859'){cropOf[r.CroppingId]=r.CropName;sowOf[r.CroppingId]=(r.SowingDate||'').slice(0,10);}});
+    // a crop counts as drilled once its sowing date has passed, or a drilling/planting operation is recorded on it
+    var drilled={};rrows.forEach(function(r){if(r.HoldingId==='15859'&&r.CroppingId&&/drill|plant|sow/i.test((r.OperationTypeName||'')+' '+(r.OperationName||''))&&r.CroppingStatus!=='Abandoned')drilled[r.CroppingId]=1;});
+    var waitDrill={};
     // field centres; fall back to the farm-group average
     var gsum={};Object.keys(SPL_CEN).forEach(function(fid){var g=fgrp[fid];if(!g)return;var a=gsum[g]||(gsum[g]=[0,0,0]);a[0]+=SPL_CEN[fid][0];a[1]+=SPL_CEN[fid][1];a[2]++;});
     var gcen={};Object.keys(gsum).forEach(function(g){gcen[g]=[gsum[g][0]/gsum[g][2],gsum[g][1]/gsum[g][2]];});
@@ -6028,10 +6031,15 @@ function rOmPlist(keep){
       if(fgrp[p.FieldId]==='Edwardstone')return;
       var r=recs[p.PlanKey]||(recs[p.PlanKey]={key:p.PlanKey,ref:p.Year.slice(2)+'.'+p.PlanNumber,name:(p.PlanName||'').trim(),date:d,wv:parseFloat(p.WaterVolume||'')||200,prods:[],pn:{},fields:{}});
       if(p.ProductName&&!r.pn[p.ProductName]){r.pn[p.ProductName]=1;r.prods.push({n:p.ProductName,g:p.ProductGroup||'',rate:p.ProductRate,u:p.ProductRateUnit});}
+      // recs timed on the crop (pre-emergence or any leaf stage) can't go on until the crop is drilled; pre-planting / stubble recs can
+      var needsCrop=!/pre.?plant|stubble|desicc/i.test(p.GrowthStageName||'')&&!(+p.GrowthStage<=-10);
+      var sow=sowOf[p.CroppingId]||'';
+      if(needsCrop&&sow&&sow>TOM&&!drilled[p.CroppingId]){var wd=waitDrill[p.PlanKey]||(waitDrill[p.PlanKey]={rec:r,fids:[],sow:{}});if(wd.fids.indexOf(p.FieldId)<0)wd.fids.push(p.FieldId);wd.sow[p.FieldId]=sow;return;}
       r.fields[p.FieldId]={ha:parseFloat(p.Area||'')||0,crop:cropOf[p.CroppingId]||''};
     });
     // units = one rec on one farm group
     var units=[];
+    Object.keys(recs).forEach(function(k){if(!Object.keys(recs[k].fields).length)delete recs[k];});
     Object.keys(recs).forEach(function(k){
       var r=recs[k];r.glyph=r.prods.some(function(p){return splIsGlyph(p.n);})||/stubble|glyph|pre.?plant|desicc/i.test(r.name);
       var byG={};Object.keys(r.fields).forEach(function(fid){(byG[fgrp[fid]||'?']=byG[fgrp[fid]||'?']||[]).push(fid);});
@@ -6217,6 +6225,8 @@ function rOmPlist(keep){
         +'<div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="font-size:16px;font-weight:normal;color:var(--g1);margin-bottom:2px">Spray List — '+tom.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+'</h2><button onclick="window.print()" style="font-size:11.5px;padding:4px 12px;border:1px solid var(--bd);background:#fff;border-radius:5px;cursor:pointer">🖨 Print</button></div>'
         +'<div style="font-size:11px;color:var(--tx3);margin-bottom:12px">Built automatically from Omnia (published and part-done crop protection recs due by '+splFmtD(HZ)+', overdue first; anything planned over 30 days ago is listed at the bottom instead), field positions, tomorrow’s weather for each farm and the wash-out chart. Sprayers start and finish at Wretham yard. Veg comes first, then the most urgent jobs nearest to where he already is, avoiding wash-outs where it can, up to his ha/day. One mix runs across farms with tanks filled only as needed — refills at the nearest fill point (Wretham yard or Euston), or from the bowser if he has one. Edwardstone not included. A guide — the lead sprayman can still reorder.</div>'
         +setHtml+(wxErr?'<div style="font-size:11px;color:#c0392b;margin-bottom:10px">Weather forecast unavailable — list built without it.</div>':'')+spHtml
+        +(Object.keys(waitDrill).length?'<div style="background:#fff;border:1px solid #8e44ad;border-radius:10px;overflow:hidden;margin-bottom:16px"><div style="padding:8px 14px;background:#8e44ad;color:#fff;font-weight:700;font-size:13px">Waiting for drilling ('+Object.keys(waitDrill).length+')</div><div style="padding:5px 14px;font-size:10.5px;color:var(--tx3)">Recs timed on the crop (pre-emergence or later) where Omnia’s sowing date is still in the future and no drilling is recorded. Once drilled, record the drilling (or update the sowing date) in Omnia and they’ll come into the list.</div>'
+          +Object.keys(waitDrill).map(function(k){var x=waitDrill[k];var sd=Object.keys(x.sow).map(function(f){return x.sow[f];}).sort()[0];return '<div style="padding:4px 14px;border-top:1px solid var(--bd);font-size:11.5px">Rec <b>'+x.rec.ref+'</b> '+omaEsc(x.rec.name)+' — '+x.fids.length+' field'+(x.fids.length===1?'':'s')+': '+x.fids.map(function(f){return omaEsc(fname[f]||f);}).join(', ')+' <span style="color:var(--tx3)">(sowing date '+splFmtD(sd)+')</span></div>';}).join('')+'</div>':'')
         +(res.held.length?'<div style="background:#fff;border:1px solid #c0392b;border-radius:10px;overflow:hidden;margin-bottom:16px"><div style="padding:8px 14px;background:#c0392b;color:#fff;font-weight:700;font-size:13px">Held for weather ('+res.held.length+')</div>'+listRows(res.held)+'</div>':'')
         +(res.notReached.length?'<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px"><div style="padding:8px 14px;background:#7f8c8d;color:#fff;font-weight:700;font-size:13px">Not reached tomorrow — next in line ('+res.notReached.length+')</div>'+listRows(res.notReached)+'</div>':'')
         +wxHtml
