@@ -5705,13 +5705,15 @@ function rOmRecs(){
   omniaCsv('Fields.csv',function(frows){
   omniaCsv('Plans.csv',function(prows){
   omniaCsv('Records.csv',function(rrows){
+  omniaCsv('Cropping.csv',function(crows){
     if(!prows||!rrows){el.innerHTML='<div style="padding:20px;color:#c0392b">Could not load Omnia data — check internet / relay.</div>';return;}
     var fname={},fha={},fgrp={};
     (frows||[]).forEach(function(r){if(r.HoldingId==='15859'){fname[r.FieldId]=r.FieldName;fha[r.FieldId]=parseFloat(r.WorkingArea||'')||0;fgrp[r.FieldId]=r.FieldGroup;}});
     var byplan={};
     prows.forEach(function(p){
       if(p.HoldingId!=='15859'||p.Year<'2026')return;
-      var b=byplan[p.PlanKey]||(byplan[p.PlanKey]={name:p.PlanName,num:p.PlanNumber,type:p.Type,year:p.Year,status:p.Status,date:(p.ApplicationDate||'').slice(0,10),fields:{},prods:[]});
+      var b=byplan[p.PlanKey]||(byplan[p.PlanKey]={name:p.PlanName,num:p.PlanNumber,type:p.Type,year:p.Year,status:p.Status,date:(p.ApplicationDate||'').slice(0,10),fields:{},prods:[],cid:{},needsCrop:!/pre.?plant|stubble|desicc/i.test(p.GrowthStageName||'')&&!(+p.GrowthStage<=-10)});
+      b.cid[p.FieldId]=p.CroppingId;
       b.fields[p.FieldId]=1;
       if(p.ProductName&&b.prods.indexOf(p.ProductName)<0)b.prods.push(p.ProductName);
     });
@@ -5762,6 +5764,10 @@ function rOmRecs(){
         +'</div>';
     }
     var o2=fil(open),s2=fil(started),f2=fil(finished);
+    // 24/11/26: crop-timed recs (pre-emergence or later) wait until the crop is drilled — sowing date passed or drilling recorded
+    var sowOf={};(crows||[]).forEach(function(r){if(r.HoldingId==='15859')sowOf[r.CroppingId]=(r.SowingDate||'').slice(0,10);});
+    var drilled={};rrows.forEach(function(r){if(r.HoldingId==='15859'&&r.CroppingId&&/drill|plant|sow/i.test((r.OperationTypeName||'')+' '+(r.OperationName||''))&&r.CroppingStatus!=='Abandoned')drilled[r.CroppingId]=1;});
+    var awWait=0,awWaitN=0;
     // area awaiting the sprayer: crop protection recs issued (not Draft, has a date), fields not yet done — by due status, Edwardstone store vs Wretham store (all others)
     var td=new Date(),today=td.getFullYear()+'-'+String(td.getMonth()+1).padStart(2,'0')+'-'+String(td.getDate()).padStart(2,'0');
     var wk=new Date(td.getTime()+7*864e5),in7=wk.getFullYear()+'-'+String(wk.getMonth()+1).padStart(2,'0')+'-'+String(wk.getDate()).padStart(2,'0');
@@ -5769,7 +5775,9 @@ function rOmRecs(){
     o2.concat(s2).forEach(function(b){
       if(b.type!=='Crop protection'||b.status==='Draft'||!b.date)return;
       var c=AW[b.date<today?'od':(b.date<=in7?'d7':'lt')];
-      b.outIds.forEach(function(x){var ha=fha[x]||0;if(fgrp[x]==='Edwardstone'){c.e+=ha;c.en++;}else{c.o+=ha;c.on++;}});
+      b.outIds.forEach(function(x){var ha=fha[x]||0;var cid=b.cid[x],sw=sowOf[cid]||'';
+        if(b.needsCrop&&sw&&sw>today&&!drilled[cid]){awWait+=ha;awWaitN++;return;}
+        if(fgrp[x]==='Edwardstone'){c.e+=ha;c.en++;}else{c.o+=ha;c.on++;}});
     });
     function awCell(ha,n,bold){return '<td style="padding:6px 12px;text-align:right;'+(bold?'font-weight:700;':'')+'"><span style="font-size:15px">'+ha.toFixed(1)+' ha</span> <span style="font-size:10.5px;color:var(--tx3)">('+n+')</span></td>';}
     function awRow(lbl,col,c){return '<tr style="border-top:1px solid var(--bd)"><td style="padding:6px 12px;font-weight:700;color:'+col+'">'+lbl+'</td>'+awCell(c.o,c.on)+awCell(c.e,c.en)+awCell(c.o+c.e,c.on+c.en,1)+'</tr>';}
@@ -5779,7 +5787,7 @@ function rOmRecs(){
       +'<tr style="background:var(--c2);font-size:11px;color:var(--tx3)"><th style="padding:6px 12px;text-align:left;font-weight:normal">Due</th><th style="padding:6px 12px;text-align:right;font-weight:normal">All farms except Edwardstone</th><th style="padding:6px 12px;text-align:right;font-weight:normal">Edwardstone</th><th style="padding:6px 12px;text-align:right;font-weight:normal">Total</th></tr>'
       +awRow('Overdue','#c0392b',AW.od)+awRow('Due in next 7 days','#e67e22',AW.d7)+awRow('Later','#555',AW.lt)
       +'<tr style="border-top:2px solid var(--bd);background:#f6f8f5"><td style="padding:6px 12px;font-weight:700">Total</td>'+awCell(tot.o,tot.on,1)+awCell(tot.e,tot.en,1)+awCell(tot.o+tot.e,tot.on+tot.en,1)+'</tr>'
-      +'</table></div><div style="font-size:10.5px;color:var(--tx3);margin-bottom:14px">Crop protection recs that are published or started, by their planned date: each field not yet sprayed counts (bracket = field applications; a field on two recs counts twice). Overdue = planned before today. Drafts and recs still waiting for a due date are not included.</div>';
+      +'</table></div><div style="font-size:10.5px;color:var(--tx3);margin-bottom:14px">Crop protection recs that are published or started, by their planned date: each field not yet sprayed counts (bracket = field applications; a field on two recs counts twice). Overdue = planned before today. Drafts and recs still waiting for a due date are not included.'+(awWait>0.05?' <b>'+awWait.toFixed(1)+' ha ('+awWaitN+' field application'+(awWaitN===1?'':'s')+') waiting for drilling not counted</b> — pre-emergence or crop-stage recs where Omnia’s sowing date is still ahead and no drilling is recorded.':'')+'</div>';
     var yrBtn=function(v,lbl){return '<button onclick="window._omYr=\''+v+'\';rOm()" style="font-size:11.5px;padding:4px 14px;border-radius:5px;border:1px solid '+(yrSel===v?'#1a5c2e':'var(--bd)')+';background:'+(yrSel===v?'#1a5c2e':'#fff')+';color:'+(yrSel===v?'#fff':'#333')+';cursor:pointer">'+lbl+'</button>';};
     el.innerHTML='<div style="max-width:1100px">'
       +'<h2 style="font-size:16px;font-weight:normal;color:var(--g1);margin-bottom:2px">Rec Situation</h2>'
@@ -5790,7 +5798,7 @@ function rOmRecs(){
       +section('✓ Finished','#1a5c2e',f2,false,'None finished yet.')
       +'<div style="font-size:10.5px;color:var(--tx3)">'+untracked+' older plan'+(untracked===1?'':'s')+' without a status and '+abandoned+' abandoned not shown. Recommendations cover crop protection, fertiliser, manure and seed plans from 2026 onwards.</div>'
       +'</div>';
-  });});});
+  });});});});
 }
 // ═══ Draft Rec Alerts (19/11/26) — reads rec names "<Estate> <Label> - <n>[-<m>] days after <Label>" ═══
 function omaEsc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];});}
