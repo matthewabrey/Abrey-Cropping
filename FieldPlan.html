@@ -6333,7 +6333,7 @@ function rOmPlist(keep){
         var best=ra==='green'&&rp==='green'?'all day':ra==='green'?'morning':rp==='green'?'afternoon':(ra==='amber'?'morning (marginal)':rp==='amber'?'afternoon (marginal)':'none');
         var gh=hrs.filter(function(x){return x.w<=10&&x.g<=18&&x.p<0.1&&x.pp<40&&x.t>=MINT;}).map(function(x){return x.hr;});
         if(gh.length>=3&&!(ra==='green'&&rp==='green'))best=hh(gh[0])+'–'+hh(gh[gh.length-1]+1)+' (best hours)';
-        else if(gh.length<3){var ah=hrs.filter(function(x){return !(x.w>12||x.g>22||x.p>=0.3||x.t<MINT);}).map(function(x){return x.hr;});if(ah.length)best=hh(ah[0])+'–'+hh(ah[ah.length-1]+1)+' (marginal)';}
+        else if(gh.length<3){var ah=hrs.filter(function(x){return !(x.w>12||x.g>22||x.p>=0.3||x.t<MINT);}).map(function(x){return x.hr;});if(ah.length){var runs=[],st=ah[0],pv=ah[0];ah.slice(1).concat([99]).forEach(function(h){if(h!==pv+1){runs.push(hh(st)+'–'+hh(pv+1));st=h;}pv=h;});best=runs.join(', ')+' only (marginal)';}}
         var mm=function(f){var v=hrs.map(f);return Math.round(Math.min.apply(null,v))+'–'+Math.round(Math.max.apply(null,v));};
         var warm=hrs.filter(function(x){return x.t>=MINT;}).map(function(x){return x.hr;});
         if(!warm.length)best='never reaches '+MINT+'°C';
