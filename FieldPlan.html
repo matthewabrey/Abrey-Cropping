@@ -5806,7 +5806,7 @@ var OMA_EST=['Rackham Farms','Rackham','Pickenham','Wretham','Euston','Chandler'
 // Reads "<head> <n>[<sep><m>] days after <prev>" however it's spaced or punctuated:
 // "X - 7 days after Y", "X due 2 days after Y", "X 7-10 days after Y", "X 7 - 10 days after Y", "X 7 to 10 days after Y", "X - 7days after Y".
 // Returns [whole, head, minDays, maxDays|null, previousLabel] or null.
-var OMA_AFTER_RE=/^(.*?)\s*(?:days?|day's|dys?)\s*after\s+(.+?)\s*$/i;
+var OMA_AFTER_RE=/^(.*?)\s*(?:days?|day's|dys?)\s*a\s*f\s*t\s*e\s*r\s*(.+?)\s*$/i; // tolerant of typos like "daysa fter"
 var OMA_AFTER={test:function(n){return !!this.exec(n);},exec:function(n){
   var s=String(n||'').replace(/\s+/g,' ').trim(), m=OMA_AFTER_RE.exec(s); if(!m)return null;
   var pre=m[1], prev=m[2];
@@ -5815,12 +5815,12 @@ var OMA_AFTER={test:function(n){return !!this.exec(n);},exec:function(n){
   var r=/(\d+)\s*(?:[-–—~\/]|to)\s*$/i.exec(head);                 // a range "7-10", "7 - 10", "7 to 10"
   if(r){
     var headR=head.slice(0,r.index);
-    var lblR=headR.replace(/[\s\-–—:]+$|\s*\bdue\s*$/ig,'').trim(), lblN=head.replace(/[\s\-–—:]+$|\s*\bdue\s*$/ig,'').trim();
+    var lblR=headR.replace(/[\s\-–—:]+$|\s*\bd[uiy]e\s*$/ig,'').trim(), lblN=head.replace(/[\s\-–—:]+$|\s*\bd[uiy]e\s*$/ig,'').trim();
     // "Fung 4 - 7 days after Fung 3": keep the number on the label when the previous spray's label ends in a number too
     var prevNum=/\d$/.test(omaNorm(prev)), keepLabelNum=prevNum&&!/\d$/.test(lblR)&&/\d$/.test(lblN.replace(/[\s\-–—~\/]+$/,''));
     if(!keepLabelNum&&+r[1]<=+a){b=a;a=r[1];head=headR;}
   }
-  head=head.replace(/(?:\s*(?:[-–—:~\/]|\bdue\b))+\s*$/i,'').trim();
+  head=head.replace(/(?:\s*(?:[-–—:~\/]|\bd[uiy]e\b))+\s*$/i,'').trim();
   if(!head)return null;
   return [m[0],head,a,b,prev];
 }};
@@ -5868,10 +5868,12 @@ function rOmAlerts(keepTicks){
     rrows.forEach(function(r){
       if(r.HoldingId!=='15859'||!r.PlanKey||!plans[r.PlanKey])return;
       if(r.CroppingStatus!=='Done'&&r.CroppingStatus!=='PartiallyDone')return;
-      var b=plans[r.PlanKey]; if(OMA_AFTER.test(b.name))
+      var b=plans[r.PlanKey],dt=(r.EndTime||r.StartTime||'').slice(0,10);
+      if(dt){var mr=sprayed['#'+b.ref]||(sprayed['#'+b.ref]={});if(!mr[r.FieldId]||dt<mr[r.FieldId])mr[r.FieldId]=dt;} // also by rec number, e.g. "after 26.115"
+      if(OMA_AFTER.test(b.name))
         {var mm=OMA_AFTER.exec(b.name),sp0=omaSplit(mm[1]);if(!sp0.est)return;var k0=sp0.est+'|'+omaNorm(sp0.label);}
       else {var sp=omaSplit(b.name);if(!sp.est||!sp.label)return;var k0=sp.est+'|'+omaNorm(sp.label);}
-      var dt=(r.EndTime||r.StartTime||'').slice(0,10); if(!dt)return;
+      if(!dt)return;
       var m0=sprayed[k0]||(sprayed[k0]={});
       if(!m0[r.FieldId]||dt<m0[r.FieldId])m0[r.FieldId]=dt;
     });
@@ -5885,7 +5887,8 @@ function rOmAlerts(keepTicks){
       if(!m){bad.push(b);return;}
       var sp=omaSplit(m[1]); if(!sp.est){bad.push(b);return;}
       b.est=sp.est;b.label=sp.label;b.prev=m[4].trim();b.a=+m[2];b.b=m[3]?+m[3]:null;
-      var got=sprayed[sp.est+'|'+omaNorm(b.prev)]||{};
+      var rn=/\b(\d\d)\.(\d+)\b/.exec(b.prev); // previous spray given as a rec number
+      var got=(rn&&sprayed['#'+rn[1]+'.'+rn[2]])||sprayed[sp.est+'|'+omaNorm(b.prev)]||{};
       var fl=Object.keys(b.fields);
       b.hit=fl.filter(function(f){return got[f];}).map(function(f){return {n:fname[f]||('#'+f),d:got[f]};}).sort(function(x,y){return x.d.localeCompare(y.d)||x.n.localeCompare(y.n);});
       b.miss=fl.filter(function(f){return !got[f];}).map(function(f){return fname[f]||('#'+f);}).sort();
@@ -6082,7 +6085,7 @@ function rOmPlist(keep){
         sprayers.forEach(function(sp){
           if(sp.used>=sp.cap-0.5)return;
           pool.forEach(function(it){
-            if(!it.rest.length)return;
+            if(!it.rest.length||(sp.skip&&sp.skip.indexOf(it)>=0))return;
             var r=it.rec,cost=nearestField(sp.pos,it.rest).km+splWash(sp.last,it).l*15+(it.glyph&&othersLeft?40:0)-(it.fam?25:0)-(function(){var m=sp.last&&splMixRel(sp.last.rec,r);return m?(m.same?40:25):0;})()-Math.min(overdue(r),30)*1.5+(r.date>TOM?((new Date(r.date)-new Date(TOM))/864e5)*8:0);
             if(cost<bc){bc=cost;best={sp:sp,it:it};}
           });
@@ -6094,12 +6097,40 @@ function rOmPlist(keep){
         job.why={od:overdue(r),ahead:r.date>TOM?Math.round((new Date(r.date)-new Date(TOM))/864e5):0,km:nearestField(sp.pos,it.rest).km,first:sp.jobs.length===1,
           rel:sp.last?splMixRel(sp.last.rec,r):null,prev:sp.last?sp.last.rec.ref:null,glyph:it.glyph,othersLeft:othersLeft,
           wouldWash:pool.filter(function(q){return q!==it&&q.rest.length&&splWash(sp.last,q).l>0;}).length,
-          moreUrgent:pool.filter(function(q){return q!==it&&q.rest.length&&q.rec.date<r.date;}).map(function(q){return {ref:q.rec.ref,km:nearestField(sp.pos,q.rest).km,wash:splWash(sp.last,q).l,glyph:q.glyph};})};
+          moreUrgent:pool.filter(function(q){return q!==it&&q.rest.length&&q.rec.date<r.date&&!(sp.skip&&sp.skip.indexOf(q)>=0);}).map(function(q){return {ref:q.rec.ref,km:nearestField(sp.pos,q.rest).km,wash:splWash(sp.last,q).l,glyph:q.glyph};})};
         // where this mix is filled: bowser comes to him, otherwise the nearest fill point
         var start=(sp.s.bowser||(sp.last&&splMixRel(sp.last.rec,r)&&sp.lastFill&&sp.lastFill.room>0.5))?sp.pos:nearFill(sp.pos).f.c;
         // pick fields nearest-next from the fill until he reaches his ha for the day
-        var pos=start,pick=[];
-        while(it.rest.length&&sp.used<sp.cap-0.5){var nf=nearestField(pos,it.rest),f=it.rest.splice(nf.i,1)[0];pick.push(f);sp.used+=r.fields[f].ha;pos=cen(f);}
+        // if the whole rec won't fit today, don't split a tight group of fields: take whole groups (fields within ~2 km of each other)
+        // nearest first, skip a group that won't fit, and mop up outliers that do — so the rest is left together for next time
+        var pos=start,pick=[],room=sp.cap-sp.used,recHa=it.rest.reduce(function(a,f){return a+r.fields[f].ha;},0);
+        if(recHa<=room+0.5){
+          while(it.rest.length){var nf=nearestField(pos,it.rest),f=it.rest.splice(nf.i,1)[0];pick.push(f);sp.used+=r.fields[f].ha;pos=cen(f);}
+        } else {
+          var cl=[],seen={};
+          it.rest.forEach(function(f){if(seen[f])return;var c=[f],q=[f];seen[f]=1;
+            while(q.length){var a=q.shift();it.rest.forEach(function(b){if(!seen[b]&&splKm(cen(a),cen(b))<=2){seen[b]=1;c.push(b);q.push(b);}});}
+            cl.push({f:c,ha:c.reduce(function(x,y){return x+r.fields[y].ha;},0)});});
+          var tol=Math.max(2,sp.cap*0.08);
+          while(cl.length){
+            var bi=-1,bd=1e9;cl.forEach(function(c,i){var d=nearestField(pos,c.f).km;if(d<bd){bd=d;bi=i;}});
+            var fits=cl.filter(function(c){return c.ha<=sp.cap-sp.used+tol;});
+            var c0=cl[bi];
+            if(c0.ha>sp.cap-sp.used+tol){
+              if(fits.length){var bj=-1,bdd=1e9;fits.forEach(function(c){var d=nearestField(pos,c.f).km;if(d<bdd){bdd=d;bj=cl.indexOf(c);}});c0=cl[bj];bi=bj;}
+              else if(!pick.length&&(sp.used<0.5||((sp.touched||[]).indexOf(r)<0&&recHa>sp.cap))){ // nothing whole fits: start a big rec anyway, but never split the remainder of one already started today: take part of the nearest group
+                var rest0=c0.f.slice();while(rest0.length&&sp.used<sp.cap-0.5){var nf0=nearestField(pos,rest0),f0=rest0.splice(nf0.i,1)[0];pick.push(f0);sp.used+=r.fields[f0].ha;pos=cen(f0);}
+                break;
+              } else break;
+            }
+            cl.splice(bi,1);
+            c0.f.slice().sort(function(a,b){return splKm(pos,cen(a))-splKm(pos,cen(b));}).forEach(function(f){pick.push(f);sp.used+=r.fields[f].ha;pos=cen(f);});
+          }
+          it.rest=it.rest.filter(function(f){return pick.indexOf(f)<0;});
+          if(pick.length&&cl.length&&cl.reduce(function(a,c){return a+c.ha;},0)<=sp.cap)job.why.kept=cl.map(function(c){return {g:fgrp[c.f[0]],n:c.f.length,ha:c.ha};});
+        }
+        if(!pick.length){sp.jobs.pop();(sp.skip=sp.skip||[]).push(it);continue;} // rest of this rec stays together for another day
+        (sp.touched=sp.touched||[]).push(r);
         // tidy the order: 2-opt on the open route from the fill point (removes back-tracking)
         (function(){var P=[start].concat(pick.map(cen)),idx=pick.map(function(_,i){return i+1;}),imp=true,it2=0;
           function d(a,b){return splKm(P[a],P[b]);}
@@ -6237,6 +6268,7 @@ function rOmPlist(keep){
             if(same.length)rs.push(w.od>=30?'Rec'+(same.length>1?'s ':' ')+same.join(', ')+' and this are all over 30 days overdue so count the same, and this one is nearer':'Rec'+(same.length>1?'s ':' ')+same.join(', ')+(same.length>1?' are':' is')+' only a little older and this one fits the route better');
             bits.push('done before older Rec'+(w.moreUrgent.length===1?' ':'s ')+w.moreUrgent.slice(0,4).map(function(q){return q.ref;}).join(', ')+' because '+rs.join('; '));
           }
+          if(w.kept)bits.push('the rest ('+w.kept.map(function(c){return c.n+' field'+(c.n===1?'':'s')+' at '+c.g+', '+c.ha.toFixed(1)+' ha';}).join('; ')+') won’t all fit in today’s spraying hours, so it’s left in one hit for the next spray day rather than split — small outlying fields are picked up instead');
           var gw=[];j.steps.forEach(function(s){if(s.t==='field'){var g=fgrp[s.f],x=W&&W[g];if(x&&gw.indexOf(g+': '+x.best)<0)gw.push(g+': '+x.best);}});
           if(gw.length)bits.push('weather '+gw.join(', '));
           return '<li style="margin:2px 0"><b>'+(k+1)+'. Rec '+r.ref+'</b> — '+bits.join('; ')+'.</li>';
@@ -6271,7 +6303,17 @@ function rOmPlist(keep){
           +Object.keys(waitDrill).map(function(k){var x=waitDrill[k];var sd=Object.keys(x.sow).map(function(f){return x.sow[f];}).sort()[0];return '<div style="padding:4px 14px;border-top:1px solid var(--bd);font-size:11.5px">Rec <b>'+x.rec.ref+'</b> '+omaEsc(x.rec.name)+' — '+x.fids.length+' field'+(x.fids.length===1?'':'s')+': '+x.fids.map(function(f){return omaEsc(fname[f]||f);}).join(', ')+' <span style="color:var(--tx3)">(sowing date '+splFmtD(sd)+')</span></div>';}).join('')+'</div>':'')
         +(res.held.length?'<div style="background:#fff;border:1px solid #c0392b;border-radius:10px;overflow:hidden;margin-bottom:16px"><div style="padding:8px 14px;background:#c0392b;color:#fff;font-weight:700;font-size:13px">Held for weather ('+res.held.length+')</div>'+listRows(res.held)+'</div>':'')
         +(res.notReached.length?'<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px"><div style="padding:8px 14px;background:#7f8c8d;color:#fff;font-weight:700;font-size:13px">Not reached tomorrow — next in line ('+res.notReached.length+')</div>'+listRows(res.notReached)+'</div>':'')
+        +'<details style="background:#fff;border:1px solid var(--bd);border-radius:10px;margin-bottom:16px"><summary style="padding:8px 14px;background:#1a5c2e;color:#fff;font-weight:700;font-size:13px;cursor:pointer;border-radius:10px">📋 Rules the planner follows when putting the day together (click to open)</summary><ol style="margin:8px 0;padding:0 14px 0 34px;font-size:11.5px;line-height:1.5"><li><b>Where the day starts</b> — All sprayers park and fill at Wretham yard, and finish there. The other fill point is Euston. Fills are at the nearest fill point, or wherever the bowser is if one is running.</li><li><b>Weather</b> — An hour is only sprayable if wind ≤10 mph, gusts ≤18 mph, no rain and at least the minimum temperature setting. Farms with no sprayable hours are held. A day’s hectares are cut back to the good hours at each farm.</li><li><b>What goes first</b> — Most overdue first. Veg crops get priority over cereals. Glyphosate goes at the end of the day because anything after it needs an ALL CLEAR. Recs not due yet are only brought forward if there’s time.</li><li><b>Wash-outs</b> — Wash-outs come from the ALL CLEAR wash-out chart, and the planner avoids them where it can. If the next rec is the same mix, or the same mix plus extra products, the tank carries on with no wash-out, even if that rec is further down the list.</li><li><b>Tank and fills</b> — One mix runs across farms, with a fill only when needed. Top up before a field rather than running dry part way in (top up if less than 500 L or a quarter of the field is left).</li><li><b>Route</b> — Within a rec the fields go in the shortest driving order from the fill point, with back-tracking removed.</li><li><b>Keep groups together</b> — If a rec can’t all be done today, don’t split a tight group of fields (within ~2 km of each other). Do whole groups, nearest first. Pick up small outlying fields instead (e.g. top Euston fields, then top up for Holdens). Leave the group, e.g. the three Rymer fields, in one hit for the next spray day. A rec that’s already been started today is never split again. A big new rec can still be started in spare time.</li><li><b>Not sprayable yet</b> — Fields marked Done, Part done or Abandoned in Omnia drop out. Pre-emergence or crop-stage recs are held until the crop is drilled. Recs planned over 30 days ago with nothing recorded go under "Left off".</li></ol><div style="padding:0 14px 10px;font-size:10.5px;color:var(--tx3)">Want a new rule? Tell Claude what you’d have done differently and it gets added here and built into the planner.</div></details>'
         +wxHtml
+        +(function(){ // hour-by-hour weather for each farm
+          if(!W)return '';var hrsL=[7,8,9,10,11,12,13,14,15,16];
+          var col={g:'#d5ecd9',a:'#fde9c8',r:'#f6d0cc'};
+          return '<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:auto;margin-bottom:16px"><div style="padding:8px 14px;background:#0d47a1;color:#fff;font-weight:700;font-size:13px">Hour by hour tomorrow — each farm</div><div style="padding:5px 14px;font-size:10.5px;color:var(--tx3)">Each box: temperature °C / wind–gust mph / rain mm. Green = good to spray, amber = marginal, red = no (wind, rain or below '+MINT+'°C).</div><table style="border-collapse:collapse;font-size:10.5px;min-width:900px"><tr style="background:var(--c2)"><th style="padding:3px 8px;text-align:left">Farm</th>'+hrsL.map(function(h){return '<th style="padding:3px 6px">'+(h>12?h-12:h)+(h>=12?'pm':'am')+'</th>';}).join('')+'</tr>'
+            +groups.filter(function(g){return W[g]&&W[g].hrsRaw;}).map(function(g){var by={};W[g].hrsRaw.forEach(function(x){by[x.hr]=x;});
+              return '<tr style="border-top:1px solid var(--bd)"><td style="padding:3px 8px;font-weight:600;white-space:nowrap">'+omaEsc(g)+'</td>'+hrsL.map(function(h){var x=by[h];if(!x)return '<td></td>';var k=W[g].hourOk[h]||'r';
+                return '<td style="padding:3px 5px;text-align:center;background:'+col[k]+';white-space:nowrap">'+Math.round(x.t)+'° / '+Math.round(x.w)+'–'+Math.round(x.g)+(x.p>=0.1?' / '+x.p.toFixed(1)+'mm':'')+'</td>';}).join('')+'</tr>';}).join('')
+            +'</table></div>';
+        })()
         +(Object.keys(stale).length?'<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px"><div style="padding:8px 14px;background:#95a5a6;color:#fff;font-weight:700;font-size:13px">Left off — planned over 30 days ago, probably done but not closed in Omnia ('+Object.keys(stale).length+')</div>'+Object.keys(stale).map(function(k){var x=stale[k];return '<div style="padding:4px 14px;border-top:1px solid var(--bd);font-size:11.5px">Rec <b>'+x.ref+'</b> '+omaEsc(x.name)+' <span style="color:var(--tx3)">— planned '+splFmtD(x.date)+', '+Object.keys(x.n).length+' field'+(Object.keys(x.n).length===1?'':'s')+' not recorded</span></div>';}).join('')+'</div>':'')
         +'</div>';
     }
@@ -6291,6 +6333,7 @@ function rOmPlist(keep){
         var best=ra==='green'&&rp==='green'?'all day':ra==='green'?'morning':rp==='green'?'afternoon':(ra==='amber'?'morning (marginal)':rp==='amber'?'afternoon (marginal)':'none');
         var gh=hrs.filter(function(x){return x.w<=10&&x.g<=18&&x.p<0.1&&x.pp<40&&x.t>=MINT;}).map(function(x){return x.hr;});
         if(gh.length>=3&&!(ra==='green'&&rp==='green'))best=hh(gh[0])+'–'+hh(gh[gh.length-1]+1)+' (best hours)';
+        else if(gh.length<3){var ah=hrs.filter(function(x){return !(x.w>12||x.g>22||x.p>=0.3||x.t<MINT);}).map(function(x){return x.hr;});if(ah.length)best=hh(ah[0])+'–'+hh(ah[ah.length-1]+1)+' (marginal)';}
         var mm=function(f){var v=hrs.map(f);return Math.round(Math.min.apply(null,v))+'–'+Math.round(Math.max.apply(null,v));};
         var warm=hrs.filter(function(x){return x.t>=MINT;}).map(function(x){return x.hr;});
         if(!warm.length)best='never reaches '+MINT+'°C';
