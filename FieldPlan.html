@@ -5881,18 +5881,18 @@ function rOmAlerts(keepTicks){
       b.fields[p.FieldId]=1;
     });
     // completed sprays per field, keyed by estate|label
-    var sprayed={};
+    var sprayed={},sprRef={}; // sprRef: which rec number did each field's previous spray
     rrows.forEach(function(r){
       if(r.HoldingId!=='15859'||!r.PlanKey||!plans[r.PlanKey])return;
       if(r.CroppingStatus!=='Done'&&r.CroppingStatus!=='PartiallyDone')return;
       var b=plans[r.PlanKey],dt=(r.EndTime||r.StartTime||'').slice(0,10);
-      if(dt){var mr=sprayed['#'+b.ref]||(sprayed['#'+b.ref]={});if(!mr[r.FieldId]||dt<mr[r.FieldId])mr[r.FieldId]=dt;} // also by rec number, e.g. "after 26.115"
+      if(dt){var mr=sprayed['#'+b.ref]||(sprayed['#'+b.ref]={});if(!mr[r.FieldId]||dt<mr[r.FieldId]){mr[r.FieldId]=dt;(sprRef['#'+b.ref]=sprRef['#'+b.ref]||{})[r.FieldId]=b.ref;}} // also by rec number, e.g. "after 26.115"
       if(OMA_AFTER.test(b.name))
         {var mm=OMA_AFTER.exec(b.name),sp0=omaSplit(mm[1]);if(!sp0.est)return;var k0=sp0.est+'|'+omaNorm(sp0.label);}
       else {var sp=omaSplit(b.name);if(!sp.est||!sp.label)return;var k0=sp.est+'|'+omaNorm(sp.label);}
       if(!dt)return;
       var m0=sprayed[k0]||(sprayed[k0]={});
-      if(!m0[r.FieldId]||dt<m0[r.FieldId])m0[r.FieldId]=dt;
+      if(!m0[r.FieldId]||dt<m0[r.FieldId]){m0[r.FieldId]=dt;(sprRef[k0]=sprRef[k0]||{})[r.FieldId]=b.ref;}
     });
     var ready=[],waiting=[],bad=[];
     Object.keys(plans).forEach(function(k){
@@ -5905,9 +5905,9 @@ function rOmAlerts(keepTicks){
       var sp=omaSplit(m[1]); if(!sp.est){bad.push(b);return;}
       b.est=sp.est;b.label=sp.label;b.prev=m[4].trim();b.a=+m[2];b.b=m[3]?+m[3]:null;
       var rn=/\b(\d\d)\.(\d+)\b/.exec(b.prev); // previous spray given as a rec number
-      var got=(rn&&sprayed['#'+rn[1]+'.'+rn[2]])||sprayed[sp.est+'|'+omaNorm(b.prev)]||{};
+      var gk=(rn&&sprayed['#'+rn[1]+'.'+rn[2]])?'#'+rn[1]+'.'+rn[2]:sp.est+'|'+omaNorm(b.prev),got=sprayed[gk]||{},gref=sprRef[gk]||{};b.prevIsRef=!!(rn&&sprayed[gk]);
       var fl=Object.keys(b.fields);
-      b.hit=fl.filter(function(f){return got[f];}).map(function(f){return {n:fname[f]||('#'+f),d:got[f]};}).sort(function(x,y){return x.d.localeCompare(y.d)||x.n.localeCompare(y.n);});
+      b.hit=fl.filter(function(f){return got[f];}).map(function(f){return {n:fname[f]||('#'+f),d:got[f],ref:gref[f]||''};}).sort(function(x,y){return x.d.localeCompare(y.d)||x.n.localeCompare(y.n);});
       b.miss=fl.filter(function(f){return !got[f];}).map(function(f){return fname[f]||('#'+f);}).sort();
       if(!b.hit.length){waiting.push(b);return;}
       // group fields sprayed within 3 days of each other; each group gets its own due date
@@ -5931,11 +5931,14 @@ function rOmAlerts(keepTicks){
       var days=b.a+(b.b?'–'+b.b:'');
       return '<div style="display:flex;gap:12px;padding:10px 14px;border-top:1px solid var(--bd);'+dim+'">'
         +'<div style="flex:1;font-size:12.5px">'
-        +'<div><b>'+b.est+' '+omaEsc(b.prev)+'</b> done'+newB+' → Rec <b>'+b.ref+'</b> “'+omaEsc(b.name)+'” <span style="color:var(--tx3)">· '+days+' days after</span></div>'
+        +'<div>'+(function(){ // previous rec number first, then which fields were sprayed when
+            var byRef={};b.hit.forEach(function(h){(byRef[h.ref]=byRef[h.ref]||[]).push(h);});
+            return Object.keys(byRef).sort().map(function(rf){return '<b>'+(rf||'?')+'</b>'+(b.prevIsRef?'':' '+b.est+' '+omaEsc(b.prev))+' – '+byRef[rf].map(function(h){return omaEsc(h.n)+' sprayed '+omaFmt(h.d);}).join(', ');}).join('; ');
+          })()+newB+' → Rec <b>'+b.ref+'</b> “'+omaEsc(b.name)+'” <span style="color:var(--tx3)">· '+days+' days after</span></div>'
         +b.groups.map(function(g){
           return '<div style="margin-top:5px;display:flex;gap:8px;align-items:flex-start;'+(g.t&&!b.allT?'opacity:.5;':'')+'"><input type="checkbox" '+(g.t?'checked':'')+' onclick="omaTick(\''+g.key+'\',this.checked)" title="Tick when this due date has been entered in Omnia" style="width:17px;height:17px;cursor:pointer;margin-top:1px;flex:none"><div style="padding-left:8px;border-left:3px solid #1a5c2e">'
             +'Due date <b style="color:#1a5c2e;font-size:13.5px">'+omaFmt(g.due)+(g.dueEnd!==g.due?'–'+omaFmt(g.dueEnd):'')+'</b>'+(g.due2?' <span style="color:var(--tx3)">(window '+omaFmt(g.due)+' – '+omaFmt(g.due2)+')</span>':'')
-            +' — '+g.f.map(function(h){return omaEsc(h.n)+' <span style="color:var(--tx3)">sprayed '+omaFmt(h.d)+'</span>';}).join(', ')
+            +(b.groups.length>1?' — '+g.f.map(function(h){return omaEsc(h.n);}).join(', '):'')
             +(g.t?'<div style="font-size:11px;color:var(--tx3)">✓ Ticked by '+omaEsc(g.t.name||g.t.by)+' '+omaFmt((g.t.at||'').slice(0,10))+' — clears when Omnia shows the date</div>':'')+'</div></div>';
         }).join('')
         +(b.miss.length?'<div style="margin-top:3px;font-size:11.5px;color:#c0392b">⚠ Not all fields have had '+omaEsc(b.prev)+': '+b.miss.map(omaEsc).join(', ')+'</div>':'')
