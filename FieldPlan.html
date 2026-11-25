@@ -5729,7 +5729,7 @@ function rOmRecs(){
     var byplan={};
     prows.forEach(function(p){
       if(p.HoldingId!=='15859'||p.Year<'2026')return;
-      var b=byplan[p.PlanKey]||(byplan[p.PlanKey]={name:p.PlanName,num:p.PlanNumber,type:p.Type,year:p.Year,status:p.Status,date:(p.ApplicationDate||'').slice(0,10),fields:{},prods:[],cid:{},needsCrop:!/pre.?plant|stubble|desicc/i.test(p.GrowthStageName||'')&&!(+p.GrowthStage<=-10)});
+      var b=byplan[p.PlanKey]||(byplan[p.PlanKey]={name:p.PlanName,num:p.PlanNumber,type:p.Type,year:p.Year,status:p.Status,date:(p.ApplicationDate||'').slice(0,10),fields:{},prods:[],cid:{},needsCrop:p.Type==='Fertiliser'?(+p.GrowthStage>0&&+p.GrowthStage<1000):(!/pre.?plant|stubble|desicc/i.test(p.GrowthStageName||'')&&!(+p.GrowthStage<=-10))});
       b.cid[p.FieldId]=p.CroppingId;
       b.fields[p.FieldId]=1;
       if(p.ProductName&&b.prods.indexOf(p.ProductName)<0)b.prods.push(p.ProductName);
@@ -5750,7 +5750,7 @@ function rOmRecs(){
       b.out=fl.filter(function(x){return !d[x];}).map(function(x){return fname[x]||('#'+x);}).sort();
       b.doneF=fl.filter(function(x){return d[x];}).map(function(x){var dt=String(d[x]);return {n:fname[x]||('#'+x),dt:dt.length===10?dt.slice(8,10)+'/'+dt.slice(5,7):''};}).sort(function(a,b3){return a.n.localeCompare(b3.n);});
       if(b.status==='Abandoned'){abandoned++;return;}
-      if(b.status===''){untracked++;return;}
+      if(b.status===''&&!(b.type==='Fertiliser'&&b.date&&b.date>=new Date(Date.now()-30*864e5).toISOString().slice(0,10))){untracked++;return;} // 25/11/26: recent fertiliser recs often have no status in Omnia — treat as open
       if(b.status==='Complete'||(b.dn>0&&b.dn>=b.n))finished.push(b);
       else if(b.dn>0||b.status==='Started')started.push(b);
       else open.push(b);
@@ -5784,13 +5784,14 @@ function rOmRecs(){
     // 24/11/26: crop-timed recs (pre-emergence or later) wait until the crop is drilled — sowing date passed or drilling recorded
     var sowOf={};(crows||[]).forEach(function(r){if(r.HoldingId==='15859')sowOf[r.CroppingId]=(r.SowingDate||'').slice(0,10);});
     var drilled={};rrows.forEach(function(r){if(r.HoldingId==='15859'&&r.CroppingId&&/drill|plant|sow/i.test((r.OperationTypeName||'')+' '+(r.OperationName||''))&&r.CroppingStatus!=='Abandoned')drilled[r.CroppingId]=1;});
+    function awBuild(TYPE,title,noun){
     var awWait=0,awWaitN=0;
     // area awaiting the sprayer: crop protection recs issued (not Draft, has a date), fields not yet done — by due status, Edwardstone store vs Wretham store (all others)
     var td=new Date(),today=td.getFullYear()+'-'+String(td.getMonth()+1).padStart(2,'0')+'-'+String(td.getDate()).padStart(2,'0');
     var wk=new Date(td.getTime()+7*864e5),in7=wk.getFullYear()+'-'+String(wk.getMonth()+1).padStart(2,'0')+'-'+String(wk.getDate()).padStart(2,'0');
     var AW={od:{o:0,e:0,on:0,en:0},d7:{o:0,e:0,on:0,en:0},lt:{o:0,e:0,on:0,en:0}};
     o2.concat(s2).forEach(function(b){
-      if(b.type!=='Crop protection'||b.status==='Draft'||!b.date)return;
+      if(b.type!==TYPE||b.status==='Draft'||!b.date)return;
       var c=AW[b.date<today?'od':(b.date<=in7?'d7':'lt')];
       b.outIds.forEach(function(x){var ha=fha[x]||0;var cid=b.cid[x],sw=sowOf[cid]||'';
         if(b.needsCrop&&sw&&sw>today&&!drilled[cid]){awWait+=ha;awWaitN++;return;}
@@ -5799,12 +5800,14 @@ function rOmRecs(){
     function awCell(ha,n,bold){return '<td style="padding:6px 12px;text-align:right;'+(bold?'font-weight:700;':'')+'"><span style="font-size:15px">'+ha.toFixed(1)+' ha</span> <span style="font-size:10.5px;color:var(--tx3)">('+n+')</span></td>';}
     function awRow(lbl,col,c){return '<tr style="border-top:1px solid var(--bd)"><td style="padding:6px 12px;font-weight:700;color:'+col+'">'+lbl+'</td>'+awCell(c.o,c.on)+awCell(c.e,c.en)+awCell(c.o+c.e,c.on+c.en,1)+'</tr>';}
     var tot={o:AW.od.o+AW.d7.o+AW.lt.o,e:AW.od.e+AW.d7.e+AW.lt.e,on:AW.od.on+AW.d7.on+AW.lt.on,en:AW.od.en+AW.d7.en+AW.lt.en};
-    var awHtml='<div style="font-size:12px;font-weight:700;color:var(--g1);margin-bottom:6px">Total area awaiting sprayer</div>'
+    return '<div style="font-size:12px;font-weight:700;color:var(--g1);margin-bottom:6px">'+title+'</div>'
       +'<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:6px;max-width:760px"><table style="width:100%;border-collapse:collapse;font-size:12.5px">'
       +'<tr style="background:var(--c2);font-size:11px;color:var(--tx3)"><th style="padding:6px 12px;text-align:left;font-weight:normal">Due</th><th style="padding:6px 12px;text-align:right;font-weight:normal">All farms except Edwardstone</th><th style="padding:6px 12px;text-align:right;font-weight:normal">Edwardstone</th><th style="padding:6px 12px;text-align:right;font-weight:normal">Total</th></tr>'
       +awRow('Overdue','#c0392b',AW.od)+awRow('Due in next 7 days','#e67e22',AW.d7)+awRow('Later','#555',AW.lt)
       +'<tr style="border-top:2px solid var(--bd);background:#f6f8f5"><td style="padding:6px 12px;font-weight:700">Total</td>'+awCell(tot.o,tot.on,1)+awCell(tot.e,tot.en,1)+awCell(tot.o+tot.e,tot.on+tot.en,1)+'</tr>'
-      +'</table></div><div style="font-size:10.5px;color:var(--tx3);margin-bottom:14px">Crop protection recs that are published or started, by their planned date: each field not yet sprayed counts (bracket = field applications; a field on two recs counts twice). Overdue = planned before today. Drafts and recs still waiting for a due date are not included.'+(awWait>0.05?' <b>'+awWait.toFixed(1)+' ha ('+awWaitN+' field application'+(awWaitN===1?'':'s')+') waiting for drilling not counted</b> — pre-emergence or crop-stage recs where Omnia’s sowing date is still ahead and no drilling is recorded.':'')+'</div>';
+      +'</table></div><div style="font-size:10.5px;color:var(--tx3);margin-bottom:14px">'+TYPE+' recs that are published or started, by their planned date: each field not yet '+noun+' counts (bracket = field applications; a field on two recs counts twice). Overdue = planned before today. Drafts and recs still waiting for a due date are not included.'+(awWait>0.05?' <b>'+awWait.toFixed(1)+' ha ('+awWaitN+' field application'+(awWaitN===1?'':'s')+') waiting for drilling not counted</b> — pre-emergence or crop-stage recs where Omnia’s sowing date is still ahead and no drilling is recorded.':'')+'</div>';
+    }
+    var awHtml=awBuild('Crop protection','Total area awaiting sprayer','sprayed')+awBuild('Fertiliser','Total area awaiting fertiliser spreader','spread');
     var yrBtn=function(v,lbl){return '<button onclick="window._omYr=\''+v+'\';rOm()" style="font-size:11.5px;padding:4px 14px;border-radius:5px;border:1px solid '+(yrSel===v?'#1a5c2e':'var(--bd)')+';background:'+(yrSel===v?'#1a5c2e':'#fff')+';color:'+(yrSel===v?'#fff':'#333')+';cursor:pointer">'+lbl+'</button>';};
     el.innerHTML='<div style="max-width:1100px">'
       +'<h2 style="font-size:16px;font-weight:normal;color:var(--g1);margin-bottom:2px">Rec Situation</h2>'
@@ -6421,13 +6424,482 @@ function rOmPlist(keep){
     }).catch(function(){render(null,true);});
   });});});});
 }
+
+// ═══ Fert List (25/11/26) — today's priority list per fertiliser spinner (converted copy of the Spray List: kg not litres, no wash-outs): recs due, field locations, weather, washouts, tank fills ═══
+var FLP_WASH=[]; // from Pesticide ALL CLEAR wash out chart 2020 (veg crop changes only)
+var FLP_CEN=SPL_CEN;   // Omnia FieldId -> [lat,lng] field centre, from FieldMap boundaries
+var FLP_LVL=['OK','Rinse','Good rinse','ALL CLEAR','Ask manager'];
+var FLP_LCOL=['#1a5c2e','#b7950b','#e67e22','#c0392b','#8e44ad'];
+var FLP_DEF={minTemp:-20,maxWind:15,maxGust:25,sprayers:[{name:'Spinner 1',on:true,bowser:false,tank:3000,haDay:150},{name:'Spinner 2',on:true,bowser:false,tank:3000,haDay:150}],ahead:3};
+window._flpSet=window._flpSet||null;window._flpCanEdit=false;
+function flpNorm(s){return String(s||'').toLowerCase().replace(/\(.*?\)/g,'').replace(/[^a-z0-9]+/g,'');}
+function flpFam(c){c=String(c||'').toLowerCase();if(/potato/.test(c))return 'pot';if(/carrot/.test(c))return 'car';if(/parsnip/.test(c))return 'par';if(/onion|shallot/.test(c))return 'oni';return null;}
+var FLP_FAMN={pot:'Potatoes',car:'Carrots',par:'Parsnips',oni:'Onions'};
+function flpProd(name){
+  var n=flpNorm(name),w1=String(name||'').toLowerCase().split(/[\s(]/)[0].replace(/[^a-z0-9]/g,''),best=null,bl=0;
+  FLP_WASH.forEach(function(w){
+    var keys=[w.n].concat(w.alias?w.alias.split('|'):[]);
+    keys.forEach(function(k){
+      var kn=flpNorm(k),k1=k.toLowerCase().split(/[\s(]/)[0].replace(/[^a-z0-9]/g,'');
+      var hit=(kn&&n.indexOf(kn)===0)?kn.length+10:((k1.length>2&&k1===w1)?k1.length:0);
+      if(hit>bl){bl=hit;best=w;}
+    });
+  });
+  return best;
+}
+function flpIsGlyph(p){var w=flpProd(p);return !!(w&&w.n==='Glyphosate 360')||/glyph/i.test(p);}
+// washout needed going from job a (previous tank) to job b
+function flpWash(a,b){return {l:0,t:[]};
+}
+function flpWash_unused(a,b){
+  if(!a)return {l:0,t:[]};
+  if(a.key===b.key)return {l:0,t:[]};
+  if(a.rec&&b.rec&&flpMixRel(a.rec,b.rec))return {l:0,t:[]};
+  var l=0,t=[];
+  function add(x,s){if(x>l)l=x;if(s&&t.indexOf(s)<0)t.push(s);}
+  if(a.glyph&&!b.glyph){var gp=a.prods.filter(function(p){return flpIsGlyph(p.n);}).map(function(p){return p.n;});add(3,'ALL CLEAR — glyphosate job ('+(gp.join(', ')||a.rec.name)+'), next is a crop spray');}
+  if(a.fam&&b.fam&&a.fam!==b.fam){
+    var k=a.fam+'>'+b.fam;
+    a.prods.forEach(function(p){
+      var w=flpProd(p.n);
+      if(w&&w.r[k])add(w.r[k][0],w.r[k][1]+' — '+p.n+' ('+FLP_FAMN[a.fam]+' → '+FLP_FAMN[b.fam]+')');
+      else if(!w&&/herbicide/i.test(p.g))add(2,'Not on wash chart — check: '+p.n+' ('+FLP_FAMN[a.fam]+' → '+FLP_FAMN[b.fam]+')');
+    });
+  } else if(b.fam&&a.crop!==b.crop){
+    // going on to a veg crop from a cereal/other crop: herbicides not on the chart need checking
+    a.prods.forEach(function(p){if(/herbicide/i.test(p.g)&&!flpIsGlyph(p.n))add(2,'On to '+FLP_FAMN[b.fam]+' after '+(a.crop||'?')+': '+p.n+' is a herbicide — not on wash chart, check');});
+  }
+  return {l:l,t:t};
+}
+// is rec b's tank mix the same as a's, or a's plus extra products (same rates, same water)? then no wash-out and the tank carries on
+function flpMixRel(a,b){
+  if(!a||!b||a.wv!==b.wv)return null;
+  var A={},extra=[];a.prods.forEach(function(p){A[p.n]=String(+p.rate)+p.u;});
+  var ok=a.prods.every(function(p){return b.prods.some(function(q){return q.n===p.n&&String(+q.rate)+q.u===A[p.n];});});
+  if(!ok)return null;
+  b.prods.forEach(function(q){if(!(q.n in A))extra.push(q);});
+  return {same:!extra.length,add:extra};
+}
+function flpKm(a,b){if(!a||!b)return 0;var R=6371,dLa=(b[0]-a[0])*Math.PI/180,dLo=(b[1]-a[1])*Math.PI/180,x=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.sin(dLo/2)*Math.sin(dLo/2);return 2*R*Math.asin(Math.sqrt(x));}
+function flpFmtD(iso){return iso?(+iso.slice(8,10))+'/'+(+iso.slice(5,7)):'';}
+function flpLocalISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function flpSave(){
+  var u=typeof fpUser==='function'?fpUser():null;if(!u)return;
+  var s=window._flpSet;
+  s.sprayers.forEach(function(sp,i){
+    var g=function(id){return document.getElementById('flp-'+id+'-'+i);};
+    sp.on=g('on').checked;sp.bowser=g('bw').checked;sp.tank=+g('tk').value||6000;sp.haDay=+g('ha').value||120;
+    var fx=function(v,d){var m=/^(\d{1,2})(?::|\.)?(\d{2})?$/.exec(String(v||'').trim());if(!m||+m[1]>23||+(m[2]||0)>59)return d;return String(+m[1]).padStart(2,'0')+':'+(m[2]||'00');};
+    sp.start=fx(g('st').value,'06:30');sp.end=fx(g('en').value,'17:00');
+  });
+  s.ahead=+(document.getElementById('flp-ahead').value)||3;
+  var mt=parseFloat(document.getElementById('flp-mint').value);s.minTemp=isNaN(mt)?5:mt;
+  var mw=parseFloat(document.getElementById('flp-maxw').value);s.maxWind=isNaN(mw)?10:mw;
+  var mg=parseFloat(document.getElementById('flp-maxg').value);s.maxGust=isNaN(mg)?18:mg;
+  var btn=document.getElementById('flp-savebtn');if(btn){btn.disabled=true;btn.textContent='Saving…';}
+  fetch(RELAY_URL+'spray-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({emp:u.emp,settings:(function(){s.by=u.name;s.updated=new Date().toISOString();var all=JSON.parse(JSON.stringify(window._flpAll||{}));all.fert=s;if(window['_s'+'plSet'])window['_s'+'plSet'].fert=s;return all;})()})})
+    .then(function(r){return r.json();}).then(function(j){if(!j.ok)alert('Not saved: '+(j.error||'relay error'));rOmFlist(true);})
+    .catch(function(){alert('Not saved — check internet / relay.');rOmFlist(true);});
+}
+function rOmFlist(keep){
+  var el=document.getElementById('om-body');if(!el)return;
+  var u=typeof fpUser==='function'?fpUser():null;
+  if(!keep||!window._flpSet){
+    el.innerHTML='<div style="padding:20px;color:var(--tx3)">Building today’s fertiliser list…</div>';
+    var done0=function(d,can){window._flpAll=d||{};var fd=d&&d.fert;window._flpSet=JSON.parse(JSON.stringify(fd&&fd.sprayers?fd:FLP_DEF));window._flpSetBy=fd&&fd.by?fd.by+' '+String(fd.updated||'').slice(0,10):'';window._flpCanEdit=!!can;rOmFlist(true);};
+    if(u&&RELAY_URL)fetch(RELAY_URL+'spray-settings?emp='+u.emp).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(j){done0(j&&j.ok?j.data:null,j&&j.canEdit);}).catch(function(){window._flpNoRelay=true;done0(null,u&&(u.emp==='1234'||u.emp==='815'));});
+    else done0(null,false);
+    return;
+  }
+  var S=window._flpSet;
+  omniaCsv('Fields.csv',function(frows){
+  omniaCsv('Plans.csv',function(prows){
+  omniaCsv('Records.csv',function(rrows){
+  omniaCsv('Cropping.csv',function(crows){
+    if(!prows||!rrows){el.innerHTML='<div style="padding:20px;color:#c0392b">Could not load Omnia data — check internet / relay.</div>';return;}
+    var fname={},fgrp={},farea={};(frows||[]).forEach(function(r){if(r.HoldingId==='15859'){fname[r.FieldId]=r.FieldName;fgrp[r.FieldId]=r.FieldGroup;farea[r.FieldId]=parseFloat(r.WorkingArea||'')||0;}});
+    var cropOf={},sowOf={};(crows||[]).forEach(function(r){if(r.HoldingId==='15859'){cropOf[r.CroppingId]=r.CropName;sowOf[r.CroppingId]=(r.SowingDate||'').slice(0,10);}});
+    // a crop counts as drilled once its sowing date has passed, or a drilling/planting operation is recorded on it
+    var drilled={};rrows.forEach(function(r){if(r.HoldingId==='15859'&&r.CroppingId&&/drill|plant|sow/i.test((r.OperationTypeName||'')+' '+(r.OperationName||''))&&r.CroppingStatus!=='Abandoned')drilled[r.CroppingId]=1;});
+    var waitDrill={};
+    // field centres; fall back to the farm-group average
+    var gsum={};Object.keys(FLP_CEN).forEach(function(fid){var g=fgrp[fid];if(!g)return;var a=gsum[g]||(gsum[g]=[0,0,0]);a[0]+=FLP_CEN[fid][0];a[1]+=FLP_CEN[fid][1];a[2]++;});
+    var gcen={};Object.keys(gsum).forEach(function(g){gcen[g]=[gsum[g][0]/gsum[g][2],gsum[g][1]/gsum[g][2]];});
+    function cen(fid){return FLP_CEN[fid]||gcen[fgrp[fid]]||[52.45,0.78];}
+    var td=new Date(),tom=td,TOM=flpLocalISO(tom),NOWH=td.getHours()+td.getMinutes()/60 /* plan is for TODAY: made in the morning once yesterday's spraying is in Omnia */,HZ=flpLocalISO(new Date(tom.getTime()+(S.ahead||3)*864e5));
+    var done={};rrows.forEach(function(r){if(r.HoldingId==='15859'&&r.PlanKey&&(r.CroppingStatus==='Done'||r.CroppingStatus==='PartiallyDone'||r.CroppingStatus==='Abandoned'))(done[r.PlanKey]=done[r.PlanKey]||{})[r.FieldId]=1;});
+    var recs={},stale={},OLD=flpLocalISO(new Date(tom.getTime()-30*864e5));
+    prows.forEach(function(p){
+      if(p.HoldingId!=='15859'||p.Type!=='Fertiliser')return;
+      if(p.Status!=='Published'&&p.Status!=='Started'&&p.Status!=='')return; // fertiliser recs often have no status in Omnia
+      var d=(p.ApplicationDate||'').slice(0,10);if(!d||d>HZ)return;if(p.Status===''&&d<OLD)return;
+      if(d<OLD){(stale[p.PlanKey]=stale[p.PlanKey]||{ref:p.Year.slice(2)+'.'+p.PlanNumber,name:(p.PlanName||'').trim(),date:d,n:{}}).n[p.FieldId]=1;return;}
+      if(done[p.PlanKey]&&done[p.PlanKey][p.FieldId])return;
+      if(fgrp[p.FieldId]==='Edwardstone')return;
+      var r=recs[p.PlanKey]||(recs[p.PlanKey]={key:p.PlanKey,ref:p.Year.slice(2)+'.'+p.PlanNumber,name:(p.PlanName||'').trim(),date:d,wv:parseFloat(p.WaterVolume||'')||200,prods:[],pn:{},fields:{}});
+      if(p.ProductName&&!r.pn[p.ProductName]){r.pn[p.ProductName]=1;r.prods.push({n:p.ProductName,g:p.ProductGroup||'',rate:p.ProductRate,u:p.ProductRateUnit});}
+      // recs timed on the crop (pre-emergence or any leaf stage) can't go on until the crop is drilled; pre-planting / stubble recs can
+      var needsCrop=+p.GrowthStage>0&&+p.GrowthStage<1000;
+      var sow=sowOf[p.CroppingId]||'';
+      if(needsCrop&&sow&&sow>TOM&&!drilled[p.CroppingId]){var wd=waitDrill[p.PlanKey]||(waitDrill[p.PlanKey]={rec:r,fids:[],sow:{}});if(wd.fids.indexOf(p.FieldId)<0)wd.fids.push(p.FieldId);wd.sow[p.FieldId]=sow;return;}
+      var fo=r.fields[p.FieldId]||(r.fields[p.FieldId]={ha:parseFloat(p.Area||'')||farea[p.FieldId]||0,crop:cropOf[p.CroppingId]||'',wv:0});var rt=parseFloat(p.ProductRate||'')||0,ru=String(p.ProductRateUnit||'').toLowerCase();fo.wv+=/^t/.test(ru)?rt*1000:/^g/.test(ru)?rt/1000:rt; // kg/ha (variable rate: per field)
+    });
+    Object.keys(recs).forEach(function(k){var r=recs[k],fl=Object.keys(r.fields),ha=fl.reduce(function(a,f){return a+r.fields[f].ha;},0);r.wv=ha?Math.round(fl.reduce(function(a,f){return a+r.fields[f].ha*r.fields[f].wv;},0)/ha):0;});
+    // units = one rec on one farm group
+    var units=[];
+    Object.keys(recs).forEach(function(k){if(!Object.keys(recs[k].fields).length)delete recs[k];});
+    Object.keys(recs).forEach(function(k){
+      var r=recs[k];r.glyph=r.prods.some(function(p){return flpIsGlyph(p.n);})||/stubble|glyph|pre.?plant|desicc/i.test(r.name);
+      var byG={};Object.keys(r.fields).forEach(function(fid){(byG[fgrp[fid]||'?']=byG[fgrp[fid]||'?']||[]).push(fid);});
+      Object.keys(byG).forEach(function(g){
+        var fl=byG[g],crop=r.fields[fl[0]].crop;
+        units.push({rec:r,grp:g,fids:fl,ha:fl.reduce(function(a,f){return a+r.fields[f].ha;},0),crop:crop,fam:flpFam(crop),key:r.key,prods:r.prods,glyph:r.glyph,
+          c:[fl.reduce(function(a,f){return a+cen(f)[0];},0)/fl.length,fl.reduce(function(a,f){return a+cen(f)[1];},0)/fl.length]});
+      });
+    });
+    units.sort(function(a,b){return a.rec.date.localeCompare(b.rec.date)||b.ha-a.ha;});
+    var groups=[];units.forEach(function(x){if(groups.indexOf(x.grp)<0)groups.push(x.grp);});
+    var sprayers=S.sprayers.filter(function(s){return s.on;}).map(function(s){return {s:s,cap:s.haDay||120,used:0,pos:null,last:null,jobs:[]};});
+    var FLP_YARD={n:'Wretham yard',c:[52.463387,0.82968],store:'Wretham'};               // ///tribune.pronouns.crescendo — sprayers parked here, fill point
+    var FLP_FILLS=[FLP_YARD,{n:'Euston fill point',c:[52.363748,0.808682],store:'Euston'}] // loading points (Matthew to confirm where fertiliser is loaded); // water only — no chemical stored
+    function nearFill(p){var b=FLP_FILLS[0],bd=1e9;FLP_FILLS.forEach(function(f){var d=flpKm(p,f.c);if(d<bd){bd=d;b=f;}});return {f:b,km:bd};}
+    function grpsOf(fids){var g=[];fids.forEach(function(f){var x=fgrp[f]||'?';if(g.indexOf(x)<0)g.push(x);});return g.join(', ');}
+    function mkEntry(r,fids,part){return {rec:r,grp:grpsOf(fids),fids:fids,ha:fids.reduce(function(a,f){return a+r.fields[f].ha;},0),part:part};}
+    function build(W){
+      var held=[],notReached=[],pool=[];
+      Object.keys(recs).forEach(function(k){
+        var r=recs[k],ok=[],hf=[];
+        Object.keys(r.fields).forEach(function(f){var w=W&&W[fgrp[f]];(w&&w.rate==='red'?hf:ok).push(f);});
+        if(hf.length)held.push(mkEntry(r,hf,false));
+        if(ok.length){var crop=r.fields[ok[0]].crop;pool.push({rec:r,rest:ok,n0:ok.length,crop:crop,fam:flpFam(crop),key:r.key,prods:r.prods,glyph:r.glyph});}
+      });
+      sprayers.forEach(function(sp){sp.pos=FLP_YARD.c;sp.km=0;sp.fills=0;sp.L=0;sp.take=[];sp.touched=[];sp.skip=[];});
+      function overdue(r){return Math.max(0,Math.round((new Date(TOM)-new Date(r.date))/864e5));}
+      function nearestField(p,fl){var bi=0,bd=1e9;fl.forEach(function(f,i){var d=flpKm(p,cen(f));if(d<bd){bd=d;bi=i;}});return {i:bi,km:bd};}
+      for(var guard=0;guard<300;guard++){
+        var best=null,bc=1e9;
+        var othersLeft=pool.some(function(q){return !q.glyph&&q.rest.length;}); // glyphosate jobs go last — they need an ALL CLEAR after
+        sprayers.forEach(function(sp){
+          if(sp.used>=sp.cap-0.5)return;
+          pool.forEach(function(it){
+            if(!it.rest.length||(sp.skip&&sp.skip.indexOf(it)>=0))return;
+            var r=it.rec,vegOD=it.fam&&overdue(r)>0,cost=nearestField(sp.pos,it.rest).km+flpWash(sp.last,it).l*15+(it.glyph&&othersLeft&&!vegOD?40:0)-(it.fam?25:0)-(vegOD?150:0)-(function(){var m=sp.last&&flpMixRel(sp.last.rec,r);return m?(m.same?40:25):0;})()-Math.min(overdue(r),30)*1.5+(r.date>TOM?((new Date(r.date)-new Date(TOM))/864e5)*8:0);
+            if(cost<bc){bc=cost;best={sp:sp,it:it};}
+          });
+        });
+        if(!best)break;
+        var sp=best.sp,it=best.it,r=it.rec,tank=sp.s.tank||6000;
+        var job={u:it,wash:flpWash(sp.last,it),steps:[]};sp.jobs.push(job);
+        // remember why this rec was picked, for the "Why this order" note
+        job.why={od:overdue(r),ahead:r.date>TOM?Math.round((new Date(r.date)-new Date(TOM))/864e5):0,km:nearestField(sp.pos,it.rest).km,first:sp.jobs.length===1,
+          rel:sp.last?flpMixRel(sp.last.rec,r):null,prev:sp.last?sp.last.rec.ref:null,glyph:it.glyph,othersLeft:othersLeft,
+          wouldWash:pool.filter(function(q){return q!==it&&q.rest.length&&flpWash(sp.last,q).l>0;}).length,
+          moreUrgent:pool.filter(function(q){return q!==it&&q.rest.length&&q.rec.date<r.date&&!(sp.skip&&sp.skip.indexOf(q)>=0);}).map(function(q){return {ref:q.rec.ref,km:nearestField(sp.pos,q.rest).km,wash:flpWash(sp.last,q).l,glyph:q.glyph};})};
+        // where this mix is filled: bowser comes to him, otherwise the nearest fill point
+        var start=(sp.s.bowser||(sp.last&&flpMixRel(sp.last.rec,r)&&sp.lastFill&&sp.lastFill.room>0.5))?sp.pos:nearFill(sp.pos).f.c;
+        // pick fields nearest-next from the fill until he reaches his ha for the day
+        // if the whole rec won't fit today, don't split a tight group of fields: take whole groups (fields within ~2 km of each other)
+        // nearest first, skip a group that won't fit, and mop up outliers that do — so the rest is left together for next time
+        var pos=start,pick=[],room=sp.cap-sp.used,recHa=it.rest.reduce(function(a,f){return a+r.fields[f].ha;},0);
+        if(recHa<=room+0.5){
+          while(it.rest.length){var nf=nearestField(pos,it.rest),f=it.rest.splice(nf.i,1)[0];pick.push(f);sp.used+=r.fields[f].ha;pos=cen(f);}
+        } else {
+          var cl=[],seen={};
+          it.rest.forEach(function(f){if(seen[f])return;var c=[f],q=[f];seen[f]=1;
+            while(q.length){var a=q.shift();it.rest.forEach(function(b){if(!seen[b]&&flpKm(cen(a),cen(b))<=2){seen[b]=1;c.push(b);q.push(b);}});}
+            cl.push({f:c,ha:c.reduce(function(x,y){return x+r.fields[y].ha;},0)});});
+          var tol=Math.max(2,sp.cap*0.08);
+          while(cl.length){
+            var bi=-1,bd=1e9;cl.forEach(function(c,i){var d=nearestField(pos,c.f).km;if(d<bd){bd=d;bi=i;}});
+            var fits=cl.filter(function(c){return c.ha<=sp.cap-sp.used+tol;});
+            var c0=cl[bi];
+            if(c0.ha>sp.cap-sp.used+tol){
+              if(fits.length){var bj=-1,bdd=1e9;fits.forEach(function(c){var d=nearestField(pos,c.f).km;if(d<bdd){bdd=d;bj=cl.indexOf(c);}});c0=cl[bj];bi=bj;}
+              else if(!pick.length&&(sp.used<0.5||((sp.touched||[]).indexOf(r)<0&&recHa>sp.cap))){ // nothing whole fits: start a big rec anyway, but never split the remainder of one already started today: take part of the nearest group
+                var rest0=c0.f.slice();while(rest0.length&&sp.used<sp.cap-0.5){var nf0=nearestField(pos,rest0),f0=rest0.splice(nf0.i,1)[0];pick.push(f0);sp.used+=r.fields[f0].ha;pos=cen(f0);}
+                break;
+              } else break;
+            }
+            cl.splice(bi,1);
+            c0.f.slice().sort(function(a,b){return flpKm(pos,cen(a))-flpKm(pos,cen(b));}).forEach(function(f){pick.push(f);sp.used+=r.fields[f].ha;pos=cen(f);});
+          }
+          it.rest=it.rest.filter(function(f){return pick.indexOf(f)<0;});
+          if(pick.length&&cl.length&&cl.reduce(function(a,c){return a+c.ha;},0)<=sp.cap)job.why.kept=cl.map(function(c){return {g:fgrp[c.f[0]],n:c.f.length,ha:c.ha};});
+        }
+        if(!pick.length){sp.jobs.pop();(sp.skip=sp.skip||[]).push(it);continue;} // rest of this rec stays together for another day
+        (sp.touched=sp.touched||[]).push(r);
+        // tidy the order: 2-opt on the open route from the fill point (removes back-tracking)
+        (function(){var P=[start].concat(pick.map(cen)),idx=pick.map(function(_,i){return i+1;}),imp=true,it2=0;
+          function d(a,b){return flpKm(P[a],P[b]);}
+          var ord=[0].concat(idx);
+          while(imp&&it2++<50){imp=false;for(var a=1;a<ord.length-1;a++)for(var b=a+1;b<ord.length;b++){
+            var before=d(ord[a-1],ord[a])+(b+1<ord.length?d(ord[b],ord[b+1]):0),after=d(ord[a-1],ord[b])+(b+1<ord.length?d(ord[a],ord[b+1]):0);
+            if(after+0.01<before){var seg=ord.slice(a,b+1).reverse();ord.splice.apply(ord,[a,seg.length].concat(seg));imp=true;}}}
+          pick=ord.slice(1).map(function(k){return pick[k-1];});
+        })();
+        var need=pick.reduce(function(a,f){return a+r.fields[f].ha*r.fields[f].wv;},0),left=need,inTank=0;
+        var rel=sp.last?flpMixRel(sp.last.rec,r):null,carried=false;
+        if(rel&&sp.lastFill&&sp.lastFill.room>0.5){
+          // top up the previous fill with this rec's water too, then add the extra product(s) when he starts this rec
+          var extra=Math.min(sp.lastFill.room,need);
+          sp.lastFill.step.L+=extra;sp.lastFill.step.carry=(sp.lastFill.step.carry||0)+extra;sp.lastFill.step.carryRef=r.ref;sp.lastFill.room-=extra;
+          inTank=extra;carried=true;
+          job.steps.push({t:'add',same:rel.same,add:rel.add,L:extra,from:sp.last.rec.ref});
+        }
+        function fill(atPos,mid,before){
+          var amt=Math.min(tank-inTank,left-inTank);   // top the tank up to full, or to exactly what's still needed
+          if(sp.s.bowser){var atYard=flpKm(atPos,FLP_YARD.c)<0.5;job.steps.push({t:'fill',L:amt,top:inTank>0.5,at:atYard?'Wretham yard':mid?'bowser meets him in '+(fname[mid]||mid):'bowser meets him'+(before?' before '+(fname[before]||before):''),bf:atYard?null:nearFill(atPos).f.n});}
+          else {var nfp=nearFill(atPos);sp.km+=nfp.km*(mid?2:1);job.steps.push({t:'fill',L:amt,top:inTank>0.5,at:nfp.f.n,km:nfp.km,mid:mid,nostore:!nfp.f.store});atPos=nfp.f.c;}
+          var st0=job.steps[job.steps.length-1];if(sp.s.bowser&&st0.bf&&!(nearFill(atPos).f.store))st0.nostore=true;
+          if(st0.nostore&&amt>0.5){var haC=amt/(r.wv||200);st0.take=r.prods.map(function(p){return {n:p.n,q:(+p.rate||0)*haC,u:p.u||''};});
+            (sp.take=sp.take||[]).push({at:sp.s.bowser&&st0.bf?st0.bf:st0.at,ref:r.ref,items:st0.take});}
+          sp.fills++;inTank+=amt;sp.lastFill={step:job.steps[job.steps.length-1],room:tank-inTank};return atPos;
+        }
+        var cur=sp.pos;
+        if(!carried){cur=sp.s.bowser?sp.pos:nearFill(sp.pos).f.c;if(!sp.s.bowser)sp.km+=flpKm(sp.pos,cur);fill(cur,null,pick[0]);}
+        pick.forEach(function(f){
+          sp.km+=flpKm(cur,cen(f));cur=cen(f);
+          var fl=r.fields[f].ha*r.fields[f].wv,mid=false;
+          // not enough left for this field: if it's only a little (under a quarter of the field or 500 L), top up BEFORE going in
+          // rather than starting the field, running dry and coming back
+          if(fl>inTank+0.5&&(inTank<500||inTank<fl*0.25)){var c0=cur;cur=fill(cur,null,f);if(!sp.s.bowser)sp.km+=flpKm(cur,cen(f))-flpKm(c0,cen(f));}
+          while(fl>inTank+0.5){fl-=inTank;left-=inTank;inTank=0;fill(cur,f);mid=true;}
+          inTank-=fl;left-=fl;
+          job.steps.push({t:'field',f:f,L:r.fields[f].ha*r.fields[f].wv,ha:r.fields[f].ha,mid:mid});
+        });
+        sp.pos=cur;sp.last=it;sp.L+=need;
+      }
+      sprayers.forEach(function(sp){if(sp.jobs.length)sp.km+=flpKm(sp.pos,FLP_YARD.c);});
+      pool.forEach(function(it){if(it.rest.length)notReached.push(mkEntry(it.rec,it.rest,it.rest.length<it.n0));});
+      notReached.sort(function(a,b){return a.rec.date.localeCompare(b.rec.date);});
+      return {held:held,notReached:notReached};
+    }
+    // working hours per driver (default 6:30am–5pm); a finish earlier than the start means he works overnight into tomorrow
+    // breaks 9:00 (15 min), 12:00 (30), 3:00 (15) whenever they fall inside his hours. Times are hours from midnight today (30 = 6am tomorrow).
+    var BRK=[[9,9.25],[12,12.5],[15,15.25],[33,33.25],[36,36.5],[39,39.25]];
+    function flpT(v,d){var m=/^(\d{1,2})(?::|\.)?(\d{2})?$/.exec(String(v||'').trim());return m?(+m[1])+(+(m[2]||0))/60:d;}
+    function spHours(sp){var a=flpT(sp.s.start,6.5),b=flpT(sp.s.end,17);if(b<=a)b+=24;var br=BRK.filter(function(x){return x[0]>=a&&x[1]<=b;});
+      return {a:a,b:b,br:br,work:(b-a)-br.reduce(function(t,x){return t+x[1]-x[0];},0)};}
+    function offBreak(t,br){br.forEach(function(b){if(t>=b[0]&&t<b[1])t=b[1];});return t;}
+    function addWork(t,h,br){t=offBreak(t,br);br.forEach(function(b){if(t<b[0]&&t+h>b[0]){h-=b[0]-t;t=b[1];}});return t+h;} // work h hours from t, stopping for breaks
+    var MINT=S.minTemp!=null?+S.minTemp:5, MAXW=S.maxWind!=null?+S.maxWind:10, MAXG=S.maxGust!=null?+S.maxGust:18;
+    function wxRate(h){ // h = list of hourly {w,g,p,pp,t}
+      var cls=h.map(function(x){if(x.w>MAXW+2||x.g>MAXG+4||x.p>=0.3||x.t<MINT)return 'r';if(x.w<=MAXW&&x.g<=MAXG&&x.p<0.1&&x.pp<40)return 'g';return 'a';});
+      var g=cls.filter(function(c){return c==='g';}).length,a=cls.filter(function(c){return c==='a';}).length;
+      return g>=3?'green':(g+a>=3?'amber':'red');
+    }
+    function render(W,wxErr){
+      // a short weather window means less can be done: cap each sprayer to what fits in the good hours
+      var winH=null;
+      sprayers.forEach(function(sp){var full=sp.s.haDay||120;sp.full=full;var H=sp.H=spHours(sp),from=Math.max(H.a,Math.floor(NOWH));winH=null;
+        if(W){var hs=Object.keys(W).map(function(g){var o=W[g].hourOk||{},c=0;for(var h=Math.floor(from);h<H.b;h++)if(o[h]&&o[h]!=='r')c++;return c;}).filter(function(x){return x>0;});
+          if(hs.length){hs.sort(function(a,b){return a-b;});winH=hs[Math.floor(hs.length/2)];}}
+        if(winH!==null&&winH<(H.b-H.a)-1){sp.cap=Math.max(0,Math.round(full/H.work*winH*0.75));sp.short=winH;}else{sp.cap=full;sp.short=null;}});
+      var res=build(W);
+      var tk=function(sp){return sp.s.tank||6000;};
+      // predicted start: sprayer's day runs from the first good hour; each rec starts when he's free AND the weather at that farm is right
+      function fmtH(h){var hh=Math.floor(h),mm=Math.round((h-hh)*60/15)*15;if(mm===60){hh++;mm=0;}var nx=hh>=24;hh=hh%24;return (hh>12?hh-12:hh===0?12:hh)+(mm?':'+String(mm).padStart(2,'0'):'')+(hh>=12?'pm':'am')+(nx?' (tomorrow)':'');}
+      function okFrom(g,t,end){end=end||17;var w=W&&W[g];if(!w||!w.hourOk)return {h:t,why:''};
+        for(var h=Math.floor(t);h<end;h++){if(w.hourOk[h]==='g')return {h:Math.max(t,h),why:h>t+0.01?'weather right from '+fmtH(h):''};}
+        for(var h2=Math.floor(t);h2<end;h2++){if(w.hourOk[h2]==='a')return {h:Math.max(t,h2),why:'marginal — best from '+fmtH(h2),marg:true};}
+        return {h:null,why:'no sprayable hours left in his working hours at '+g};}
+      function whyHour(g,h){var w=W&&W[g];if(!w||!w.hrsRaw)return '';var bits=[];w.hrsRaw.forEach(function(x){if(x.hr===Math.floor(h)-1||x.hr===Math.floor(h)){}});
+        var before=w.hrsRaw.filter(function(x){return x.hr>=6&&x.hr<Math.floor(h);});
+        if(!before.length)return '';
+        if(before.some(function(x){return x.t<MINT;}))bits.push('below '+MINT+'°C before then');
+        if(before.some(function(x){return x.w>MAXW||x.g>MAXG;}))bits.push('too windy before then');
+        if(before.some(function(x){return x.p>=0.1||x.pp>=40;}))bits.push('rain before then');
+        return bits.join(', ');}
+      var spHtml=sprayers.map(function(sp){
+        var H=sp.H||spHours(sp),rows='',n=0,clock=null,rate=Math.max(5,(sp.full||sp.s.haDay||120)/H.work);
+        var spOver=false,planB=[],lastFill=null;sp.used=0;sp.fills=0;sp.L=0;
+        sp.jobs.forEach(function(j){
+          var x=j.u,r=x.rec;if(!j.steps.some(function(s){return s.t==='field';}))return;
+          // ── timeline first, so fields that would run past his finish time move to Plan B ──
+          var g1=fgrp[(j.steps.filter(function(s){return s.t==='field';})[0]||{}).f];
+          var clock0=clock,t0=clock===null?Math.max(H.a,Math.ceil(NOWH*4)/4):clock; // no earlier than now
+          if(clock!==null)t0+=(j.wash.l>=3?1:j.wash.l>=2?0.5:j.wash.l>=1?0.25:0); // wash-out time
+          var ok=okFrom(g1,t0,H.b),tStart=ok.h!==null?offBreak(ok.h,H.br):null,tEnd=null,timeHtml='',cutHere=false;
+          var toB=function(steps){var fl=steps.filter(function(s){return s.t==='field';});if(fl.length)planB.push({rec:r,fids:fl.map(function(s){return s.f;}),ha:fl.reduce(function(a,s){return a+s.ha;},0)});};
+          if(spOver||tStart===null||tStart>=H.b-0.1){ // nothing of this rec fits in his hours
+            toB(j.steps);
+            if(lastFill&&lastFill.carry){var r1=lastFill.L;lastFill.L=Math.max(0,lastFill.L-lastFill.carry);lastFill.carry=0;if(lastFill.take&&r1>0)lastFill.take.forEach(function(t){t.q*=lastFill.L/r1;});} // don't fill for a rec he won't reach
+            j.steps=[];spOver=true;return;
+          }
+          var tt=tStart,kept=[],dropped=[];
+          j.steps.forEach(function(s){
+            if(cutHere){dropped.push(s);return;}
+            var d=s.t==='field'?s.ha/rate+0.08:s.t==='fill'?(sp.s.bowser?0.25:0.33)+(s.km?s.km*(s.mid?2:1)*1.3/40:0):0;
+            if(s.t==='field'&&kept.some(function(k){return k.t==='field';})&&addWork(tt,d,H.br)>H.b+0.25){cutHere=true;dropped.push(s);return;}
+            tt=addWork(tt,d,H.br);kept.push(s);
+          });
+          if(cutHere){
+            while(kept.length&&kept[kept.length-1].t==='fill')kept.pop(); // no point filling for fields he won't get to
+            // run the tank through what's kept; whatever would be left over comes off the last fill
+            var lf=null,inT=0;kept.forEach(function(s){if(s.t==='fill'){lf=s;inT+=s.L;}else if(s.t==='add')inT+=s.L;else if(s.t==='field')inT-=s.L;});
+            if(lf&&inT>0.5){var r0=lf.L;lf.L=Math.max(0,lf.L-inT);lf.carry=0;if(lf.take&&r0>0)lf.take.forEach(function(t){t.q*=lf.L/r0;});}
+            toB(dropped);j.steps=kept;spOver=true;
+          }
+          j.steps.forEach(function(s){if(s.t==='fill')lastFill=s;});
+          tEnd=tt;clock=tEnd;
+          var ha=0,L=0,fills=0;j.steps.forEach(function(s){if(s.t==='field'){ha+=s.ha;L+=s.L;}else if(s.t==='fill')fills++;});
+          sp.used+=ha;sp.fills+=fills;sp.L+=L;
+          if(j.wash.l>0)rows+='<tr><td colspan="5" style="padding:5px 10px;background:'+FLP_LCOL[j.wash.l]+'18;border-left:4px solid '+FLP_LCOL[j.wash.l]+';font-size:11.5px"><b style="color:'+FLP_LCOL[j.wash.l]+'">⚠ WASH OUT: '+FLP_LVL[j.wash.l]+'</b> before this mix — '+j.wash.t.join('; ')+'</td></tr>';
+          var fgs=[];j.steps.forEach(function(s){if(s.t==='field'){var g=fgrp[s.f];if(fgs.indexOf(g)<0)fgs.push(g);}});
+          var wxs=fgs.map(function(g){var wx=W&&W[g];return wx?'<span title="'+omaEsc(g)+'" style="font-size:10px;border-radius:3px;padding:0 5px;margin-left:3px;color:#fff;background:'+(wx.rate==='green'?'#1a5c2e':wx.rate==='amber'?'#e67e22':'#c0392b')+'">'+omaEsc(g)+': '+wx.best+'</span>':'';}).join('');
+          var od=r.date<TOM?'<span style="background:#c0392b;color:#fff;border-radius:3px;padding:0 5px;font-size:10px">'+Math.round((new Date(TOM)-new Date(r.date))/864e5)+'d overdue</span>':'<span style="color:var(--tx3);font-size:10.5px">due '+flpFmtD(r.date)+'</span>';
+          if(tStart!==null){
+            if(clock0===null&&tStart>H.a){var wy=whyHour(g1,tStart);timeHtml='⏱ <b>Start ~'+fmtH(tStart)+'</b>'+(wy?' <span style="color:var(--tx3)">('+wy+')</span>':'');}
+            else timeHtml='⏱ <b>Start ~'+fmtH(tStart)+'</b>'+(ok.why?' <span style="color:var(--tx3)">('+ok.why+')</span>':'');
+            timeHtml+=' → finish ~'+fmtH(tEnd)+(tEnd>H.b+0.01?' <span style="color:#c0392b">— runs past his finish time ('+fmtH(H.b)+')</span>':'')+(ok.marg?' <span style="color:#e67e22">marginal weather</span>':'')+(cutHere?' <span style="color:#0d47a1">— stops here at his finish time; the rest is in Plan B below</span>':'');
+          } else timeHtml='<span style="color:#c0392b">⏱ No good spreading window left in his hours ('+omaEsc(ok.why)+')</span>';
+          rows+='<tr style="background:#f6f8f5"><td colspan="5" style="padding:6px 10px;font-size:12px"><b>Rec '+r.ref+'</b> '+omaEsc(r.name)+' &nbsp;'+od
+            +' <span style="font-size:10.5px;color:var(--tx3)">· '+(x.crop||'?')+' · '+r.wv+' kg/ha avg · '+ha.toFixed(1)+' ha · '+Math.round(L).toLocaleString()+' kg = '+fills+' load'+(fills===1?'':'s')+'</span>'+wxs
+            +'<div style="font-size:10.5px;color:#555;margin-top:2px">'+r.prods.map(function(p){return omaEsc(p.n)+' '+(+p.rate||'')+' '+(p.u||'');}).join(' + ')+'</div>'
+            +'<div style="font-size:11px;color:#0d47a1;margin-top:2px">'+timeHtml+'</div></td></tr>';
+          j.steps.forEach(function(s){
+            if(s.t==='add'){
+              rows+='<tr><td></td><td colspan="4" style="padding:3px 10px;font-size:11px;color:#1a5c2e">➕ '+(s.same?'Same mix as Rec '+s.from+' — carry straight on with the '+Math.round(s.L).toLocaleString()+' kg in the hopper, no wash-out':'Keep the '+Math.round(s.L).toLocaleString()+' kg of Rec '+s.from+' mix and <b>add '+s.add.map(function(p){return omaEsc(p.n)+' '+(+p.rate)+' '+p.u+' ('+(Math.round(s.L/r.wv*(+p.rate)*10)/10)+(/^ml/i.test(p.u)?' ml':/^g/i.test(p.u)?' g':/kg/i.test(p.u)?' kg':' L')+')';}).join(' + ')+'</b> — no wash-out')+'</td></tr>';
+              return;
+            }
+            if(s.t==='fill'){
+              rows+='<tr><td></td><td colspan="4" style="padding:3px 10px;font-size:11px;color:#0d47a1">🚜 '+(s.top?'Top up':'Load')+' '+Math.round(s.L).toLocaleString()+' kg — '+(sp.s.bowser&&s.bf?'<b>'+omaEsc(s.at)+'</b> <span style="color:var(--tx3)">(bowser reloads at '+omaEsc(s.bf)+')</span>':'<b>'+omaEsc(s.at)+'</b>'+(s.carry?' <span style="color:#1a5c2e">(includes '+Math.round(s.carry).toLocaleString()+' kg to carry on into Rec '+s.carryRef+')</span>':'')+(s.km>0.3?' <span style="color:var(--tx3)">~'+(s.km*1.3).toFixed(0)+' km by road'+(s.mid?', then back to finish '+omaEsc(fname[s.mid]||s.mid):'')+'</span>':''))
+                +(s.take?'<div style="margin-top:2px;padding:3px 8px;background:#fff3e0;border-left:3px solid #e67e22;color:#8a4b00">🧪 <b>No chemical stored here — take with you:</b> '+s.take.map(function(t){return omaEsc(t.n)+' '+(Math.round(t.q*10)/10)+' '+omaEsc(t.u.replace(/\/ha$/i,''));}).join(' + ')+'</div>':'')+'</td></tr>';
+            } else {
+              n++;rows+='<tr style="border-top:1px solid var(--bd)"><td style="padding:3px 10px;font-size:11.5px;color:var(--tx3);width:28px">'+n+'</td><td style="padding:3px 10px;font-size:12px;font-weight:600">'+omaEsc(fname[s.f]||s.f)+' <span style="font-weight:400;font-size:10.5px;color:var(--tx3)">'+omaEsc(fgrp[s.f]||'')+'</span>'+(s.mid?' <span style="font-size:10px;color:#0d47a1">(refill part way)</span>':'')+'</td><td style="padding:3px 10px;font-size:11px;color:var(--tx3)">'+omaEsc(r.fields[s.f].crop)+'</td><td style="padding:3px 10px;font-size:11.5px;text-align:right">'+s.ha.toFixed(1)+' ha</td><td style="padding:3px 10px;font-size:11px;text-align:right;color:var(--tx3)">'+Math.round(s.L).toLocaleString()+' kg</td></tr>';
+            }
+          });
+        });
+        if(rows)rows='<tr><td colspan="5" style="padding:4px 10px;font-size:11px;color:var(--tx3)">🚜 Starts and finishes at Wretham yard (loads at the nearest loading point)</td></tr>'+rows;
+        sp.take=[];sp.jobs.forEach(function(j){j.steps.forEach(function(s){if(s.t==='fill'&&s.take&&s.L>0.5)sp.take.push({at:sp.s.bowser&&s.bf?s.bf:s.at,items:s.take});});});
+        // Plan B — what to carry on with if he's done quicker or can stay later
+        var nb=res.notReached.slice(0,planB.length?2:3).map(function(x){return {rec:x.rec,fids:x.fids,ha:x.ha,nr:true};});
+        var pb=planB.concat(nb);
+        var planBHtml=pb.length&&rows?'<div style="padding:8px 14px;background:#eef4fb;border-top:2px dashed #0d47a1;font-size:11.5px"><b style="color:#0d47a1">Plan B — if he’s done quicker or can stay later, carry on with:</b><ol style="margin:4px 0 0 18px;padding:0">'
+          +pb.map(function(x){return '<li style="margin:2px 0">Rec <b>'+x.rec.ref+'</b> '+omaEsc(x.rec.name)+' — '+x.fids.map(function(f){return omaEsc(fname[f]||f);}).join(', ')+' <span style="color:var(--tx3)">('+x.ha.toFixed(1)+' ha · about '+(Math.round(x.ha/rate*4)/4)+' h'+(x.nr?' · next in line, not on today’s list':' · carries on from where he stops')+')</span></li>';}).join('')
+          +'</ol><div style="font-size:10.5px;color:var(--tx3);margin-top:3px">Plan B fields aren’t in the load amounts above — load up for them if he carries on.</div></div>':'';
+        if(rows&&sp.take&&sp.take.length){ // chemical has to be got out to a water-only fill point
+          var tot={},at=[];sp.take.forEach(function(t){if(at.indexOf(t.at)<0)at.push(t.at);t.items.forEach(function(i){var k=i.n+'|'+i.u;tot[k]=(tot[k]||0)+i.q;});});
+          rows='<tr><td colspan="5" style="padding:6px 10px;background:#fff3e0;border-left:4px solid #e67e22;font-size:11.5px;color:#8a4b00">🧪 <b>Chemical to get out today</b> — he fills at '+at.map(omaEsc).join(', ')+' where no chemical is stored: '
+            +Object.keys(tot).map(function(k){var p=k.split('|');return '<b>'+omaEsc(p[0])+'</b> '+(Math.round(tot[k]*10)/10)+' '+omaEsc(p[1].replace(/\/ha$/i,''));}).join(', ')
+            +'.<br>He needs to arrange it before he gets there: take it with him from the store, or have the bowser driver, a manager or someone else drop it off there.</td></tr>'+rows;
+        }
+        // plain-English reasons for the order
+        var why=sp.jobs.filter(function(j){return j.steps.some(function(s){return s.t==='field';});}).map(function(j,k){
+          var w=j.why,r=j.u.rec,bits=[];
+          if(w.od>0)bits.push(w.od+' day'+(w.od===1?'':'s')+' overdue');else if(w.ahead>0)bits.push('not due until '+flpFmtD(r.date)+' — brought forward because there was time');else bits.push('due today');
+          if(j.u.fam)bits.push(w.od>0?'<b>overdue veg crop ('+FLP_FAMN[j.u.fam]+') — always goes first</b>':'veg crop ('+FLP_FAMN[j.u.fam]+') — given priority over cereals');
+          if(w.rel)bits.push(w.rel.same?'same mix as Rec '+w.prev+', so the tank just carries on':'Rec '+w.prev+'’s mix plus '+w.rel.add.map(function(p){return p.n;}).join(' + ')+' — add it to the tank, no wash-out');
+          else if(w.first)bits.push('nearest field ~'+Math.round(w.km*1.3)+' km from Wretham yard');
+          else bits.push('starts ~'+Math.round(w.km*1.3)+' km from where Rec '+w.prev+' finishes');
+          if(!w.first&&!w.rel){if(j.wash.l>0)bits.push('needs '+(/^[aeiou]/i.test(FLP_LVL[j.wash.l])?'an ':'a ')+FLP_LVL[j.wash.l].toLowerCase()+' first (shown below)');else if(w.wouldWash)bits.push('no wash-out needed, whereas '+w.wouldWash+' other job'+(w.wouldWash===1?'':'s')+' would have needed one');}
+          if(w.glyph&&j.u.fam&&w.od>0)bits.push('glyphosate — done first anyway because it’s overdue veg; the next mix needs an ALL CLEAR (shown below)');
+          else if(w.glyph)bits.push(w.othersLeft?'glyphosate — normally kept to the end of the day':'glyphosate — left until last because anything after it needs an ALL CLEAR');
+          if(w.moreUrgent.length){
+            var gl=[],far=[],wsh=[],same=[];
+            w.moreUrgent.slice(0,4).forEach(function(q){
+              if(w.rel)return;
+              if(q.glyph)gl.push(q.ref);
+              else if(q.wash>j.wash.l)wsh.push(q.ref+' would need a '+FLP_LVL[q.wash].toLowerCase()+' first');
+              else if(q.km>w.km+1)far.push(q.ref+' is ~'+Math.round((q.km-w.km)*1.3)+' km further away');
+              else same.push(q.ref);
+            });
+            var rs=[];
+            if(w.rel)rs.push('this carries straight on from the last tank');
+            if(gl.length)rs.push('Rec'+(gl.length>1?'s ':' ')+gl.join(' and ')+(gl.length>1?' are':' is')+' glyphosate, kept for the end of the day');
+            wsh.forEach(function(x){rs.push('Rec '+x);});far.forEach(function(x){rs.push('Rec '+x);});
+            if(same.length)rs.push(w.od>=30?'Rec'+(same.length>1?'s ':' ')+same.join(', ')+' and this are all over 30 days overdue so count the same, and this one is nearer':'Rec'+(same.length>1?'s ':' ')+same.join(', ')+(same.length>1?' are':' is')+' only a little older and this one fits the route better');
+            bits.push('done before older Rec'+(w.moreUrgent.length===1?' ':'s ')+w.moreUrgent.slice(0,4).map(function(q){return q.ref;}).join(', ')+' because '+rs.join('; '));
+          }
+          if(w.kept)bits.push('the rest ('+w.kept.map(function(c){return c.n+' field'+(c.n===1?'':'s')+' at '+c.g+', '+c.ha.toFixed(1)+' ha';}).join('; ')+') won’t all fit in today’s spraying hours, so it’s left in one hit for the next spray day rather than split — small outlying fields are picked up instead');
+          var gw=[];j.steps.forEach(function(s){if(s.t==='field'){var g=fgrp[s.f],x=W&&W[g];if(x&&gw.indexOf(g+': '+x.best)<0)gw.push(g+': '+x.best);}});
+          if(gw.length)bits.push('weather '+gw.join(', '));
+          return '<li style="margin:2px 0"><b>'+(k+1)+'. Rec '+r.ref+'</b> — '+bits.join('; ')+'.</li>';
+        }).join('');
+        var whyHtml=why?'<div style="padding:8px 14px;background:#f2f6fb;border-bottom:1px solid var(--bd);font-size:11.5px;color:#333"><b style="color:#0d47a1">Why this order</b><ul style="margin:4px 0 2px 4px;padding:0;list-style:none">'+why+'</ul>'
+          +'<div style="font-size:10.5px;color:var(--tx3);margin-top:3px">Start times assume he spreads about '+Math.round(rate)+' ha an hour (his ha/day spread over his working hours, less breaks at 9:00 for 15 min, 12:00 for 30 and 3:00 for 15 where they fall in his hours — finish times allow for the breaks), ~20 min per fill plus road time, and wait for the weather window at each farm. Within each rec the fields go in the shortest driving order from where the tank is filled (back-tracking removed). Refills are at the nearest fill point'+(sp.s.bowser?' — here the bowser comes to him':'')+'; if only a little is left in the tank he tops up before the next field rather than running dry part way in. Stops at '+sp.cap+' ha (his ha/day setting).</div></div>':'';
+        return '<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px;break-inside:avoid">'
+          +'<div style="padding:8px 14px;background:#1a5c2e;color:#fff;font-weight:700;font-size:14px">'+omaEsc(sp.s.name)+' <span style="font-weight:400;font-size:11.5px">— '+sp.used.toFixed(0)+' ha in his hours ('+fmtH(H.a)+'–'+fmtH(H.b)+')'+(sp.short!==null&&sp.cap<sp.full?' (cut from '+sp.full+' — only ~'+sp.short+' good spreading hours)':'')+' · '+sp.fills+' load'+(sp.fills===1?'':'s')+' · '+Math.round(sp.L).toLocaleString()+' kg · ~'+Math.round(sp.km*1.3)+' km road travel · '+(sp.s.bowser?'bowser with him':'no bowser')+' · '+(sp.s.tank||6000).toLocaleString()+' kg hopper</span></div>'
+          +whyHtml+(rows?'<table style="border-collapse:collapse;width:100%">'+rows+'</table>'+planBHtml:'<div style="padding:10px 14px;font-size:11.5px;color:var(--tx3)">Nothing allocated.</div>')+'</div>';
+      }).join('');
+      var listRows=function(arr,why){return arr.map(function(x){return '<div style="padding:4px 14px;border-top:1px solid var(--bd);font-size:11.5px">Rec <b>'+x.rec.ref+'</b> '+omaEsc(x.rec.name)+' — '+omaEsc(x.grp)+': '+x.fids.map(function(f){return omaEsc(fname[f]||f);}).join(', ')+' <span style="color:var(--tx3)">('+x.ha.toFixed(1)+' ha, due '+flpFmtD(x.rec.date)+(x.part?', rest of a part-done job':'')+')</span></div>';}).join('');};
+      var wxHtml='';
+      if(W){wxHtml='<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px"><div style="padding:8px 14px;background:#0d47a1;color:#fff;font-weight:700;font-size:13px">Weather today by farm (6am–5pm)</div><div style="padding:6px 14px;font-size:10.5px;color:var(--tx3);border-bottom:1px solid var(--bd)">Green = at least 3 hours with wind ≤'+MAXW+' mph, gusts ≤'+MAXG+' mph, no rain and at least '+MINT+'°C (your settings). Amber = marginal. Red = not sprayable (wind >'+(MAXW+2)+' mph, gusts >'+(MAXG+4)+', rain, or colder than '+MINT+'°C) — that farm’s jobs are held. Forecast from Open-Meteo for each farm’s position.</div><table style="border-collapse:collapse;width:100%">'
+        +'<tr style="background:var(--c2);font-size:10px"><th style="padding:3px 10px;text-align:left">Farm</th><th style="padding:3px 10px;text-align:left">Rating</th><th style="padding:3px 10px;text-align:left">Best window</th><th style="padding:3px 10px;text-align:right">Wind (mph)</th><th style="padding:3px 10px;text-align:right">Gusts</th><th style="padding:3px 10px;text-align:right">Rain (mm)</th><th style="padding:3px 10px;text-align:right">Temp °C</th></tr>'
+        +groups.map(function(g){var w=W[g];if(!w)return '';return '<tr style="border-top:1px solid var(--bd);font-size:11.5px"><td style="padding:3px 10px;font-weight:600">'+omaEsc(g)+'</td><td style="padding:3px 10px"><span style="color:#fff;border-radius:3px;padding:0 6px;background:'+(w.rate==='green'?'#1a5c2e':w.rate==='amber'?'#e67e22':'#c0392b')+'">'+w.rate+'</span></td><td style="padding:3px 10px">'+w.best+'</td><td style="padding:3px 10px;text-align:right">'+w.wind+'</td><td style="padding:3px 10px;text-align:right">'+w.gust+'</td><td style="padding:3px 10px;text-align:right">'+w.rain+'</td><td style="padding:3px 10px;text-align:right">'+w.temp+'</td></tr>';}).join('')+'</table></div>';}
+      var setHtml='<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:12px">'
+        +'<div style="font-weight:700;margin-bottom:6px">Spinners today '+(window._flpSetBy?'<span style="font-weight:400;font-size:10.5px;color:var(--tx3)">— last set by '+omaEsc(window._flpSetBy)+'</span>':'')+'</div>'
+        +'<div style="display:flex;gap:14px;flex-wrap:wrap">'+S.sprayers.map(function(sp,i){var dis=window._flpCanEdit?'':' disabled';
+          return '<div style="border:1px solid var(--bd);border-radius:8px;padding:6px 10px;'+(sp.on?'':'opacity:.55')+'"><label style="font-weight:700"><input type="checkbox" id="flp-on-'+i+'"'+(sp.on?' checked':'')+dis+'> '+omaEsc(sp.name)+'</label>'
+          +'<div style="margin-top:4px"><label><input type="checkbox" id="flp-bw-'+i+'"'+(sp.bowser?' checked':'')+dis+'> bowser with him</label></div>'
+          +'<div style="margin-top:4px">Hopper <input id="flp-tk-'+i+'" value="'+(sp.tank||6000)+'" style="width:56px"'+dis+'> kg · <input id="flp-ha-'+i+'" value="'+(sp.haDay||120)+'" style="width:44px"'+dis+'> ha/day</div>'
+          +'<div style="margin-top:4px">Hours <input id="flp-st-'+i+'" value="'+omaEsc(sp.start||'06:30')+'" style="width:48px"'+dis+'> to <input id="flp-en-'+i+'" value="'+omaEsc(sp.end||'17:00')+'" style="width:48px"'+dis+'></div>'
+          +'<div style="font-size:10px;color:var(--tx3)">24-hour clock; overnight is fine, e.g. 18:30 to 06:30</div></div>';}).join('')
+        +'<div style="border:1px solid var(--bd);border-radius:8px;padding:6px 10px;background:#fff8e1">Don’t spread below <input id="flp-mint" value="'+(S.minTemp!=null?S.minTemp:5)+'" style="width:34px"'+(window._flpCanEdit?'':' disabled')+'> °C<div style="font-size:10.5px;color:var(--tx3);margin-top:4px">hours colder than this don’t count;<br>the list says when it warms up enough</div></div>'
+        +'<div style="border:1px solid var(--bd);border-radius:8px;padding:6px 10px;background:#e3f2fd">Max wind <input id="flp-maxw" value="'+(S.maxWind!=null?S.maxWind:10)+'" style="width:34px"'+(window._flpCanEdit?'':' disabled')+'> mph, gusts <input id="flp-maxg" value="'+(S.maxGust!=null?S.maxGust:18)+'" style="width:34px"'+(window._flpCanEdit?'':' disabled')+'> mph<div style="font-size:10.5px;color:var(--tx3);margin-top:4px">good up to these; marginal up to 2 mph<br>(gusts 4 mph) over; above that, no spreading</div></div>'
+        +'<div style="border:1px solid var(--bd);border-radius:8px;padding:6px 10px">Look ahead <input id="flp-ahead" value="'+(S.ahead||3)+'" style="width:34px"'+(window._flpCanEdit?'':' disabled')+'> days<div style="font-size:10.5px;color:var(--tx3);margin-top:4px">recs due up to then are included</div></div></div>'
+        +(window._flpCanEdit?'<button id="flp-savebtn" onclick="flpSave()" style="margin-top:8px;font-size:12px;padding:5px 16px;background:#1a5c2e;color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:600">Save &amp; rebuild list</button>':'<div style="margin-top:6px;font-size:10.5px;color:var(--tx3)">Only Matthew or Susan can change these.</div>')
+        +(window._flpNoRelay?'<div style="margin-top:6px;font-size:10.5px;color:#c0392b">Relay not updated yet (v9.4) — showing default settings; saving won’t work until it is.</div>':'')
+        +'</div>';
+      el.innerHTML='<div style="max-width:1100px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="font-size:16px;font-weight:normal;color:var(--g1);margin-bottom:2px">Spray List — '+tom.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+'</h2><button onclick="window.print()" style="font-size:11.5px;padding:4px 12px;border:1px solid var(--bd);background:#fff;border-radius:5px;cursor:pointer">🖨 Print</button></div>'
+        +'<div style="font-size:11px;color:var(--tx3);margin-bottom:12px">Built automatically from Omnia (published and part-done crop protection recs due by '+flpFmtD(HZ)+', overdue first; anything planned over 30 days ago is listed at the bottom instead), field positions, today’s weather for each farm and the wash-out chart. Sprayers start and finish at Wretham yard. Veg comes first, then the most urgent jobs nearest to where he already is, avoiding wash-outs where it can, up to his ha/day. One mix runs across farms with tanks filled only as needed — refills at the nearest fill point (Wretham yard or Euston), or from the bowser if he has one. Edwardstone not included. A guide — the lead sprayman can still reorder.</div>'
+        +setHtml+(wxErr?'<div style="font-size:11px;color:#c0392b;margin-bottom:10px">Weather forecast unavailable — list built without it.</div>':'')+spHtml
+        +(Object.keys(waitDrill).length?'<div style="background:#fff;border:1px solid #8e44ad;border-radius:10px;overflow:hidden;margin-bottom:16px"><div style="padding:8px 14px;background:#8e44ad;color:#fff;font-weight:700;font-size:13px">Waiting for drilling ('+Object.keys(waitDrill).length+')</div><div style="padding:5px 14px;font-size:10.5px;color:var(--tx3)">Recs timed on the crop (pre-emergence or later) where Omnia’s sowing date is still in the future and no drilling is recorded. Once drilled, record the drilling (or update the sowing date) in Omnia and they’ll come into the list.</div>'
+          +Object.keys(waitDrill).map(function(k){var x=waitDrill[k];var sd=Object.keys(x.sow).map(function(f){return x.sow[f];}).sort()[0];return '<div style="padding:4px 14px;border-top:1px solid var(--bd);font-size:11.5px">Rec <b>'+x.rec.ref+'</b> '+omaEsc(x.rec.name)+' — '+x.fids.length+' field'+(x.fids.length===1?'':'s')+': '+x.fids.map(function(f){return omaEsc(fname[f]||f);}).join(', ')+' <span style="color:var(--tx3)">(sowing date '+flpFmtD(sd)+')</span></div>';}).join('')+'</div>':'')
+        +(res.held.length?'<div style="background:#fff;border:1px solid #c0392b;border-radius:10px;overflow:hidden;margin-bottom:16px"><div style="padding:8px 14px;background:#c0392b;color:#fff;font-weight:700;font-size:13px">Held for weather ('+res.held.length+')</div>'+listRows(res.held)+'</div>':'')
+        +(res.notReached.length?'<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px"><div style="padding:8px 14px;background:#7f8c8d;color:#fff;font-weight:700;font-size:13px">Not reached today — next in line ('+res.notReached.length+')</div>'+listRows(res.notReached)+'</div>':'')
+        +'<details style="background:#fff;border:1px solid var(--bd);border-radius:10px;margin-bottom:16px"><summary style="padding:8px 14px;background:#1a5c2e;color:#fff;font-weight:700;font-size:13px;cursor:pointer;border-radius:10px">📋 Rules the planner follows — same as the Spray List but in kg, per-field rates (variable rate), loading points instead of fill points and no wash-outs (click to open)</summary><ol style="margin:8px 0;padding:0 14px 0 34px;font-size:11.5px;line-height:1.5"><li><b>Where the day starts</b> — Each driver’s working hours are set under his name (default 6:30am–5pm; overnight is fine, e.g. 18:30 to 06:30 is 12 hours across two days), with breaks at 9:00 (15 min), 12:00 (30 min) and 3:00 (15 min) where they fall in his hours; the list is for today, made in the morning once yesterday’s spraying is in Omnia, and starts no earlier than the time it’s opened. All sprayers park and fill at Wretham yard, and finish there. The other fill point is Euston. Fills are at the nearest fill point, or wherever the bowser is if one is running.</li><li><b>Weather</b> — An hour is only sprayable if wind and gusts are within the maximum wind settings (default 10 mph, gusts 18), no rain and at least the minimum temperature setting. Farms with no sprayable hours are held. A day’s hectares are cut back to the good hours at each farm.</li><li><b>What goes first</b> — Overdue veg always goes first (even glyphosate — the ALL CLEAR afterwards is shown); veg not yet drilled is held instead. Then most overdue first, veg ahead of cereals. Glyphosate goes at the end of the day because anything after it needs an ALL CLEAR. Recs not due yet are only brought forward if there’s time.</li><li><b>Wash-outs</b> — Wash-outs come from the ALL CLEAR wash-out chart, and the planner avoids them where it can. If the next rec is the same mix, or the same mix plus extra products, the tank carries on with no wash-out, even if that rec is further down the list.</li><li><b>Tank and fills</b> — One mix runs across farms, with a fill only when needed. Fill points: Wretham yard and Euston (chemical stored), and ///darkens.invest.confining (water only — the list says what chemical to take there, and the driver arranges for it to be taken out by himself, the bowser driver, a manager or someone else). Top up before a field rather than running dry part way in (top up if less than 500 L or a quarter of the field is left).</li><li><b>Finish time and Plan B</b> — Fields stop being added once the next one would take him past his finish time (15 min leeway); the fill before is cut to what he needs. Whatever was cut, plus the next recs in line, goes in a <b>Plan B</b> box under his list — what to carry on with if he’s done quicker or can stay later.</li><li><b>Route</b> — Within a rec the fields go in the shortest driving order from the fill point, with back-tracking removed.</li><li><b>Keep groups together</b> — If a rec can’t all be done today, don’t split a tight group of fields (within ~2 km of each other). Do whole groups, nearest first. Pick up small outlying fields instead (e.g. top Euston fields, then top up for Holdens). Leave the group, e.g. the three Rymer fields, in one hit for the next spray day. A rec that’s already been started today is never split again. A big new rec can still be started in spare time.</li><li><b>Not sprayable yet</b> — Fields marked Done, Part done or Abandoned in Omnia drop out. Pre-emergence or crop-stage recs are held until the crop is drilled. Recs planned over 30 days ago with nothing recorded go under "Left off".</li></ol><div style="padding:0 14px 10px;font-size:10.5px;color:var(--tx3)">Want a new rule? Tell Claude what you’d have done differently and it gets added here and built into the planner.</div></details>'
+        +wxHtml
+        +(function(){ // hour-by-hour weather for each farm
+          if(!W)return '';var hrsL=[6,7,8,9,10,11,12,13,14,15,16];
+          var col={g:'#d5ecd9',a:'#fde9c8',r:'#f6d0cc'};
+          return '<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:auto;margin-bottom:16px"><div style="padding:8px 14px;background:#0d47a1;color:#fff;font-weight:700;font-size:13px">Hour by hour today — each farm</div><div style="padding:5px 14px;font-size:10.5px;color:var(--tx3)">Each box: temperature °C / wind–gust mph / rain mm. Green = good to spray, amber = marginal, red = no (wind, rain or below '+MINT+'°C).</div><table style="border-collapse:collapse;font-size:10.5px;min-width:900px"><tr style="background:var(--c2)"><th style="padding:3px 8px;text-align:left">Farm</th>'+hrsL.map(function(h){return '<th style="padding:3px 6px">'+(h>12?h-12:h)+(h>=12?'pm':'am')+'</th>';}).join('')+'</tr>'
+            +groups.filter(function(g){return W[g]&&W[g].hrsRaw;}).map(function(g){var by={};W[g].hrsRaw.forEach(function(x){by[x.hr]=x;});
+              return '<tr style="border-top:1px solid var(--bd)"><td style="padding:3px 8px;font-weight:600;white-space:nowrap">'+omaEsc(g)+'</td>'+hrsL.map(function(h){var x=by[h];if(!x)return '<td></td>';var k=W[g].hourOk[h]||'r';
+                return '<td style="padding:3px 5px;text-align:center;background:'+col[k]+';white-space:nowrap">'+Math.round(x.t)+'° / '+Math.round(x.w)+'–'+Math.round(x.g)+(x.p>=0.1?' / '+x.p.toFixed(1)+'mm':'')+'</td>';}).join('')+'</tr>';}).join('')
+            +'</table></div>';
+        })()
+        +(Object.keys(stale).length?'<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px"><div style="padding:8px 14px;background:#95a5a6;color:#fff;font-weight:700;font-size:13px">Left off — planned over 30 days ago, probably done but not closed in Omnia ('+Object.keys(stale).length+')</div>'+Object.keys(stale).map(function(k){var x=stale[k];return '<div style="padding:4px 14px;border-top:1px solid var(--bd);font-size:11.5px">Rec <b>'+x.ref+'</b> '+omaEsc(x.name)+' <span style="color:var(--tx3)">— planned '+flpFmtD(x.date)+', '+Object.keys(x.n).length+' field'+(Object.keys(x.n).length===1?'':'s')+' not recorded</span></div>';}).join('')+'</div>':'')
+        +'</div>';
+    }
+    // weather for each farm group's centre
+    var gl=groups.map(function(g){var fl=[];units.forEach(function(x){if(x.grp===g)fl=fl.concat(x.fids);});var c=[fl.reduce(function(a,f){return a+cen(f)[0];},0)/fl.length,fl.reduce(function(a,f){return a+cen(f)[1];},0)/fl.length];return {g:g,c:c};});
+    if(!gl.length){render(null,false);return;}
+    var url='https://api.open-meteo.com/v1/forecast?latitude='+gl.map(function(x){return x.c[0].toFixed(3);}).join(',')+'&longitude='+gl.map(function(x){return x.c[1].toFixed(3);}).join(',')+'&hourly=wind_speed_10m,wind_gusts_10m,precipitation,precipitation_probability,temperature_2m&wind_speed_unit=mph&timezone=Europe%2FLondon&forecast_days=3';
+    fetch(url).then(function(r){return r.json();}).then(function(j){
+      var arr=Array.isArray(j)?j:[j],W={};
+      gl.forEach(function(x,i){
+        var h=arr[i]&&arr[i].hourly;if(!h)return;var hrs=[];
+        h.time.forEach(function(t,k){if(t.slice(0,10)===TOM){var hr=+t.slice(11,13);if(hr>=6&&hr<17)hrs.push({hr:hr,w:h.wind_speed_10m[k],g:h.wind_gusts_10m[k],p:h.precipitation[k],pp:h.precipitation_probability[k]||0,t:h.temperature_2m[k]});}});
+        if(!hrs.length)return;
+        var TOM1=flpLocalISO(new Date(td.getTime()+864e5)),all=[];
+        h.time.forEach(function(t,k){var d=t.slice(0,10),hr=+t.slice(11,13),ix=d===TOM?hr:d===TOM1?24+hr:-1;if(ix>=0)all.push({hr:ix,w:h.wind_speed_10m[k],g:h.wind_gusts_10m[k],p:h.precipitation[k],pp:h.precipitation_probability[k]||0,t:h.temperature_2m[k]});});
+        var hh=function(h){return (h>12?h-12:h)+(h>=12?'pm':'am');};
+        var am=hrs.filter(function(x){return x.hr<12;}),pm=hrs.filter(function(x){return x.hr>=12;});
+        var ra=wxRate(am),rp=wxRate(pm),rate=wxRate(hrs);
+        var best=ra==='green'&&rp==='green'?'all day':ra==='green'?'morning':rp==='green'?'afternoon':(ra==='amber'?'morning (marginal)':rp==='amber'?'afternoon (marginal)':'none');
+        var gh=hrs.filter(function(x){return x.w<=MAXW&&x.g<=MAXG&&x.p<0.1&&x.pp<40&&x.t>=MINT;}).map(function(x){return x.hr;});
+        if(gh.length>=3&&!(ra==='green'&&rp==='green'))best=hh(gh[0])+'–'+hh(gh[gh.length-1]+1)+' (best hours)';
+        else if(gh.length<3){var ah=hrs.filter(function(x){return !(x.w>MAXW+2||x.g>MAXG+4||x.p>=0.3||x.t<MINT);}).map(function(x){return x.hr;});if(ah.length){var runs=[],st=ah[0],pv=ah[0];ah.slice(1).concat([99]).forEach(function(h){if(h!==pv+1){runs.push(hh(st)+'–'+hh(pv+1));st=h;}pv=h;});best=runs.join(', ')+' only (marginal)';}}
+        var mm=function(f){var v=hrs.map(f);return Math.round(Math.min.apply(null,v))+'–'+Math.round(Math.max.apply(null,v));};
+        var warm=hrs.filter(function(x){return x.t>=MINT;}).map(function(x){return x.hr;});
+        if(!warm.length)best='never reaches '+MINT+'°C';
+        else if(warm[0]>6&&best.indexOf('–')<0&&best!=='none')best+=' — not before '+hh(warm[0])+' ('+MINT+'°C)';
+        var hourOk={};all.forEach(function(x){var g0=x.w<=MAXW&&x.g<=MAXG&&x.p<0.1&&x.pp<40&&x.t>=MINT,a0=!(x.w>MAXW+2||x.g>MAXG+4||x.p>=0.3||x.t<MINT);hourOk[x.hr]=g0?'g':(a0?'a':'r');});
+        W[x.g]={hourOk:hourOk,hrsRaw:hrs,warmFrom:warm.length?warm[0]:null,rate:rate==='red'&&(ra!=='red'||rp!=='red')?'amber':rate,best:best,wind:mm(function(x){return x.w;}),gust:mm(function(x){return x.g;}),rain:hrs.reduce(function(a,x){return a+x.p;},0).toFixed(1),temp:mm(function(x){return x.t;})};
+      });
+      render(W,false);
+    }).catch(function(){render(null,true);});
+  });});});});
+}
 function rOm(){
   var el=document.getElementById('om'); if(!el)return;
   var sub=window._omSub||'rec';
   function tb(v,lbl){return '<button onclick="window._omSub=\''+v+'\';rOm()" style="font-size:12.5px;padding:6px 18px;border-radius:7px 7px 0 0;border:1px solid var(--bd);border-bottom:'+(sub===v?'2px solid #1a5c2e':'1px solid var(--bd)')+';background:'+(sub===v?'#fff':'var(--c2)')+';font-weight:'+(sub===v?'700':'400')+';color:'+(sub===v?'#1a5c2e':'#555')+';cursor:pointer">'+lbl+'</button>';}
-  el.innerHTML='<div style="display:flex;gap:4px;margin-bottom:0">'+tb('rec','Rec Situation')+tb('alerts','Draft Rec Alerts')+tb('plist','Spray List')+tb('spray','Sprayer Utilization')+tb('stock','Stock')+tb('in','Stock In')+tb('used','Stock Used')+tb('match','Field Matching')+'</div>'
+  el.innerHTML='<div style="display:flex;gap:4px;margin-bottom:0">'+tb('rec','Rec Situation')+tb('alerts','Draft Rec Alerts')+tb('plist','Spray List')+tb('flist','Fert List')+tb('spray','Sprayer Utilization')+tb('stock','Stock')+tb('in','Stock In')+tb('used','Stock Used')+tb('match','Field Matching')+'</div>'
     +'<div id="om-body" style="border-top:2px solid #1a5c2e;padding-top:12px"><div style="padding:20px;color:var(--tx3)">Loading Omnia data…</div></div>';
-  if(sub==='alerts')rOmAlerts(); else if(sub==='plist')rOmPlist(); else if(sub==='spray')rOmSpray(); else if(sub==='match')rOmMatch(); else if(sub==='stock')rOmStock(); else if(sub==='used')rOmUsed(); else if(sub==='in')rOmIn(); else rOmRecs();
+  if(sub==='alerts')rOmAlerts(); else if(sub==='plist')rOmPlist(); else if(sub==='flist')rOmFlist(); else if(sub==='spray')rOmSpray(); else if(sub==='match')rOmMatch(); else if(sub==='stock')rOmStock(); else if(sub==='used')rOmUsed(); else if(sub==='in')rOmIn(); else rOmRecs();
 }
 var OMNIA_SUGGEST={"Rackham Farms|26 Acres":{"oid":"759779","on":"28 Acres","oha":11.4,"om27":"Uncropped"},"Rackham Farms|Barn Field (LFG)":{"oid":"759721","on":"Barn Field (Manor Farm)","oha":5.36,"om27":"Potatoes"},"Wretham|Airfield 3, 4, 9":{"oid":"759861","on":"Air Field 14","oha":5.42,"om27":"Maize"},"Euston|3  Acres  (in with Euston Allotments)":{"oid":"759172","on":"Euston Allotments","oha":10.7,"om27":"Sugar Beet"},"Euston|Euston Allotments (East)":{"oid":"759156","on":"Sapiston Allotments","oha":5.52,"om27":"Winter Wheat"},"Euston|Front Meadow (eus tress)":{"oid":"759144","on":"Front Meadow (Eus)","oha":12.9,"om27":"Winter Wheat"},"Euston|6 Acres":{"oid":"759249","on":"36 Acre","oha":12.9,"om27":"Maize"},"Euston|Magna Field.A":{"oid":"759190","on":"Magna Field","oha":23.9,"om27":"Solar Panels"},"Euston|Keepers Paddock":{"oid":"759331","on":"Pig Paddock","oha":3.76,"om27":"Winter Rye"},"Euston|4 Acres":{"oid":"759254","on":"Park 40 Acres","oha":15.09,"om27":"Winter Wheat"},"Euston|Hon Allotments":{"oid":"759172","on":"Euston Allotments","oha":10.7,"om27":"Sugar Beet"},"Euston|Village Hall":{"oid":"759181","on":"Village Hall (Headings)","oha":4.08,"om27":"Winter Wheat"},"Euston|Duffers Gore S (Headings)":{"oid":"759185","on":"Duffers Gore North (H)","oha":7.45,"om27":"Outdoor Pigs"},"Euston|Park Piece A":{"oid":"759210","on":"Park Piece","oha":15.4,"om27":"Bulb Onions - Dry"},"Euston|60 Acres":{"oid":"759249","on":"36 Acre","oha":12.9,"om27":"Maize"},"Euston|Leys North (Headings)":{"oid":"759263","on":"Flats North (Headings)","oha":13.05,"om27":"Stubble Turnips"},"Euston|Middle Breck N (Headings)":{"oid":"759329","on":"Mill Hill (Headings)","oha":6.77,"om27":"Stubble Turnips"},"Euston|Road Breck North (Headings)":{"oid":"759219","on":"Borley Close North (Headings)","oha":8.0,"om27":"Potatoes"},"Euston|Pit Field.A":{"oid":"791559","on":"Pin Field","oha":3.81,"om27":"Pheasants"},"Euston|25 Acres":{"oid":"759202","on":"19 Acres","oha":6.14,"om27":"Solar Panels"},"Euston|Hon Top Meadow":{"oid":"759160","on":"Sapiston Top Meadow","oha":2.43,"om27":"Amenity Tree"},"Euston|Allotment (Headings)":{"oid":"759219","on":"Borley Close North (Headings)","oha":8.0,"om27":"Potatoes"},"Euston|Chalk Pit (Headings)":{"oid":"759250","on":"40 Acre (Headings)","oha":11.7,"om27":"Maize"},"Beard|Back Field":{"oid":"759050","on":"Back Field - Not GPSd","oha":4.4,"om27":"Uncropped"},"Beard|Canada":{"oid":"759048","on":"Canada - Not GPSd","oha":5.0,"om27":"Uncropped"},"Beard|Observer Post_B":{"oid":"759058","on":"Observer Post","oha":5.4,"om27":"Uncropped"},"Beard|Pikel Right":{"oid":"759055","on":"Pickel L&R","oha":11.35,"om27":"Uncropped"},"Beard|Two Five Acres":{"oid":"759047","on":"Two Five Acres - Not GPSd","oha":3.8,"om27":"Uncropped"},"Chandler|30 Brek":{"oid":"759139","on":"37 Brek RPA","oha":13.4,"om27":"Parsnips"},"Pickenham|Gravel Pits":{"oid":"759519","on":"Gravel Pit ex Organic","oha":9.33,"om27":"Uncropped"},"Pickenham|Barrels":{"oid":"759482","on":"Barrells","oha":0,"om27":"Mid Tier Stewardship"},"Pickenham|Garden Field - RPA":{"oid":"759373","on":"Rearing Field A","oha":4.42,"om27":"Winter Wheat"},"Pickenham|Larwood Sheds 8.26":{"oid":"759597","on":"Larwood Sheds","oha":0,"om27":"Uncropped"},"Pickenham|Pickenham 1":{"oid":"759615","on":"North Pickenham 1","oha":12.46,"om27":"Uncropped"},"Pickenham|Pickenham 2":{"oid":"759679","on":"North Pickenham 2","oha":5.05,"om27":"Uncropped"},"Pickenham|Barn Breck_2":{"oid":"759555","on":"Barn Breck 1","oha":13.53,"om27":"Vining Peas"},"Pickenham|Caudle wood":{"oid":"759711","on":"Caudle","oha":16.47,"om27":"Uncropped"},"Pickenham|Sixteen Acres":{"oid":"759549","on":"Twelve Acres","oha":4.96,"om27":"Winter Wheat"},"Pickenham|Underbridge":{"oid":"759562","on":"Under Bridge Field","oha":7.62,"om27":"Winter Oilseed Rape"},"Pickenham|39 acre":{"oid":"759531","on":"13 Acres","oha":0,"om27":"Mid Tier Stewardship"},"Pickenham|Gravel Pit":{"oid":"759519","on":"Gravel Pit ex Organic","oha":9.33,"om27":"Uncropped"},"Pickenham|Claypits (SPEC)":{"oid":"759530","on":"Claypits","oha":0,"om27":"Carbon Trees"},"Warren|Barn Field (W)":{"oid":"759850","on":"Bridge Field","oha":15.02,"om27":"Game Cover"},"Euston|Lime Kiln (Eus) (B)":{"oid":"759294","on":"Lime Kiln (Euston)","oha":31.1,"om27":"Bulb Onions - Dry"},"Edwardstone/Borehouse|Grass":{"oid":"759033","on":"Great","oha":9.35,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Big Thistle.A":{"oid":"759039","on":"Big Thistle","oha":9.45,"om27":"Winter Oilseed Rape"},"Edwardstone/Borehouse|Big Thistle.B":{"oid":"759039","on":"Big Thistle","oha":9.45,"om27":"Winter Oilseed Rape"},"Edwardstone/Borehouse|Borehouse Mead":{"oid":"758995","on":"Borehouse","oha":11.48,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Coopers Wood.B":{"oid":"759016","on":"Coopers Wood","oha":8.16,"om27":"Winter Oilseed Rape"},"Edwardstone/Borehouse|Downhall.D":{"oid":"759015","on":"Downhall","oha":17.96,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Great.B":{"oid":"759033","on":"Great","oha":9.35,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Long West.B":{"oid":"759001","on":"Long West","oha":6.93,"om27":"Winter Oilseed Rape"},"Edwardstone/Borehouse|Mallens Meadow":{"oid":"759029","on":"Mallens","oha":17.4,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Panks.D":{"oid":"759034","on":"Panks","oha":13.72,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Pond.C":{"oid":"759002","on":"Pond","oha":30.4,"om27":"Winter Wheat"},"Edwardstone/Borehouse|Tyney Wyent.D":{"oid":"759018","on":"Tyney Wyent","oha":16.71,"om27":"Winter Oilseed Rape"},"Euston|Eighty Five Acres (Pigs)":{"oid":"759173","on":"Eighty Five Acres (Rymer)","oha":36.56,"om27":"Maize"},"Euston|Duffers Gore N (Headings)":{"oid":"759185","on":"Duffers Gore North (H)","oha":7.45,"om27":"Outdoor Pigs"},"Euston|The Clint A East":{"oid":"759246","on":"The Clint","oha":6.1,"om27":"Bulb Onions - Dry"}};
 var OMNIA_GROUPS={"Euston":["Euston","Rymer"],"Wretham":["Wretham"],"Chandler":["Chandler"],"Pickenham":["Pickenham"],"Edwardstone/Borehouse":["Edwardstone"],"Rackham Farms":["Rackham","Manor Farm","Moorland Stud","Dolphin Farm","Manor Farm - Roudham"],"Blakeney":["Blakeney Park Farms","Blakeney park Farms"],"Beard":["Beard"],"Gooderham":["Gooderham"],"Warren":["WFP","Field Barn Farm"],"David Hill":["WFP","Field Barn Farm"]};
