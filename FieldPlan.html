@@ -2435,6 +2435,23 @@ function wcRate(f,yr){
       var c2=(c==='Potatoes')?'Salad Potatoes':'Potatoes';
       r=pick(c2+'|'+o.v);if(r!==undefined)return r;
     }
+    // 2026: Omnia mostly holds "UNSPEC. GP n" for harvest-2026 potatoes, so fall back to the
+    // variety/type in the 2026 Irrigation Records (IRR26). First variety listed wins. (12/11 rule: ticked line, else main crop rate)
+    if(yr==='2026'&&typeof IRR26!=='undefined'){
+      var t26=IRR26[f.oid]||IRR26[f.estate+'|'+f.field];
+      if(t26){
+        t26=String(t26).split(/,| and |\//)[0];
+        var nz=function(s){return String(s).toLowerCase().replace(/\s+/g,' ').trim();};
+        var pickNm=function(crop,nm){
+          var want=nz(nm),ks=Object.keys(WC_VAR).concat(Object.keys(WC_AGR));
+          for(var i=0;i<ks.length;i++){var p=ks[i].split('|');if(p[0]===crop&&nz(p.slice(1).join('|'))===want)return pick(ks[i]);}
+          return undefined;
+        };
+        r=pickNm(c,t26);
+        if(r===undefined&&(c==='Potatoes'||c==='Salad Potatoes'))r=pickNm(c==='Potatoes'?'Salad Potatoes':'Potatoes',t26);
+        if(r!==undefined)return r;
+      }
+    }
   }catch(e){}
   return base;
 }
@@ -2592,7 +2609,7 @@ function rWt(){
     var borderCard=pct>97?'#f1948a':pct>80?'#f0a070':'#cde';
     var fill=Math.min(Math.max(pct,0),100);
     var usedK=(used/1000).toFixed(0)+'K',budK=(budget/1000).toFixed(0)+'K';
-    var galM=(budget/22611).toFixed(0)+'M gal';
+    var galM=(used*22611/1e6).toFixed(1)+' / '+(budget*22611/1e6).toFixed(0)+'M gal';
     var over=pct>100;
     return '<div class="wt-gauge-card" style="background:'+bgCard+';border:1.5px solid '+borderCard+';border-radius:12px;padding:10px 8px 8px;width:132px;break-inside:avoid">'
       +'<div style="font-size:10.5px;font-weight:700;color:#1a5c2e;text-align:center;margin-bottom:6px;height:34px;overflow:hidden;line-height:1.25">'+label+'</div>'
