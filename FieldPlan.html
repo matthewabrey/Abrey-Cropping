@@ -6014,6 +6014,8 @@ function splSave(){
   s.sprayers.forEach(function(sp,i){
     var g=function(id){return document.getElementById('spl-'+id+'-'+i);};
     sp.on=g('on').checked;sp.bowser=g('bw').checked;sp.tank=+g('tk').value||6000;sp.haDay=+g('ha').value||120;
+    var fx=function(v,d){var m=/^(\d{1,2})(?::|\.)?(\d{2})?$/.exec(String(v||'').trim());if(!m||+m[1]>23||+(m[2]||0)>59)return d;return String(+m[1]).padStart(2,'0')+':'+(m[2]||'00');};
+    sp.start=fx(g('st').value,'06:30');sp.end=fx(g('en').value,'17:00');
   });
   s.ahead=+(document.getElementById('spl-ahead').value)||3;
   var mt=parseFloat(document.getElementById('spl-mint').value);s.minTemp=isNaN(mt)?5:mt;
@@ -6082,8 +6084,9 @@ function rOmPlist(keep){
     units.sort(function(a,b){return a.rec.date.localeCompare(b.rec.date)||b.ha-a.ha;});
     var groups=[];units.forEach(function(x){if(groups.indexOf(x.grp)<0)groups.push(x.grp);});
     var sprayers=S.sprayers.filter(function(s){return s.on;}).map(function(s){return {s:s,cap:s.haDay||120,used:0,pos:null,last:null,jobs:[]};});
-    var SPL_YARD={n:'Wretham yard',c:[52.463387,0.82968]};               // ///tribune.pronouns.crescendo — sprayers parked here, fill point
-    var SPL_FILLS=[SPL_YARD,{n:'Euston fill point',c:[52.363748,0.808682]}]; // ///composts.rents.bets
+    var SPL_YARD={n:'Wretham yard',c:[52.463387,0.82968],store:'Wretham'};               // ///tribune.pronouns.crescendo — sprayers parked here, fill point
+    var SPL_FILLS=[SPL_YARD,{n:'Euston fill point',c:[52.363748,0.808682],store:'Euston'}, // ///composts.rents.bets
+      {n:'darkens fill point (///darkens.invest.confining)',c:[52.357926,0.730645],store:null}]; // water only — no chemical stored
     function nearFill(p){var b=SPL_FILLS[0],bd=1e9;SPL_FILLS.forEach(function(f){var d=splKm(p,f.c);if(d<bd){bd=d;b=f;}});return {f:b,km:bd};}
     function grpsOf(fids){var g=[];fids.forEach(function(f){var x=fgrp[f]||'?';if(g.indexOf(x)<0)g.push(x);});return g.join(', ');}
     function mkEntry(r,fids,part){return {rec:r,grp:grpsOf(fids),fids:fids,ha:fids.reduce(function(a,f){return a+r.fields[f].ha;},0),part:part};}
@@ -6095,7 +6098,7 @@ function rOmPlist(keep){
         if(hf.length)held.push(mkEntry(r,hf,false));
         if(ok.length){var crop=r.fields[ok[0]].crop;pool.push({rec:r,rest:ok,n0:ok.length,crop:crop,fam:splFam(crop),key:r.key,prods:r.prods,glyph:r.glyph});}
       });
-      sprayers.forEach(function(sp){sp.pos=SPL_YARD.c;sp.km=0;sp.fills=0;sp.L=0;});
+      sprayers.forEach(function(sp){sp.pos=SPL_YARD.c;sp.km=0;sp.fills=0;sp.L=0;sp.take=[];sp.touched=[];sp.skip=[];});
       function overdue(r){return Math.max(0,Math.round((new Date(TOM)-new Date(r.date))/864e5));}
       function nearestField(p,fl){var bi=0,bd=1e9;fl.forEach(function(f,i){var d=splKm(p,cen(f));if(d<bd){bd=d;bi=i;}});return {i:bi,km:bd};}
       for(var guard=0;guard<300;guard++){
@@ -6171,7 +6174,10 @@ function rOmPlist(keep){
         function fill(atPos,mid,before){
           var amt=Math.min(tank-inTank,left-inTank);   // top the tank up to full, or to exactly what's still needed
           if(sp.s.bowser){var atYard=splKm(atPos,SPL_YARD.c)<0.5;job.steps.push({t:'fill',L:amt,top:inTank>0.5,at:atYard?'Wretham yard':mid?'bowser meets him in '+(fname[mid]||mid):'bowser meets him'+(before?' before '+(fname[before]||before):''),bf:atYard?null:nearFill(atPos).f.n});}
-          else {var nfp=nearFill(atPos);sp.km+=nfp.km*(mid?2:1);job.steps.push({t:'fill',L:amt,top:inTank>0.5,at:nfp.f.n,km:nfp.km,mid:mid});atPos=nfp.f.c;}
+          else {var nfp=nearFill(atPos);sp.km+=nfp.km*(mid?2:1);job.steps.push({t:'fill',L:amt,top:inTank>0.5,at:nfp.f.n,km:nfp.km,mid:mid,nostore:!nfp.f.store});atPos=nfp.f.c;}
+          var st0=job.steps[job.steps.length-1];if(sp.s.bowser&&st0.bf&&!(nearFill(atPos).f.store))st0.nostore=true;
+          if(st0.nostore&&amt>0.5){var haC=amt/(r.wv||200);st0.take=r.prods.map(function(p){return {n:p.n,q:(+p.rate||0)*haC,u:p.u||''};});
+            (sp.take=sp.take||[]).push({at:sp.s.bowser&&st0.bf?st0.bf:st0.at,ref:r.ref,items:st0.take});}
           sp.fills++;inTank+=amt;sp.lastFill={step:job.steps[job.steps.length-1],room:tank-inTank};return atPos;
         }
         var cur=sp.pos;
@@ -6193,9 +6199,14 @@ function rOmPlist(keep){
       notReached.sort(function(a,b){return a.rec.date.localeCompare(b.rec.date);});
       return {held:held,notReached:notReached};
     }
-    var DAY0=6.5,BRK=[[9,9.25],[12,12.5],[15,15.25]],WORKH=10.5-1; // drivers start 6:30, breaks 9:00 (15 min), 12:00 (30), 3:00 (15)
-    function offBreak(t){BRK.forEach(function(b){if(t>=b[0]&&t<b[1])t=b[1];});return t;}
-    function addWork(t,h){t=offBreak(t);BRK.forEach(function(b){if(t<b[0]&&t+h>b[0]){h-=b[0]-t;t=b[1];}});return t+h;} // work h hours from t, stopping for breaks
+    // working hours per driver (default 6:30am–5pm); a finish earlier than the start means he works overnight into tomorrow
+    // breaks 9:00 (15 min), 12:00 (30), 3:00 (15) whenever they fall inside his hours. Times are hours from midnight today (30 = 6am tomorrow).
+    var BRK=[[9,9.25],[12,12.5],[15,15.25],[33,33.25],[36,36.5],[39,39.25]];
+    function splT(v,d){var m=/^(\d{1,2})(?::|\.)?(\d{2})?$/.exec(String(v||'').trim());return m?(+m[1])+(+(m[2]||0))/60:d;}
+    function spHours(sp){var a=splT(sp.s.start,6.5),b=splT(sp.s.end,17);if(b<=a)b+=24;var br=BRK.filter(function(x){return x[0]>=a&&x[1]<=b;});
+      return {a:a,b:b,br:br,work:(b-a)-br.reduce(function(t,x){return t+x[1]-x[0];},0)};}
+    function offBreak(t,br){br.forEach(function(b){if(t>=b[0]&&t<b[1])t=b[1];});return t;}
+    function addWork(t,h,br){t=offBreak(t,br);br.forEach(function(b){if(t<b[0]&&t+h>b[0]){h-=b[0]-t;t=b[1];}});return t+h;} // work h hours from t, stopping for breaks
     var MINT=S.minTemp!=null?+S.minTemp:5, MAXW=S.maxWind!=null?+S.maxWind:10, MAXG=S.maxGust!=null?+S.maxGust:18;
     function wxRate(h){ // h = list of hourly {w,g,p,pp,t}
       var cls=h.map(function(x){if(x.w>MAXW+2||x.g>MAXG+4||x.p>=0.3||x.t<MINT)return 'r';if(x.w<=MAXW&&x.g<=MAXG&&x.p<0.1&&x.pp<40)return 'g';return 'a';});
@@ -6205,18 +6216,18 @@ function rOmPlist(keep){
     function render(W,wxErr){
       // a short weather window means less can be done: cap each sprayer to what fits in the good hours
       var winH=null;
-      if(W){var hs=Object.keys(W).map(function(g){var o=W[g].hourOk||{};return Object.keys(o).filter(function(h){return o[h]!=='r'&&+h+1>NOWH;}).length;}).filter(function(x){return x>0;});
-        if(hs.length){hs.sort(function(a,b){return a-b;});winH=hs[Math.floor(hs.length/2)];}}
-      sprayers.forEach(function(sp){var full=sp.s.haDay||120;sp.full=full;
-        if(winH!==null&&winH<9.5){sp.cap=Math.max(0,Math.round(full/WORKH*winH*0.75));sp.short=winH;}else{sp.cap=full;sp.short=null;}});
+      sprayers.forEach(function(sp){var full=sp.s.haDay||120;sp.full=full;var H=sp.H=spHours(sp),from=Math.max(H.a,Math.floor(NOWH));winH=null;
+        if(W){var hs=Object.keys(W).map(function(g){var o=W[g].hourOk||{},c=0;for(var h=Math.floor(from);h<H.b;h++)if(o[h]&&o[h]!=='r')c++;return c;}).filter(function(x){return x>0;});
+          if(hs.length){hs.sort(function(a,b){return a-b;});winH=hs[Math.floor(hs.length/2)];}}
+        if(winH!==null&&winH<(H.b-H.a)-1){sp.cap=Math.max(0,Math.round(full/H.work*winH*0.75));sp.short=winH;}else{sp.cap=full;sp.short=null;}});
       var res=build(W);
       var tk=function(sp){return sp.s.tank||6000;};
       // predicted start: sprayer's day runs from the first good hour; each rec starts when he's free AND the weather at that farm is right
-      function fmtH(h){var hh=Math.floor(h),mm=Math.round((h-hh)*60/15)*15;if(mm===60){hh++;mm=0;}return (hh>12?hh-12:hh)+(mm?':'+String(mm).padStart(2,'0'):'')+(hh>=12?'pm':'am');}
-      function okFrom(g,t){var w=W&&W[g];if(!w||!w.hourOk)return {h:t,why:''};
-        for(var h=Math.max(6,Math.floor(t));h<17;h++){if(w.hourOk[h]==='g')return {h:Math.max(t,h),why:h>t+0.01?'weather right from '+fmtH(h):''};}
-        for(var h2=Math.max(6,Math.floor(t));h2<17;h2++){if(w.hourOk[h2]==='a')return {h:Math.max(t,h2),why:'marginal — best from '+fmtH(h2),marg:true};}
-        return {h:null,why:'no sprayable hours left at '+g};}
+      function fmtH(h){var hh=Math.floor(h),mm=Math.round((h-hh)*60/15)*15;if(mm===60){hh++;mm=0;}var nx=hh>=24;hh=hh%24;return (hh>12?hh-12:hh===0?12:hh)+(mm?':'+String(mm).padStart(2,'0'):'')+(hh>=12?'pm':'am')+(nx?' (tomorrow)':'');}
+      function okFrom(g,t,end){end=end||17;var w=W&&W[g];if(!w||!w.hourOk)return {h:t,why:''};
+        for(var h=Math.floor(t);h<end;h++){if(w.hourOk[h]==='g')return {h:Math.max(t,h),why:h>t+0.01?'weather right from '+fmtH(h):''};}
+        for(var h2=Math.floor(t);h2<end;h2++){if(w.hourOk[h2]==='a')return {h:Math.max(t,h2),why:'marginal — best from '+fmtH(h2),marg:true};}
+        return {h:null,why:'no sprayable hours left in his working hours at '+g};}
       function whyHour(g,h){var w=W&&W[g];if(!w||!w.hrsRaw)return '';var bits=[];w.hrsRaw.forEach(function(x){if(x.hr===Math.floor(h)-1||x.hr===Math.floor(h)){}});
         var before=w.hrsRaw.filter(function(x){return x.hr>=6&&x.hr<Math.floor(h);});
         if(!before.length)return '';
@@ -6225,7 +6236,7 @@ function rOmPlist(keep){
         if(before.some(function(x){return x.p>=0.1||x.pp>=40;}))bits.push('rain before then');
         return bits.join(', ');}
       var spHtml=sprayers.map(function(sp){
-        var rows='',n=0,clock=null,rate=Math.max(5,(sp.full||sp.s.haDay||120)/WORKH);
+        var H=sp.H||spHours(sp),rows='',n=0,clock=null,rate=Math.max(5,(sp.full||sp.s.haDay||120)/H.work);
         sp.jobs.forEach(function(j){
           var x=j.u,r=x.rec;if(!j.steps.some(function(s){return s.t==='field';}))return;
           var ha=0,L=0,fills=0;j.steps.forEach(function(s){if(s.t==='field'){ha+=s.ha;L+=s.L;}else if(s.t==='fill')fills++;});
@@ -6235,18 +6246,18 @@ function rOmPlist(keep){
           var od=r.date<TOM?'<span style="background:#c0392b;color:#fff;border-radius:3px;padding:0 5px;font-size:10px">'+Math.round((new Date(TOM)-new Date(r.date))/864e5)+'d overdue</span>':'<span style="color:var(--tx3);font-size:10.5px">due '+splFmtD(r.date)+'</span>';
           // timeline for this rec
           var g1=fgrp[(j.steps.filter(function(s){return s.t==='field';})[0]||{}).f];
-          var t0=clock===null?Math.max(DAY0,Math.ceil(NOWH*4)/4):clock; // no earlier than now
+          var t0=clock===null?Math.max(H.a,Math.ceil(NOWH*4)/4):clock; // no earlier than now
           if(clock!==null)t0+=(j.wash.l>=3?1:j.wash.l>=2?0.5:j.wash.l>=1?0.25:0); // wash-out time
-          var ok=okFrom(g1,t0),tStart=ok.h!==null?offBreak(ok.h):null,tEnd=null,timeHtml='';
+          var ok=okFrom(g1,t0,H.b),tStart=ok.h!==null?offBreak(ok.h,H.br):null,tEnd=null,timeHtml='';
           if(tStart!==null){
             var nFill=j.steps.filter(function(s){return s.t==='fill';}).length,nF=j.steps.filter(function(s){return s.t==='field';}).length;
             var fillKm=j.steps.reduce(function(a,s){return a+(s.t==='fill'&&s.km?s.km*(s.mid?2:1):0);},0)*1.3;
-            tEnd=addWork(tStart,ha/rate+nFill*(sp.s.bowser?0.25:0.33)+fillKm/40+nF*0.08);
-            if(clock===null&&tStart>DAY0){var wy=whyHour(g1,tStart);timeHtml='⏱ <b>Start ~'+fmtH(tStart)+'</b>'+(wy?' <span style="color:var(--tx3)">('+wy+')</span>':'');}
+            tEnd=addWork(tStart,ha/rate+nFill*(sp.s.bowser?0.25:0.33)+fillKm/40+nF*0.08,H.br);
+            if(clock===null&&tStart>H.a){var wy=whyHour(g1,tStart);timeHtml='⏱ <b>Start ~'+fmtH(tStart)+'</b>'+(wy?' <span style="color:var(--tx3)">('+wy+')</span>':'');}
             else timeHtml='⏱ <b>Start ~'+fmtH(tStart)+'</b>'+(ok.why?' <span style="color:var(--tx3)">('+ok.why+')</span>':'');
-            timeHtml+=' → finish ~'+fmtH(tEnd)+(tEnd>17?' <span style="color:#c0392b">— runs past 5pm</span>':'')+(ok.marg?' <span style="color:#e67e22">marginal weather</span>':'');
+            timeHtml+=' → finish ~'+fmtH(tEnd)+(tEnd>H.b+0.01?' <span style="color:#c0392b">— runs past his finish time ('+fmtH(H.b)+')</span>':'')+(ok.marg?' <span style="color:#e67e22">marginal weather</span>':'');
             clock=tEnd;
-          } else timeHtml='<span style="color:#c0392b">⏱ No good spraying window left today ('+omaEsc(ok.why)+')</span>';
+          } else timeHtml='<span style="color:#c0392b">⏱ No good spraying window left in his hours ('+omaEsc(ok.why)+')</span>';
           rows+='<tr style="background:#f6f8f5"><td colspan="5" style="padding:6px 10px;font-size:12px"><b>Rec '+r.ref+'</b> '+omaEsc(r.name)+' &nbsp;'+od
             +' <span style="font-size:10.5px;color:var(--tx3)">· '+(x.crop||'?')+' · '+r.wv+' L/ha · '+ha.toFixed(1)+' ha · '+Math.round(L).toLocaleString()+' L = '+fills+' fill'+(fills===1?'':'s')+'</span>'+wxs
             +'<div style="font-size:10.5px;color:#555;margin-top:2px">'+r.prods.map(function(p){return omaEsc(p.n)+' '+(+p.rate||'')+' '+(p.u||'');}).join(' + ')+'</div>'
@@ -6257,13 +6268,20 @@ function rOmPlist(keep){
               return;
             }
             if(s.t==='fill'){
-              rows+='<tr><td></td><td colspan="4" style="padding:3px 10px;font-size:11px;color:#0d47a1">⛽ '+(s.top?'Top up':'Fill')+' '+Math.round(s.L).toLocaleString()+' L — '+(sp.s.bowser&&s.bf?'<b>'+omaEsc(s.at)+'</b> <span style="color:var(--tx3)">(bowser reloads at '+omaEsc(s.bf)+')</span>':'<b>'+omaEsc(s.at)+'</b>'+(s.carry?' <span style="color:#1a5c2e">(includes '+Math.round(s.carry).toLocaleString()+' L to carry on into Rec '+s.carryRef+')</span>':'')+(s.km>0.3?' <span style="color:var(--tx3)">~'+(s.km*1.3).toFixed(0)+' km by road'+(s.mid?', then back to finish '+omaEsc(fname[s.mid]||s.mid):'')+'</span>':''))+'</td></tr>';
+              rows+='<tr><td></td><td colspan="4" style="padding:3px 10px;font-size:11px;color:#0d47a1">⛽ '+(s.top?'Top up':'Fill')+' '+Math.round(s.L).toLocaleString()+' L — '+(sp.s.bowser&&s.bf?'<b>'+omaEsc(s.at)+'</b> <span style="color:var(--tx3)">(bowser reloads at '+omaEsc(s.bf)+')</span>':'<b>'+omaEsc(s.at)+'</b>'+(s.carry?' <span style="color:#1a5c2e">(includes '+Math.round(s.carry).toLocaleString()+' L to carry on into Rec '+s.carryRef+')</span>':'')+(s.km>0.3?' <span style="color:var(--tx3)">~'+(s.km*1.3).toFixed(0)+' km by road'+(s.mid?', then back to finish '+omaEsc(fname[s.mid]||s.mid):'')+'</span>':''))
+                +(s.take?'<div style="margin-top:2px;padding:3px 8px;background:#fff3e0;border-left:3px solid #e67e22;color:#8a4b00">🧪 <b>No chemical stored here — take with you:</b> '+s.take.map(function(t){return omaEsc(t.n)+' '+(Math.round(t.q*10)/10)+' '+omaEsc(t.u.replace(/\/ha$/i,''));}).join(' + ')+'</div>':'')+'</td></tr>';
             } else {
               n++;rows+='<tr style="border-top:1px solid var(--bd)"><td style="padding:3px 10px;font-size:11.5px;color:var(--tx3);width:28px">'+n+'</td><td style="padding:3px 10px;font-size:12px;font-weight:600">'+omaEsc(fname[s.f]||s.f)+' <span style="font-weight:400;font-size:10.5px;color:var(--tx3)">'+omaEsc(fgrp[s.f]||'')+'</span>'+(s.mid?' <span style="font-size:10px;color:#0d47a1">(refill part way)</span>':'')+'</td><td style="padding:3px 10px;font-size:11px;color:var(--tx3)">'+omaEsc(r.fields[s.f].crop)+'</td><td style="padding:3px 10px;font-size:11.5px;text-align:right">'+s.ha.toFixed(1)+' ha</td><td style="padding:3px 10px;font-size:11px;text-align:right;color:var(--tx3)">'+Math.round(s.L).toLocaleString()+' L</td></tr>';
             }
           });
         });
         if(rows)rows='<tr><td colspan="5" style="padding:4px 10px;font-size:11px;color:var(--tx3)">🚜 Starts and finishes at Wretham yard</td></tr>'+rows;
+        if(rows&&sp.take&&sp.take.length){ // chemical has to be got out to a water-only fill point
+          var tot={},at=[];sp.take.forEach(function(t){if(at.indexOf(t.at)<0)at.push(t.at);t.items.forEach(function(i){var k=i.n+'|'+i.u;tot[k]=(tot[k]||0)+i.q;});});
+          rows='<tr><td colspan="5" style="padding:6px 10px;background:#fff3e0;border-left:4px solid #e67e22;font-size:11.5px;color:#8a4b00">🧪 <b>Chemical to get out today</b> — he fills at '+at.map(omaEsc).join(', ')+' where no chemical is stored: '
+            +Object.keys(tot).map(function(k){var p=k.split('|');return '<b>'+omaEsc(p[0])+'</b> '+(Math.round(tot[k]*10)/10)+' '+omaEsc(p[1].replace(/\/ha$/i,''));}).join(', ')
+            +'.<br>He needs to arrange it before he gets there: take it with him from the store, or have the bowser driver, a manager or someone else drop it off there.</td></tr>'+rows;
+        }
         // plain-English reasons for the order
         var why=sp.jobs.filter(function(j){return j.steps.some(function(s){return s.t==='field';});}).map(function(j,k){
           var w=j.why,r=j.u.rec,bits=[];
@@ -6297,7 +6315,7 @@ function rOmPlist(keep){
           return '<li style="margin:2px 0"><b>'+(k+1)+'. Rec '+r.ref+'</b> — '+bits.join('; ')+'.</li>';
         }).join('');
         var whyHtml=why?'<div style="padding:8px 14px;background:#f2f6fb;border-bottom:1px solid var(--bd);font-size:11.5px;color:#333"><b style="color:#0d47a1">Why this order</b><ul style="margin:4px 0 2px 4px;padding:0;list-style:none">'+why+'</ul>'
-          +'<div style="font-size:10.5px;color:var(--tx3);margin-top:3px">Start times assume he sprays about '+Math.round(rate)+' ha an hour (his ha/day over a 6:30am–5pm day less breaks at 9:00 for 15 min, 12:00 for 30 and 3:00 for 15 — finish times allow for the breaks), ~20 min per fill plus road time, and wait for the weather window at each farm. Within each rec the fields go in the shortest driving order from where the tank is filled (back-tracking removed). Refills are at the nearest fill point'+(sp.s.bowser?' — here the bowser comes to him':'')+'; if only a little is left in the tank he tops up before the next field rather than running dry part way in. Stops at '+sp.cap+' ha (his ha/day setting).</div></div>':'';
+          +'<div style="font-size:10.5px;color:var(--tx3);margin-top:3px">Start times assume he sprays about '+Math.round(rate)+' ha an hour (his ha/day spread over his working hours, less breaks at 9:00 for 15 min, 12:00 for 30 and 3:00 for 15 where they fall in his hours — finish times allow for the breaks), ~20 min per fill plus road time, and wait for the weather window at each farm. Within each rec the fields go in the shortest driving order from where the tank is filled (back-tracking removed). Refills are at the nearest fill point'+(sp.s.bowser?' — here the bowser comes to him':'')+'; if only a little is left in the tank he tops up before the next field rather than running dry part way in. Stops at '+sp.cap+' ha (his ha/day setting).</div></div>':'';
         return '<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px;break-inside:avoid">'
           +'<div style="padding:8px 14px;background:#1a5c2e;color:#fff;font-weight:700;font-size:14px">'+omaEsc(sp.s.name)+' <span style="font-weight:400;font-size:11.5px">— '+sp.used.toFixed(0)+' of '+sp.cap+' ha'+(sp.short!==null&&sp.cap<sp.full?' (cut from '+sp.full+' — only ~'+sp.short+' good spraying hours)':'')+' · '+sp.fills+' fill'+(sp.fills===1?'':'s')+' · '+Math.round(sp.L).toLocaleString()+' L · ~'+Math.round(sp.km*1.3)+' km road travel · '+(sp.s.bowser?'bowser with him':'no bowser')+' · '+(sp.s.tank||6000).toLocaleString()+' L tank</span></div>'
           +whyHtml+(rows?'<table style="border-collapse:collapse;width:100%">'+rows+'</table>':'<div style="padding:10px 14px;font-size:11.5px;color:var(--tx3)">Nothing allocated.</div>')+'</div>';
@@ -6312,7 +6330,9 @@ function rOmPlist(keep){
         +'<div style="display:flex;gap:14px;flex-wrap:wrap">'+S.sprayers.map(function(sp,i){var dis=window._splCanEdit?'':' disabled';
           return '<div style="border:1px solid var(--bd);border-radius:8px;padding:6px 10px;'+(sp.on?'':'opacity:.55')+'"><label style="font-weight:700"><input type="checkbox" id="spl-on-'+i+'"'+(sp.on?' checked':'')+dis+'> '+omaEsc(sp.name)+'</label>'
           +'<div style="margin-top:4px"><label><input type="checkbox" id="spl-bw-'+i+'"'+(sp.bowser?' checked':'')+dis+'> bowser with him</label></div>'
-          +'<div style="margin-top:4px">Tank <input id="spl-tk-'+i+'" value="'+(sp.tank||6000)+'" style="width:56px"'+dis+'> L · <input id="spl-ha-'+i+'" value="'+(sp.haDay||120)+'" style="width:44px"'+dis+'> ha/day</div></div>';}).join('')
+          +'<div style="margin-top:4px">Tank <input id="spl-tk-'+i+'" value="'+(sp.tank||6000)+'" style="width:56px"'+dis+'> L · <input id="spl-ha-'+i+'" value="'+(sp.haDay||120)+'" style="width:44px"'+dis+'> ha/day</div>'
+          +'<div style="margin-top:4px">Hours <input id="spl-st-'+i+'" value="'+omaEsc(sp.start||'06:30')+'" style="width:48px"'+dis+'> to <input id="spl-en-'+i+'" value="'+omaEsc(sp.end||'17:00')+'" style="width:48px"'+dis+'></div>'
+          +'<div style="font-size:10px;color:var(--tx3)">24-hour clock; overnight is fine, e.g. 18:30 to 06:30</div></div>';}).join('')
         +'<div style="border:1px solid var(--bd);border-radius:8px;padding:6px 10px;background:#fff8e1">Don’t spray below <input id="spl-mint" value="'+(S.minTemp!=null?S.minTemp:5)+'" style="width:34px"'+(window._splCanEdit?'':' disabled')+'> °C<div style="font-size:10.5px;color:var(--tx3);margin-top:4px">hours colder than this don’t count;<br>the list says when it warms up enough</div></div>'
         +'<div style="border:1px solid var(--bd);border-radius:8px;padding:6px 10px;background:#e3f2fd">Max wind <input id="spl-maxw" value="'+(S.maxWind!=null?S.maxWind:10)+'" style="width:34px"'+(window._splCanEdit?'':' disabled')+'> mph, gusts <input id="spl-maxg" value="'+(S.maxGust!=null?S.maxGust:18)+'" style="width:34px"'+(window._splCanEdit?'':' disabled')+'> mph<div style="font-size:10.5px;color:var(--tx3);margin-top:4px">good up to these; marginal up to 2 mph<br>(gusts 4 mph) over; above that, no spraying</div></div>'
         +'<div style="border:1px solid var(--bd);border-radius:8px;padding:6px 10px">Look ahead <input id="spl-ahead" value="'+(S.ahead||3)+'" style="width:34px"'+(window._splCanEdit?'':' disabled')+'> days<div style="font-size:10.5px;color:var(--tx3);margin-top:4px">recs due up to then are included</div></div></div>'
@@ -6327,7 +6347,7 @@ function rOmPlist(keep){
           +Object.keys(waitDrill).map(function(k){var x=waitDrill[k];var sd=Object.keys(x.sow).map(function(f){return x.sow[f];}).sort()[0];return '<div style="padding:4px 14px;border-top:1px solid var(--bd);font-size:11.5px">Rec <b>'+x.rec.ref+'</b> '+omaEsc(x.rec.name)+' — '+x.fids.length+' field'+(x.fids.length===1?'':'s')+': '+x.fids.map(function(f){return omaEsc(fname[f]||f);}).join(', ')+' <span style="color:var(--tx3)">(sowing date '+splFmtD(sd)+')</span></div>';}).join('')+'</div>':'')
         +(res.held.length?'<div style="background:#fff;border:1px solid #c0392b;border-radius:10px;overflow:hidden;margin-bottom:16px"><div style="padding:8px 14px;background:#c0392b;color:#fff;font-weight:700;font-size:13px">Held for weather ('+res.held.length+')</div>'+listRows(res.held)+'</div>':'')
         +(res.notReached.length?'<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px"><div style="padding:8px 14px;background:#7f8c8d;color:#fff;font-weight:700;font-size:13px">Not reached today — next in line ('+res.notReached.length+')</div>'+listRows(res.notReached)+'</div>':'')
-        +'<details style="background:#fff;border:1px solid var(--bd);border-radius:10px;margin-bottom:16px"><summary style="padding:8px 14px;background:#1a5c2e;color:#fff;font-weight:700;font-size:13px;cursor:pointer;border-radius:10px">📋 Rules the planner follows when putting the day together (click to open)</summary><ol style="margin:8px 0;padding:0 14px 0 34px;font-size:11.5px;line-height:1.5"><li><b>Where the day starts</b> — Drivers start at 6:30am with breaks at 9:00 (15 min), 12:00 (30 min) and 3:00 (15 min); the list is for today, made in the morning once yesterday’s spraying is in Omnia, and starts no earlier than the time it’s opened. All sprayers park and fill at Wretham yard, and finish there. The other fill point is Euston. Fills are at the nearest fill point, or wherever the bowser is if one is running.</li><li><b>Weather</b> — An hour is only sprayable if wind and gusts are within the maximum wind settings (default 10 mph, gusts 18), no rain and at least the minimum temperature setting. Farms with no sprayable hours are held. A day’s hectares are cut back to the good hours at each farm.</li><li><b>What goes first</b> — Overdue veg always goes first (even glyphosate — the ALL CLEAR afterwards is shown); veg not yet drilled is held instead. Then most overdue first, veg ahead of cereals. Glyphosate goes at the end of the day because anything after it needs an ALL CLEAR. Recs not due yet are only brought forward if there’s time.</li><li><b>Wash-outs</b> — Wash-outs come from the ALL CLEAR wash-out chart, and the planner avoids them where it can. If the next rec is the same mix, or the same mix plus extra products, the tank carries on with no wash-out, even if that rec is further down the list.</li><li><b>Tank and fills</b> — One mix runs across farms, with a fill only when needed. Top up before a field rather than running dry part way in (top up if less than 500 L or a quarter of the field is left).</li><li><b>Route</b> — Within a rec the fields go in the shortest driving order from the fill point, with back-tracking removed.</li><li><b>Keep groups together</b> — If a rec can’t all be done today, don’t split a tight group of fields (within ~2 km of each other). Do whole groups, nearest first. Pick up small outlying fields instead (e.g. top Euston fields, then top up for Holdens). Leave the group, e.g. the three Rymer fields, in one hit for the next spray day. A rec that’s already been started today is never split again. A big new rec can still be started in spare time.</li><li><b>Not sprayable yet</b> — Fields marked Done, Part done or Abandoned in Omnia drop out. Pre-emergence or crop-stage recs are held until the crop is drilled. Recs planned over 30 days ago with nothing recorded go under "Left off".</li></ol><div style="padding:0 14px 10px;font-size:10.5px;color:var(--tx3)">Want a new rule? Tell Claude what you’d have done differently and it gets added here and built into the planner.</div></details>'
+        +'<details style="background:#fff;border:1px solid var(--bd);border-radius:10px;margin-bottom:16px"><summary style="padding:8px 14px;background:#1a5c2e;color:#fff;font-weight:700;font-size:13px;cursor:pointer;border-radius:10px">📋 Rules the planner follows when putting the day together (click to open)</summary><ol style="margin:8px 0;padding:0 14px 0 34px;font-size:11.5px;line-height:1.5"><li><b>Where the day starts</b> — Each driver’s working hours are set under his name (default 6:30am–5pm; overnight is fine, e.g. 18:30 to 06:30 is 12 hours across two days), with breaks at 9:00 (15 min), 12:00 (30 min) and 3:00 (15 min) where they fall in his hours; the list is for today, made in the morning once yesterday’s spraying is in Omnia, and starts no earlier than the time it’s opened. All sprayers park and fill at Wretham yard, and finish there. The other fill point is Euston. Fills are at the nearest fill point, or wherever the bowser is if one is running.</li><li><b>Weather</b> — An hour is only sprayable if wind and gusts are within the maximum wind settings (default 10 mph, gusts 18), no rain and at least the minimum temperature setting. Farms with no sprayable hours are held. A day’s hectares are cut back to the good hours at each farm.</li><li><b>What goes first</b> — Overdue veg always goes first (even glyphosate — the ALL CLEAR afterwards is shown); veg not yet drilled is held instead. Then most overdue first, veg ahead of cereals. Glyphosate goes at the end of the day because anything after it needs an ALL CLEAR. Recs not due yet are only brought forward if there’s time.</li><li><b>Wash-outs</b> — Wash-outs come from the ALL CLEAR wash-out chart, and the planner avoids them where it can. If the next rec is the same mix, or the same mix plus extra products, the tank carries on with no wash-out, even if that rec is further down the list.</li><li><b>Tank and fills</b> — One mix runs across farms, with a fill only when needed. Fill points: Wretham yard and Euston (chemical stored), and ///darkens.invest.confining (water only — the list says what chemical to take there, and the driver arranges for it to be taken out by himself, the bowser driver, a manager or someone else). Top up before a field rather than running dry part way in (top up if less than 500 L or a quarter of the field is left).</li><li><b>Route</b> — Within a rec the fields go in the shortest driving order from the fill point, with back-tracking removed.</li><li><b>Keep groups together</b> — If a rec can’t all be done today, don’t split a tight group of fields (within ~2 km of each other). Do whole groups, nearest first. Pick up small outlying fields instead (e.g. top Euston fields, then top up for Holdens). Leave the group, e.g. the three Rymer fields, in one hit for the next spray day. A rec that’s already been started today is never split again. A big new rec can still be started in spare time.</li><li><b>Not sprayable yet</b> — Fields marked Done, Part done or Abandoned in Omnia drop out. Pre-emergence or crop-stage recs are held until the crop is drilled. Recs planned over 30 days ago with nothing recorded go under "Left off".</li></ol><div style="padding:0 14px 10px;font-size:10.5px;color:var(--tx3)">Want a new rule? Tell Claude what you’d have done differently and it gets added here and built into the planner.</div></details>'
         +wxHtml
         +(function(){ // hour-by-hour weather for each farm
           if(!W)return '';var hrsL=[6,7,8,9,10,11,12,13,14,15,16];
@@ -6351,6 +6371,8 @@ function rOmPlist(keep){
         var h=arr[i]&&arr[i].hourly;if(!h)return;var hrs=[];
         h.time.forEach(function(t,k){if(t.slice(0,10)===TOM){var hr=+t.slice(11,13);if(hr>=6&&hr<17)hrs.push({hr:hr,w:h.wind_speed_10m[k],g:h.wind_gusts_10m[k],p:h.precipitation[k],pp:h.precipitation_probability[k]||0,t:h.temperature_2m[k]});}});
         if(!hrs.length)return;
+        var TOM1=splLocalISO(new Date(td.getTime()+864e5)),all=[];
+        h.time.forEach(function(t,k){var d=t.slice(0,10),hr=+t.slice(11,13),ix=d===TOM?hr:d===TOM1?24+hr:-1;if(ix>=0)all.push({hr:ix,w:h.wind_speed_10m[k],g:h.wind_gusts_10m[k],p:h.precipitation[k],pp:h.precipitation_probability[k]||0,t:h.temperature_2m[k]});});
         var hh=function(h){return (h>12?h-12:h)+(h>=12?'pm':'am');};
         var am=hrs.filter(function(x){return x.hr<12;}),pm=hrs.filter(function(x){return x.hr>=12;});
         var ra=wxRate(am),rp=wxRate(pm),rate=wxRate(hrs);
@@ -6362,7 +6384,7 @@ function rOmPlist(keep){
         var warm=hrs.filter(function(x){return x.t>=MINT;}).map(function(x){return x.hr;});
         if(!warm.length)best='never reaches '+MINT+'°C';
         else if(warm[0]>6&&best.indexOf('–')<0&&best!=='none')best+=' — not before '+hh(warm[0])+' ('+MINT+'°C)';
-        var hourOk={};hrs.forEach(function(x){var g0=x.w<=MAXW&&x.g<=MAXG&&x.p<0.1&&x.pp<40&&x.t>=MINT,a0=!(x.w>MAXW+2||x.g>MAXG+4||x.p>=0.3||x.t<MINT);hourOk[x.hr]=g0?'g':(a0?'a':'r');});
+        var hourOk={};all.forEach(function(x){var g0=x.w<=MAXW&&x.g<=MAXG&&x.p<0.1&&x.pp<40&&x.t>=MINT,a0=!(x.w>MAXW+2||x.g>MAXG+4||x.p>=0.3||x.t<MINT);hourOk[x.hr]=g0?'g':(a0?'a':'r');});
         W[x.g]={hourOk:hourOk,hrsRaw:hrs,warmFrom:warm.length?warm[0]:null,rate:rate==='red'&&(ra!=='red'||rp!=='red')?'amber':rate,best:best,wind:mm(function(x){return x.w;}),gust:mm(function(x){return x.g;}),rain:hrs.reduce(function(a,x){return a+x.p;},0).toFixed(1),temp:mm(function(x){return x.t;})};
       });
       render(W,false);
@@ -6832,18 +6854,22 @@ function rOmStock(){
         r.tip=Object.keys(needBy[pk]||{}).sort().join('\n');
       });
       var rows=Object.keys(rowsM).map(function(k){var r=rowsM[k];r.order=r.need>0.001?Math.max(r.need-Math.max(r.qty||0,0),0):0;return r;});
-      rows.sort(function(a,b){var ao=a.order>0.01?0:1,bo=b.order>0.01?0:1;return ao-bo||(a.type||'').localeCompare(b.type||'')||a.name.localeCompare(b.name);});
+      // 25/11/26: chemicals A–Z first, then fertiliser, then seed (each A–Z)
+      var secOf=function(r){var t=(r.type||'').toLowerCase();return /fert|manure/.test(t)?1:/seed/.test(t)?2:0;};
+      rows.sort(function(a,b){return secOf(a)-secOf(b)||a.name.toLowerCase().localeCompare(b.name.toLowerCase());});
       var nOrder=rows.filter(function(r){return r.order>0.01;}).length;
       var cov=OM_STORES[st]||[],covTxt;
       if(cov.indexOf('__REST')>=0){var oth=[];for(var o2 in OM_STORES){if(o2!==st)(OM_STORES[o2]||[]).forEach(function(x){if(x!=='__REST')oth.push(x);});}covTxt='all farms except '+oth.join(', ')+(OM_STOCK_IGNORE.length?' and '+OM_STOCK_IGNORE.join(', '):'');}
       else covTxt=cov.join(', ');
+      var lastSec=-1,secName=['Chemicals','Fertiliser','Seed'];
       var trs=rows.map(function(r){
+        var sec=secOf(r),hdr='';if(sec!==lastSec){lastSec=sec;hdr='<tr><td colspan="4" style="padding:5px 10px;background:#eef3ee;font-size:11px;font-weight:700;color:#1a5c2e;letter-spacing:.3px">'+secName[sec].toUpperCase()+'</td></tr>';}
         var tipA=r.tip?' title="'+('Needed for:\n'+r.tip).replace(/"/g,'&quot;')+'" ':'';
         var elsewhere='';
         if(r.order>0.01&&r.pk)elsewhere=Object.keys(OM_STORES).filter(function(o){return o!==st;}).map(function(o){var x=stockAt(o,r.pk);var spare=x?x.qty-((needArea[o]||{})[r.pk]||0):0;return spare>0.01?o+' has '+fmt(spare,x.unit)+' spare':'';}).filter(Boolean).join(', ');
         var left=r.qty!==null?(r.qty||0)-r.need:null;
-        return '<tr style="border-top:1px solid var(--bd)">'
-          +'<td style="padding:4px 10px;font-size:11.5px;font-weight:600">'+r.name+'<span style="font-weight:400;font-size:10px;color:var(--tx3)"> '+(r.type||'')+'</span></td>'
+        return hdr+'<tr style="border-top:1px solid var(--bd)">'
+          +'<td style="padding:4px 10px;font-size:11.5px;font-weight:600'+(r.order>0.01?';color:#c0392b':'')+'">'+r.name+'</td>'
           +'<td style="padding:4px 10px;font-size:11.5px;text-align:right;white-space:nowrap;'+(r.qty!==null&&r.qty<0?'color:#c0392b':'')+'">'+(r.qty===null?'<span style="color:var(--tx3)">none</span>':fmt(r.qty,r.unit))+'</td>'
           +'<td '+tipA+' style="padding:4px 10px;font-size:11.5px;text-align:right;white-space:nowrap;color:#8a4500;'+(r.tip?'cursor:help;':'')+'">'+(r.need>0.001?fmt(r.need,r.unit):'—')+'</td>'
           +'<td style="padding:4px 10px;font-size:11.5px;text-align:right;white-space:nowrap;font-weight:700;color:'+(r.order>0.01?'#c0392b':'#1a5c2e')+'">'
