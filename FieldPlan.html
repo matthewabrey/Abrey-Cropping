@@ -5769,7 +5769,7 @@ function rOmRecs(){
       var prods=b.prods.length?'<div style="font-size:10.5px;color:var(--tx3);margin-top:2px">'+b.prods.join(' + ')+'</div>':'';
       return '<div style="padding:8px 12px;border-bottom:1px solid var(--bd)">'
         +'<div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">'
-        +'<span style="font-weight:700;font-size:12.5px">#'+b.num+' '+b.name+'</span>'
+        +'<span style="font-weight:700;font-size:12.5px"><span class="om-rl" data-ref="'+b.year.slice(2)+'.'+b.num+'">Rec '+b.year.slice(2)+'.'+b.num+'</span> '+b.name+'</span>'
         +'<span style="font-size:10.5px;color:var(--tx3)">'+b.type+' · '+b.year+' · planned '+(b.date?b.date.slice(8,10)+'/'+b.date.slice(5,7):'—')+'</span>'
         +'<span style="font-size:10.5px;color:var(--tx3)">'+b.n+' field'+(b.n===1?'':'s')+' · '+b.ha.toFixed(1)+'ha'+(showOut?' · <strong style="color:#c05000">'+b.dn+'/'+b.n+' done</strong>':'')+'</span>'
         +'</div>'+prods+chips+'</div>';
@@ -5789,23 +5789,25 @@ function rOmRecs(){
     // area awaiting the sprayer: crop protection recs issued (not Draft, has a date), fields not yet done — by due status, Edwardstone store vs Wretham store (all others)
     var td=new Date(),today=td.getFullYear()+'-'+String(td.getMonth()+1).padStart(2,'0')+'-'+String(td.getDate()).padStart(2,'0');
     var wk=new Date(td.getTime()+7*864e5),in7=wk.getFullYear()+'-'+String(wk.getMonth()+1).padStart(2,'0')+'-'+String(wk.getDate()).padStart(2,'0');
-    var AW={od:{o:0,e:0,on:0,en:0},d7:{o:0,e:0,on:0,en:0},lt:{o:0,e:0,on:0,en:0}};
+    var AW={od:{o:0,e:0,on:0,en:0,lo:[],le:[]},d7:{o:0,e:0,on:0,en:0,lo:[],le:[]},lt:{o:0,e:0,on:0,en:0,lo:[],le:[]}};
+    window._awDet=window._awDet||{};var tk=TYPE.slice(0,4);
     o2.concat(s2).forEach(function(b){
       if(b.type!==TYPE||b.status==='Draft'||!b.date)return;
       var c=AW[b.date<today?'od':(b.date<=in7?'d7':'lt')];
       b.outIds.forEach(function(x){var ha=fha[x]||0;var cid=b.cid[x],sw=sowOf[cid]||'';
         if(b.needsCrop&&sw&&sw>today&&!drilled[cid]){awWait+=ha;awWaitN++;return;}
-        if(fgrp[x]==='Edwardstone'){c.e+=ha;c.en++;}else{c.o+=ha;c.on++;}});
+        var it={ref:b.year.slice(2)+'.'+b.num,name:b.name,date:b.date,prods:b.prods,fid:x,fn:fname[x]||x,grp:fgrp[x]||'',ha:ha};
+        if(fgrp[x]==='Edwardstone'){c.e+=ha;c.en++;c.le.push(it);}else{c.o+=ha;c.on++;c.lo.push(it);}});
     });
-    function awCell(ha,n,bold){return '<td style="padding:6px 12px;text-align:right;'+(bold?'font-weight:700;':'')+'"><span style="font-size:15px">'+ha.toFixed(1)+' ha</span> <span style="font-size:10.5px;color:var(--tx3)">('+n+')</span></td>';}
-    function awRow(lbl,col,c){return '<tr style="border-top:1px solid var(--bd)"><td style="padding:6px 12px;font-weight:700;color:'+col+'">'+lbl+'</td>'+awCell(c.o,c.on)+awCell(c.e,c.en)+awCell(c.o+c.e,c.on+c.en,1)+'</tr>';}
+    function awCell(ha,n,bold,key,list,lbl){if(key&&list&&list.length){window._awDet[key]={t:title+' — '+lbl,l:list};}var clk=key&&list&&list.length?' onclick="omAwShow(\''+key+'\')" title="Click to see which recs and fields" class="om-awc"':'';return '<td'+clk+' style="padding:6px 12px;text-align:right;'+(clk?'cursor:pointer;':'')+(bold?'font-weight:700;':'')+'"><span style="font-size:15px">'+ha.toFixed(1)+' ha</span> <span style="font-size:10.5px;color:var(--tx3)">('+n+')</span></td>';}
+    function awRow(lbl,col,c,k){return '<tr style="border-top:1px solid var(--bd)"><td style="padding:6px 12px;font-weight:700;color:'+col+'">'+lbl+'</td>'+awCell(c.o,c.on,0,tk+k+'o',c.lo,lbl+', all farms except Edwardstone')+awCell(c.e,c.en,0,tk+k+'e',c.le,lbl+', Edwardstone')+awCell(c.o+c.e,c.on+c.en,1,tk+k+'t',c.lo.concat(c.le),lbl+', all farms')+'</tr>';}
     var tot={o:AW.od.o+AW.d7.o+AW.lt.o,e:AW.od.e+AW.d7.e+AW.lt.e,on:AW.od.on+AW.d7.on+AW.lt.on,en:AW.od.en+AW.d7.en+AW.lt.en};
     return '<div style="font-size:12px;font-weight:700;color:var(--g1);margin-bottom:6px">'+title+'</div>'
       +'<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:6px;max-width:760px"><table style="width:100%;border-collapse:collapse;font-size:12.5px">'
       +'<tr style="background:var(--c2);font-size:11px;color:var(--tx3)"><th style="padding:6px 12px;text-align:left;font-weight:normal">Due</th><th style="padding:6px 12px;text-align:right;font-weight:normal">All farms except Edwardstone</th><th style="padding:6px 12px;text-align:right;font-weight:normal">Edwardstone</th><th style="padding:6px 12px;text-align:right;font-weight:normal">Total</th></tr>'
-      +awRow('Overdue','#c0392b',AW.od)+awRow('Due in next 7 days','#e67e22',AW.d7)+awRow('Later','#555',AW.lt)
-      +'<tr style="border-top:2px solid var(--bd);background:#f6f8f5"><td style="padding:6px 12px;font-weight:700">Total</td>'+awCell(tot.o,tot.on,1)+awCell(tot.e,tot.en,1)+awCell(tot.o+tot.e,tot.on+tot.en,1)+'</tr>'
-      +'</table></div><div style="font-size:10.5px;color:var(--tx3);margin-bottom:14px">'+TYPE+' recs that are published or started, by their planned date: each field not yet '+noun+' counts (bracket = field applications; a field on two recs counts twice). Overdue = planned before today. Drafts and recs still waiting for a due date are not included.'+(awWait>0.05?' <b>'+awWait.toFixed(1)+' ha ('+awWaitN+' field application'+(awWaitN===1?'':'s')+') waiting for drilling not counted</b> — pre-emergence or crop-stage recs where Omnia’s sowing date is still ahead and no drilling is recorded.':'')+'</div>';
+      +awRow('Overdue','#c0392b',AW.od,'od')+awRow('Due in next 7 days','#e67e22',AW.d7,'d7')+awRow('Later','#555',AW.lt,'lt')
+      +'<tr style="border-top:2px solid var(--bd);background:#f6f8f5"><td style="padding:6px 12px;font-weight:700">Total</td>'+(function(){var lo=AW.od.lo.concat(AW.d7.lo,AW.lt.lo),le=AW.od.le.concat(AW.d7.le,AW.lt.le);return awCell(tot.o,tot.on,1,tk+'To',lo,'Total, all farms except Edwardstone')+awCell(tot.e,tot.en,1,tk+'Te',le,'Total, Edwardstone')+awCell(tot.o+tot.e,tot.on+tot.en,1,tk+'Tt',lo.concat(le),'Total, all farms');})()+'</tr>'
+      +'</table></div><div style="font-size:10.5px;color:var(--tx3);margin-bottom:14px">'+TYPE+' recs that are published or started, by their planned date: each field not yet '+noun+' counts — <b>click any figure to see the recs and fields</b> (bracket = field applications; a field on two recs counts twice). Overdue = planned before today. Drafts and recs still waiting for a due date are not included.'+(awWait>0.05?' <b>'+awWait.toFixed(1)+' ha ('+awWaitN+' field application'+(awWaitN===1?'':'s')+') waiting for drilling not counted</b> — pre-emergence or crop-stage recs where Omnia’s sowing date is still ahead and no drilling is recorded.':'')+'</div>';
     }
     var awHtml=awBuild('Crop protection','Total area awaiting sprayer','sprayed')+awBuild('Fertiliser','Total area awaiting fertiliser spreader','spread');
     var yrBtn=function(v,lbl){return '<button onclick="window._omYr=\''+v+'\';rOm()" style="font-size:11.5px;padding:4px 14px;border-radius:5px;border:1px solid '+(yrSel===v?'#1a5c2e':'var(--bd)')+';background:'+(yrSel===v?'#1a5c2e':'#fff')+';color:'+(yrSel===v?'#fff':'#333')+';cursor:pointer">'+lbl+'</button>';};
@@ -6893,6 +6895,90 @@ function rOmFlist(keep){
     }).catch(function(){render(null,true);});
   });});});});
 }
+
+
+// ═══ Rec pop-ups (25/11/26) — click any rec number on the Omnia pages to see what's in it; click an "awaiting" figure to see the recs behind it ═══
+var _omRC={};
+function omRecData(cb){
+  var now=Date.now();if(_omRC.p&&now-_omRC.t<600000){cb(_omRC);return;}
+  omniaCsv('Plans.csv',function(p){omniaCsv('Records.csv',function(r){omniaCsv('Fields.csv',function(f){_omRC={t:now,p:p||[],r:r||[],f:f||[]};cb(_omRC);});});});
+}
+function omModal(title,html){
+  var o=document.getElementById('om-modal');if(o)o.remove();
+  o=document.createElement('div');o.id='om-modal';
+  o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:99999;display:flex;align-items:flex-start;justify-content:center;padding:40px 12px;overflow:auto';
+  o.innerHTML='<div style="background:#fff;border-radius:10px;max-width:920px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,.25);font-family:inherit">'
+    +'<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:#1a5c2e;color:#fff;border-radius:10px 10px 0 0"><b style="flex:1;font-size:14px">'+title+'</b>'
+    +'<button onclick="document.getElementById(\'om-modal\').remove()" style="background:none;border:1px solid rgba(255,255,255,.6);color:#fff;border-radius:5px;padding:2px 10px;cursor:pointer">✕ Close</button></div>'
+    +'<div id="om-modal-body" style="padding:12px 16px;font-size:12px;max-height:75vh;overflow:auto">'+html+'</div></div>';
+  o.addEventListener('click',function(e){if(e.target===o)o.remove();});
+  document.body.appendChild(o);
+}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){var o=document.getElementById('om-modal');if(o)o.remove();}});
+function omFmtD(iso){return iso?(+iso.slice(8,10))+'/'+(+iso.slice(5,7))+'/'+iso.slice(2,4):'—';}
+function omRecShow(ref){
+  var m=/^(\d\d)\.(\d+)$/.exec(String(ref||''));if(!m)return;
+  var year='20'+m[1],num=m[2];
+  omModal('Rec '+ref,'<div style="color:var(--tx3)">Loading from Omnia…</div>');
+  omRecData(function(D){
+    var rows=D.p.filter(function(p){return p.HoldingId==='15859'&&p.Year===year&&p.PlanNumber===num;});
+    var body=document.getElementById('om-modal-body');if(!body)return;
+    if(!rows.length){body.innerHTML='<div style="color:#c0392b">Rec '+ref+' not found in the Omnia export.</div>';return;}
+    var p0=rows[0],keys={};rows.forEach(function(p){keys[p.PlanKey]=1;});
+    var fname={},fgrp={},farea={};D.f.forEach(function(r){if(r.HoldingId==='15859'){fname[r.FieldId]=r.FieldName;fgrp[r.FieldId]=r.FieldGroup;farea[r.FieldId]=parseFloat(r.WorkingArea||'')||0;}});
+    var rec={};D.r.forEach(function(r){if(keys[r.PlanKey]&&r.FieldId){var x=rec[r.FieldId]||(rec[r.FieldId]={});x.st=r.CroppingStatus||x.st;var d=(r.EndTime||r.StartTime||'').slice(0,10);if(d&&(!x.d||d<x.d))x.d=d;if(r.Name)x.who=r.Name;}});
+    var prods={},flds={};
+    rows.forEach(function(p){
+      if(p.ProductName){var q=prods[p.ProductName]||(prods[p.ProductName]={n:p.ProductName,g:p.ProductGroup||'',u:p.ProductRateUnit||'',rates:[]});var rt=parseFloat(p.ProductRate||'');if(!isNaN(rt))q.rates.push(rt);}
+      var f=flds[p.FieldId]||(flds[p.FieldId]={id:p.FieldId,ha:parseFloat(p.Area||'')||farea[p.FieldId]||0,rates:{}});
+      if(p.ProductName)f.rates[p.ProductName]=parseFloat(p.ProductRate||'')||0;
+    });
+    var fl=Object.keys(flds).map(function(k){return flds[k];}).sort(function(a,b){return (fgrp[a.id]||'').localeCompare(fgrp[b.id]||'')||(fname[a.id]||'').localeCompare(fname[b.id]||'');});
+    var haT=0,haD=0,need={};
+    fl.forEach(function(f){haT+=f.ha;var st=(rec[f.id]||{}).st;if(st==='Done'||st==='Abandoned')haD+=f.ha;else Object.keys(f.rates).forEach(function(n){need[n]=(need[n]||0)+f.rates[n]*f.ha;});});
+    var stCol={Done:'#1a5c2e',PartiallyDone:'#e67e22',Abandoned:'#7f8c8d'};
+    var pl=Object.keys(prods).map(function(k){var q=prods[k],mn=Math.min.apply(null,q.rates.length?q.rates:[0]),mx=Math.max.apply(null,q.rates.length?q.rates:[0]);
+      return '<tr style="border-top:1px solid var(--bd)"><td style="padding:3px 8px;font-weight:600">'+omaEsc(q.n)+'</td><td style="padding:3px 8px;color:var(--tx3)">'+omaEsc(q.g)+'</td><td style="padding:3px 8px;text-align:right">'+(Math.round(mn*1000)/1000)+(mx-mn>0.001?'–'+(Math.round(mx*1000)/1000)+' (variable rate)':'')+' '+omaEsc(q.u)+'</td><td style="padding:3px 8px;text-align:right">'+(need[k]?(Math.round(need[k]*10)/10).toLocaleString()+' '+omaEsc(q.u.replace(/\/ha$/i,'')):'—')+'</td></tr>';}).join('');
+    body.innerHTML='<div style="font-size:13px;margin-bottom:6px"><b>'+omaEsc((p0.PlanName||'').trim())+'</b></div>'
+      +'<div style="color:#555;margin-bottom:10px">'+omaEsc(p0.Type||'')+' · status <b>'+omaEsc(p0.Status||'(none)')+'</b> · planned <b>'+omFmtD((p0.ApplicationDate||'').slice(0,10))+'</b>'+(p0.WaterVolume?' · '+(+p0.WaterVolume)+' L/ha water':'')+(p0.GrowthStageName?' · '+omaEsc(p0.GrowthStageName):'')
+      +' · '+fl.length+' fields, '+haT.toFixed(1)+' ha — <b style="color:#1a5c2e">'+haD.toFixed(1)+' ha done</b>, <b style="color:#c0392b">'+(haT-haD).toFixed(1)+' ha to do</b></div>'
+      +'<table style="width:100%;border-collapse:collapse;margin-bottom:12px"><tr style="background:var(--c2);font-size:11px;color:var(--tx3)"><th style="padding:3px 8px;text-align:left;font-weight:normal">Product</th><th style="padding:3px 8px;text-align:left;font-weight:normal">Type</th><th style="padding:3px 8px;text-align:right;font-weight:normal">Rate</th><th style="padding:3px 8px;text-align:right;font-weight:normal">Still needed</th></tr>'+pl+'</table>'
+      +'<table style="width:100%;border-collapse:collapse"><tr style="background:var(--c2);font-size:11px;color:var(--tx3)"><th style="padding:3px 8px;text-align:left;font-weight:normal">Field</th><th style="padding:3px 8px;text-align:left;font-weight:normal">Farm</th><th style="padding:3px 8px;text-align:right;font-weight:normal">ha</th><th style="padding:3px 8px;text-align:left;font-weight:normal">Status</th></tr>'
+      +fl.map(function(f){var x=rec[f.id]||{};return '<tr style="border-top:1px solid var(--bd)"><td style="padding:3px 8px;font-weight:600">'+omaEsc(fname[f.id]||f.id)+'</td><td style="padding:3px 8px;color:var(--tx3)">'+omaEsc(fgrp[f.id]||'')+'</td><td style="padding:3px 8px;text-align:right">'+f.ha.toFixed(1)+'</td><td style="padding:3px 8px;color:'+(stCol[x.st]||'#c0392b')+'">'+(x.st==='Done'?'✓ done '+omFmtD(x.d):x.st==='PartiallyDone'?'part done '+omFmtD(x.d):x.st==='Abandoned'?'abandoned':'not done yet')+'</td></tr>';}).join('')+'</table>';
+  });
+}
+function omAwShow(key){
+  var d=(window._awDet||{})[key];if(!d)return;
+  var by={},order=[];d.l.forEach(function(it){if(!by[it.ref]){by[it.ref]={ref:it.ref,name:it.name,date:it.date,prods:it.prods||[],f:[],ha:0};order.push(it.ref);}by[it.ref].f.push(it);by[it.ref].ha+=it.ha;});
+  order.sort(function(a,b){return by[a].date.localeCompare(by[b].date)||a.localeCompare(b);});
+  var tot=d.l.reduce(function(a,x){return a+x.ha;},0);
+  omModal(omaEsc(d.t)+' — '+tot.toFixed(1)+' ha','<div style="color:var(--tx3);margin-bottom:8px">'+order.length+' rec'+(order.length===1?'':'s')+', '+d.l.length+' field application'+(d.l.length===1?'':'s')+'. Click a rec number for its full details.</div>'
+    +order.map(function(r){var x=by[r];return '<div style="border:1px solid var(--bd);border-radius:8px;padding:7px 10px;margin-bottom:8px">'
+      +'<div><span class="om-rl" data-ref="'+x.ref+'">Rec <b>'+x.ref+'</b></span> '+omaEsc(x.name)+' <span style="color:var(--tx3)">· planned '+omFmtD(x.date)+' · '+x.ha.toFixed(1)+' ha</span></div>'
+      +(x.prods.length?'<div style="font-size:11px;color:#555;margin-top:2px">'+x.prods.map(omaEsc).join(' + ')+'</div>':'')
+      +'<div style="font-size:11.5px;margin-top:3px">'+x.f.sort(function(a,b){return a.grp.localeCompare(b.grp)||a.fn.localeCompare(b.fn);}).map(function(f){return omaEsc(f.fn)+' <span style="color:var(--tx3)">('+omaEsc(f.grp)+', '+f.ha.toFixed(1)+' ha)</span>';}).join(', ')+'</div></div>';}).join(''));
+}
+// make every rec number on the Omnia pages clickable
+function omLinkRefs(root){
+  if(!root)return;
+  var tw=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null),nodes=[],n;
+  while((n=tw.nextNode())){var pe=n.parentNode;if(!pe||pe.closest('.om-rl,script,style,button,input,textarea,select,option,a,#om-modal .om-nolink'))continue;
+    if(/\bRec\s+\d\d\.\d{1,4}\b/.test(n.nodeValue))nodes.push(n);
+    else if(/^\s*\d\d\.\d{1,4}\s*$/.test(n.nodeValue)&&pe.tagName==='B'){var pv=pe.previousSibling,pt=pv&&pv.nodeType===3?pv.nodeValue:'';var y=+n.nodeValue.trim().slice(0,2);if(/Rec\s*$/.test(pt)||(y>=20&&y<=35&&!pv))pe.classList.add('om-rl'),pe.setAttribute('data-ref',n.nodeValue.trim());}}
+  nodes.forEach(function(t){
+    var frag=document.createDocumentFragment(),s=t.nodeValue,re=/\bRec\s+(\d\d\.\d{1,4})\b/g,last=0,mm;
+    while((mm=re.exec(s))){frag.appendChild(document.createTextNode(s.slice(last,mm.index)));var sp=document.createElement('span');sp.className='om-rl';sp.setAttribute('data-ref',mm[1]);sp.textContent=mm[0];frag.appendChild(sp);last=mm.index+mm[0].length;}
+    frag.appendChild(document.createTextNode(s.slice(last)));t.parentNode.replaceChild(frag,t);
+  });
+}
+(function(){
+  var st=document.createElement('style');st.textContent='.om-rl{cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px}.om-rl:hover{color:#0d47a1}.om-awc:hover{background:#eef4fb}';document.head.appendChild(st);
+  document.addEventListener('click',function(e){var t=e.target.closest&&e.target.closest('.om-rl');if(t&&t.getAttribute('data-ref')){e.preventDefault();e.stopPropagation();omRecShow(t.getAttribute('data-ref'));}},true);
+  var go=function(){var om=document.getElementById('om');if(!om){setTimeout(go,1000);return;}var tmr=null;
+    new MutationObserver(function(){clearTimeout(tmr);tmr=setTimeout(function(){omLinkRefs(om);var md=document.getElementById('om-modal');if(md)omLinkRefs(md);},60);}).observe(om,{childList:true,subtree:true});
+    new MutationObserver(function(){var md=document.getElementById('om-modal');if(md)omLinkRefs(md);}).observe(document.body,{childList:true});};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();
+})();
 function rOm(){
   var el=document.getElementById('om'); if(!el)return;
   var sub=window._omSub||'rec';
