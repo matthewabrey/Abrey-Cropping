@@ -5939,8 +5939,8 @@ function rOmAlerts(keepTicks){
         +'<div>'+(function(){ // previous rec number first, then which fields were sprayed when
             var byRef={};b.hit.forEach(function(h){(byRef[h.ref]=byRef[h.ref]||[]).push(h);});
             return Object.keys(byRef).sort().map(function(rf){var pn='';for(var pk in plans){if(plans[pk].ref===rf){pn=plans[pk].name;break;}}
-              return '<b>'+(rf||'?')+'</b> '+(pn?'“'+omaEsc(pn)+'”':(b.prevIsRef?'':b.est+' '+omaEsc(b.prev)))+' – '+byRef[rf].map(function(h){return omaEsc(h.n)+' sprayed '+omaFmt(h.d);}).join(', ');}).join('; ');
-          })()+newB+' → Rec <b>'+b.ref+'</b> “'+omaEsc(b.name)+'” <span style="color:var(--tx3)">· '+days+' days after</span></div>'
+              return '<b>'+(rf||'?')+'</b> '+(pn?'<b>“'+omaEsc(pn)+'”</b>':(b.prevIsRef?'':b.est+' '+omaEsc(b.prev)))+' – '+byRef[rf].map(function(h){return omaEsc(h.n)+' sprayed '+omaFmt(h.d);}).join(', ');}).join('; ');
+          })()+newB+' → Rec <b>'+b.ref+'</b> <b>“'+omaEsc(b.name)+'”</b> <span style="color:var(--tx3)">· '+days+' days after</span></div>'
         +b.groups.map(function(g){
           return '<div style="margin-top:5px;display:flex;gap:8px;align-items:flex-start;'+(g.t&&!b.allT?'opacity:.5;':'')+'"><input type="checkbox" '+(g.t?'checked':'')+' onclick="omaTick(\''+g.key+'\',this.checked)" title="Tick when this due date has been entered in Omnia" style="width:17px;height:17px;cursor:pointer;margin-top:1px;flex:none"><div style="padding-left:8px;border-left:3px solid #1a5c2e">'
             +'Due date <b style="color:#1a5c2e;font-size:13.5px">'+omaFmt(g.due)+(g.dueEnd!==g.due?'–'+omaFmt(g.dueEnd):'')+'</b>'+(g.due2?' <span style="color:var(--tx3)">(window '+omaFmt(g.due)+' – '+omaFmt(g.due2)+')</span>':'')
