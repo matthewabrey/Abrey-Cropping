@@ -5828,7 +5828,7 @@ var OMA_EST=['Rackham Farms','Rackham','Pickenham','Wretham','Euston','Chandler'
 // Reads "<head> <n>[<sep><m>] days after <prev>" however it's spaced or punctuated:
 // "X - 7 days after Y", "X due 2 days after Y", "X 7-10 days after Y", "X 7 - 10 days after Y", "X 7 to 10 days after Y", "X - 7days after Y".
 // Returns [whole, head, minDays, maxDays|null, previousLabel] or null.
-var OMA_AFTER_RE=/^(.*?)\s*(?:days?|day's|dys?)\s*a\s*f\s*t\s*e\s*r\s*(.+?)\s*$/i; // tolerant of typos like "daysa fter"
+var OMA_AFTER_RE=/^(.*?)\s*(?:days?|day's|dys?)\s*(?:a\s*f\s*t\s*e?\s*r?|a\s*f\s*e\s*r)\s+(.+?)\s*$/i; // tolerant of typos like "daysa fter"
 var OMA_AFTER={test:function(n){return !!this.exec(n);},exec:function(n){
   var s=String(n||'').replace(/\s+/g,' ').trim(), m=OMA_AFTER_RE.exec(s); if(!m)return null;
   var pre=m[1], prev=m[2];
@@ -5887,6 +5887,8 @@ function rOmAlerts(keepTicks){
     });
     // completed sprays per field, keyed by estate|label
     var sprayed={},sprRef={}; // sprRef: which rec number did each field's previous spray
+    var labRef={}; // estate|label -> rec numbers carrying that label (for the Waiting box)
+    Object.keys(plans).forEach(function(k){var b=plans[k],h=OMA_AFTER.test(b.name)?OMA_AFTER.exec(b.name)[1]:b.name,sp=omaSplit(h);if(!sp.est||!sp.label)return;var kk=sp.est+'|'+omaNorm(sp.label);(labRef[kk]=labRef[kk]||[]).push(b);});
     rrows.forEach(function(r){
       if(r.HoldingId!=='15859'||!r.PlanKey||!plans[r.PlanKey])return;
       if(r.CroppingStatus!=='Done'&&r.CroppingStatus!=='PartiallyDone')return;
@@ -5904,13 +5906,16 @@ function rOmAlerts(keepTicks){
       var b=plans[k];
       if(b.status==='Abandoned'||b.status==='Complete'||b.status==='Started')return;
       var awaiting=b.status==='Draft'||!b.date; if(!awaiting)return;
-      if(!/\bafter\b/i.test(b.name))return;
+      if(!/\baft|\bafer\b/i.test(b.name)){if(/\d\s*d(?:a)?ys?\b|\bd[uiy]e\b/i.test(b.name))bad.push(b);return;} // looks like a timed rec but has no 'after' — flag it
       var m=OMA_AFTER.exec(b.name);
       if(!m){bad.push(b);return;}
       var sp=omaSplit(m[1]); if(!sp.est){bad.push(b);return;}
       b.est=sp.est;b.label=sp.label;b.prev=m[4].trim();b.a=+m[2];b.b=m[3]?+m[3]:null;
-      var rn=/\b(\d\d)\.(\d+)\b/.exec(b.prev); // previous spray given as a rec number
-      var gk=(rn&&sprayed['#'+rn[1]+'.'+rn[2]])?'#'+rn[1]+'.'+rn[2]:sp.est+'|'+omaNorm(b.prev),got=sprayed[gk]||{},gref=sprRef[gk]||{};b.prevIsRef=!!(rn&&sprayed[gk]);
+      // previous spray given as rec number(s): "26.105", ".105 & 26.106" (a bare .105 takes this rec's year)
+      var refs=[],rm,rre=/(?:^|[^\d.])(\d\d)?\.(\d{1,4})\b/g;while((rm=rre.exec(b.prev)))refs.push((rm[1]||b.ref.split('.')[0])+'.'+rm[2]);
+      var rn=refs.length?[0]:null,got,gref,gk;
+      if(refs.some(function(x){return sprayed['#'+x];})){got={};gref={};refs.forEach(function(x){var m=sprayed['#'+x]||{},q=sprRef['#'+x]||{};Object.keys(m).forEach(function(f){if(!got[f]||m[f]<got[f]){got[f]=m[f];gref[f]=q[f];}});});b.prevIsRef=true;b.prevRefs=refs;}
+      else{gk=sp.est+'|'+omaNorm(b.prev);got=sprayed[gk]||{};gref=sprRef[gk]||{};b.prevIsRef=false;}
       var fl=Object.keys(b.fields);
       b.hit=fl.filter(function(f){return got[f];}).map(function(f){return {n:fname[f]||('#'+f),d:got[f],ref:gref[f]||''};}).sort(function(x,y){return x.d.localeCompare(y.d)||x.n.localeCompare(y.n);});
       b.miss=fl.filter(function(f){return !got[f];}).map(function(f){return fname[f]||('#'+f);}).sort();
@@ -5956,7 +5961,7 @@ function rOmAlerts(keepTicks){
       +'<h2 style="font-size:16px;font-weight:normal;color:var(--g1);margin-bottom:2px">Draft Rec Alerts</h2>'
       +'<div style="font-size:11px;color:var(--tx3);margin-bottom:12px">Live from the Omnia daily export (~4am). Recs named <b>“Estate Label – 7 days after Label”</b> (or “7-10 days after”) with no application date are matched to the completed spray on the same fields. Due date = date sprayed + days; fields sprayed within 3 days of each other are grouped, with a due date range from the first to the last field sprayed. Tick once the date is in Omnia.</div>'
       +box('● Ready — due date can now go in','#c0392b',ready.length?ready.map(card).join(''):'<div style="padding:10px 14px;font-size:11.5px;color:var(--tx3)">Nothing waiting for a date.</div>',nOpen+(ready.length>nOpen?' + '+(ready.length-nOpen)+' ticked':''))
-      +box('◌ Waiting — previous spray not done yet','#7f8c8d',waiting.length?waiting.map(function(b){return '<div style="padding:7px 14px;border-top:1px solid var(--bd);font-size:12px">Rec <b>'+b.ref+'</b> “'+omaEsc(b.name)+'” — waiting for <b>'+b.est+' '+omaEsc(b.prev)+'</b> on '+(b.miss.length)+' field'+(b.miss.length===1?'':'s')+'</div>';}).join(''):'<div style="padding:10px 14px;font-size:11.5px;color:var(--tx3)">None.</div>',waiting.length)
+      +box('◌ Waiting — previous spray not done yet','#7f8c8d',waiting.length?waiting.map(function(b){return '<div style="padding:7px 14px;border-top:1px solid var(--bd);font-size:12px">Rec <b>'+b.ref+'</b> “'+omaEsc(b.name)+'” — waiting for <b>'+b.est+' '+omaEsc(b.prev)+(b.prevIsRef||/\b\d\d\.\d+\b/.test(b.prev)?'':(function(){var c=(labRef[b.est+'|'+omaNorm(b.prev)]||[]).filter(function(x){return x.ref!==b.ref&&Object.keys(b.fields).some(function(f){return x.fields[f];});});return c.length?' '+c.map(function(x){return x.ref;}).join(', '):'';})())+'</b>'+(b.prevIsRef||/\b\d\d\.\d+\b/.test(b.prev)||(labRef[b.est+'|'+omaNorm(b.prev)]||[]).some(function(x){return x.ref!==b.ref&&Object.keys(b.fields).some(function(f){return x.fields[f];});})?'':' <span style="color:#c0392b">(no rec with that name on these fields yet)</span>')+' on '+(b.miss.length)+' field'+(b.miss.length===1?'':'s')+'</div>';}).join(''):'<div style="padding:10px 14px;font-size:11.5px;color:var(--tx3)">None.</div>',waiting.length)
       +(bad.length?box('? Name not understood — check the format','#e67e22',bad.map(function(b){return '<div style="padding:7px 14px;border-top:1px solid var(--bd);font-size:12px">Rec <b>'+b.ref+'</b> “'+omaEsc(b.name)+'”</div>';}).join(''),bad.length):'')
       +'</div>';
   });});});
